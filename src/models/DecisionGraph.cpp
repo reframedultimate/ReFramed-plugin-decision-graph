@@ -1,16 +1,45 @@
 #include "decision-graph/models/DecisionGraph.hpp"
+#include "rfcommon/Frame.hpp"
 #include <cassert>
 
 // ----------------------------------------------------------------------------
-void DecisionGraph::addNode(uint16_t state)
+void DecisionGraph::clear()
 {
-    states_.insertOrGet(state, 0);
+    nodeLookup_.clear();
+    nodes_.clearCompact();
+    prevNodeIdx_ = -1;
+    edges_.clearCompact();
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraph::addEdge(uint16_t from, uint16_t to, uint32_t frame, float damage)
+void DecisionGraph::addState(int fighterIdx, const rfcommon::Frame& frame)
 {
-    assert(states_.find(from) != states_.end());
-    assert(states_.find(to) != states_.end());
-    edges_.push(Edge{from, to, frame, damage});
+    const auto& state = frame.fighter(fighterIdx);
+
+    Node node(
+        state.motion(),
+        state.status(),
+        state.hitStatus(),
+        true, true, true, true  // TODO
+    );
+
+    auto nodeLookupResult = nodeLookup_.insertOrGet(NodeHash(node), -1);
+
+    // New unique state
+    if (nodeLookupResult->value() == -1)
+    {
+        nodes_.push(node);
+        nodeLookupResult->value() = nodes_.count() - 1;
+
+        const int nodeIdx = nodeLookupResult->value();
+        if (prevNodeIdx_ != -1)
+            addEdge(prevNodeIdx_, nodeIdx);
+        prevNodeIdx_ = nodeIdx;
+    }
+}
+
+// ----------------------------------------------------------------------------
+void DecisionGraph::addEdge(int from, int to)
+{
+    edges_.emplace(from, to);
 }

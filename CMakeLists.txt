@@ -15,11 +15,14 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     SOURCES
         "src/views/SequenceSearchView.cpp"
         "src/models/DecisionGraph.cpp"
+        "src/models/GraphBuilder.cpp"
         "src/DecisionGraphPlugin.cpp"
         "src/Plugin.cpp"
 	HEADERS
-        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
+        "include/${PLUGIN_NAME}/listeners/GraphBuilderListener.hpp"
         "include/${PLUGIN_NAME}/models/DecisionGraph.hpp"
+        "include/${PLUGIN_NAME}/models/GraphBuilder.hpp"
+        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
         "include/${PLUGIN_NAME}/DecisionGraphPlugin.hpp"
     INCLUDE_DIRECTORIES
         "include"
