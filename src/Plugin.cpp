@@ -19,12 +19,13 @@ static void destroyDecisionGraphPlugin(rfcommon::Plugin* model)
 // to instantiate your plugins. You can have multiple plugins in a single
 // shared libary, but in this case we only have one.
 static RFPluginFactory factories[] = {
-    {createDecisionGraphPlugin, destroyDecisionGraphPlugin, RFPluginType::REALTIME,
-    {"Decision Graph",
-     "misc > misc",  // category > sub-category
-     "TheComet",  // your name
-     "TheComet#5387, @TheComet93",  // various contact details
-     "Analyze decision making"}},
+    {createDecisionGraphPlugin, destroyDecisionGraphPlugin, RFPluginType::REALTIME, {
+         "Decision Graph",
+         "misc > misc",  // category > sub-category
+         "TheComet",  // your name
+         "TheComet#5387, @TheComet93",  // various contact details
+         "Analyze decision making"
+    }},
 
     {0}  // List must be terminated with a NULL or bad things happen!
 };
