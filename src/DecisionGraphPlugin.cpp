@@ -32,12 +32,13 @@ void DecisionGraphPlugin::destroyView(QWidget* view)
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* session)
 {
-    graphBuilder_->clear();
+    graphBuilder_->prepareNew(session->fighterCount());
 
     for (int frameIdx = 0; frameIdx != session->frameCount(); ++frameIdx)
         graphBuilder_->addFrame(session->frame(frameIdx));
 
     graphBuilder_->notifyNewStatsAvailable();
+    graphBuilder_->graph(0).exportDOT("decision_graph.dot", session);
 }
 
 // ----------------------------------------------------------------------------

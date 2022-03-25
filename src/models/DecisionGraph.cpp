@@ -1,45 +1,36 @@
 #include "decision-graph/models/DecisionGraph.hpp"
 #include "rfcommon/Frame.hpp"
-#include <cassert>
+#include "rfcommon/MappingInfo.hpp"
+#include "rfcommon/Session.hpp"
+#include <cstdio>
 
 // ----------------------------------------------------------------------------
-void DecisionGraph::clear()
+void DecisionGraph::exportDOT(const char* fileName, const rfcommon::Session* session) const
 {
-    nodeLookup_.clear();
-    nodes_.clearCompact();
-    prevNodeIdx_ = -1;
-    edges_.clearCompact();
-}
+    FILE* fp = fopen(fileName, "wb");
+    if (fp == nullptr)
+        return;
 
-// ----------------------------------------------------------------------------
-void DecisionGraph::addState(int fighterIdx, const rfcommon::Frame& frame)
-{
-    const auto& state = frame.fighter(fighterIdx);
+    fprintf(fp, "digraph decisions {\n");
 
-    Node node(
-        state.motion(),
-        state.status(),
-        state.hitStatus(),
-        true, true, true, true  // TODO
-    );
-
-    auto nodeLookupResult = nodeLookup_.insertOrGet(NodeHash(node), -1);
-
-    // New unique state
-    if (nodeLookupResult->value() == -1)
+    for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
     {
-        nodes_.push(node);
-        nodeLookupResult->value() = nodes_.count() - 1;
-
-        const int nodeIdx = nodeLookupResult->value();
-        if (prevNodeIdx_ != -1)
-            addEdge(prevNodeIdx_, nodeIdx);
-        prevNodeIdx_ = nodeIdx;
+        const auto& statusMapping = session->mappingInfo().fighterStatus;
+        const rfcommon::String* name = statusMapping.statusToBaseEnumName(nodes[nodeIdx].status());
+        if (name == nullptr)
+            name = statusMapping.statusToFighterSpecificEnumName(nodes[nodeIdx].status(), session->fighterID(0));
+        fprintf(fp, "  n%d [label=\"%s\"];\n", nodeIdx, name ? name->cStr() : "(unknown)");
     }
-}
 
-// ----------------------------------------------------------------------------
-void DecisionGraph::addEdge(int from, int to)
-{
-    edges_.emplace(from, to);
+    for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
+    {
+        fprintf(fp, "  n%d -> n%d [label=\"%d\", weight=%d];\n",
+                edges[edgeIdx].from(),
+                edges[edgeIdx].to(),
+                edges[edgeIdx].weight(),
+                edges[edgeIdx].weight());
+    }
+
+    fprintf(fp, "}\n");
+    fclose(fp);
 }

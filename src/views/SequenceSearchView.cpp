@@ -26,6 +26,6 @@ SequenceSearchView::~SequenceSearchView()
 void SequenceSearchView::onGraphBuilderNewStats()
 {
     ui_->label_frames->setText("Frames: " + QString::number(builder_->numFrames()));
-    ui_->label_nodes->setText("Nodes: " + QString::number(builder_->numNodes()));
-    ui_->label_edges->setText("Edges: " + QString::number(builder_->numEdges()));
+    ui_->label_nodes->setText("Nodes: " + QString::number(builder_->graph(0).nodes.count()));
+    ui_->label_edges->setText("Edges: " + QString::number(builder_->graph(0).edges.count()));
 }

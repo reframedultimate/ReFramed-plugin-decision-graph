@@ -6,6 +6,7 @@
 
 namespace rfcommon {
     class Frame;
+    class Session;
 }
 
 class Node
@@ -27,28 +28,10 @@ public:
             | (static_cast<uint8_t>(opponentInHitstun) << 3))
     {}
 
-    rfcommon::FighterMotion motion() const { return motion_; }
-    rfcommon::FighterStatus status() const { return status_; }
-    rfcommon::FighterHitStatus hitStatus() const { return hitStatus_; }
-    uint8_t flags() const { return flags_; }
-
-    bool inHitlag() const { return !!(flags_ & 0x01); }
-    bool inHitstun() const { return !!(flags_ & 0x02); }
-    bool opponentInHitlag() const { return !!(flags_ & 0x04); }
-    bool opponentInHitstun() const { return !!(flags_ & 0x08); }
-
-private:
-    rfcommon::FighterMotion motion_;
-    rfcommon::FighterStatus status_;
-    rfcommon::FighterHitStatus hitStatus_;
-    uint8_t flags_;
-};
-
-class NodeHash
-{
-public:
-    NodeHash(const Node& node)
-        : hashValue_([&node]() {
+    struct Hasher
+    {
+        typedef rfcommon::HashMapHasher<Node>::HashType HashType;
+        HashType operator()(const Node& node) const {
             const uint32_t motion_l = node.motion().lower();
             const uint16_t status = node.status().value();
             const uint8_t motion_h = node.motion().upper();
@@ -59,51 +42,78 @@ public:
             const uint32_t b = (status << 16) | (motion_h << 8) | (hitStatus << 0);
             const uint32_t c = flags;
             return rfcommon::hash32_combine(rfcommon::hash32_combine(a, b), c);
-        }())
-    {
-    }
-
-    uint32_t value() const
-        { return hashValue_; }
-
-    bool operator==(const NodeHash& other) const
-        { return hashValue_ == other.hashValue_; }
-
-    struct Hasher {
-        typedef rfcommon::HashMapHasher<NodeHash>::HashType HashType;
-        HashType operator()(const NodeHash& nodeHash) const {
-            return nodeHash.value();
         }
     };
 
+    bool operator==(const Node& other) const
+    {
+        return motion_ == other.motion_ &&
+                status_ == other.status_ &&
+                hitStatus_ == other.hitStatus_ &&
+                flags_ == other.flags_;
+    }
+
+    rfcommon::FighterMotion motion() const { return motion_; }
+    rfcommon::FighterStatus status() const { return status_; }
+    rfcommon::FighterHitStatus hitStatus() const { return hitStatus_; }
+    uint8_t flags() const { return flags_; }
+
+    bool inHitlag() const { return !!(flags_ & 0x01); }
+    bool inHitstun() const { return !!(flags_ & 0x02); }
+    bool opponentInHitlag() const { return !!(flags_ & 0x04); }
+    bool opponentInHitstun() const { return !!(flags_ & 0x08); }
+
+    rfcommon::Vector<int> outgoingEdges;
+    rfcommon::Vector<int> incomingEdges;
+
 private:
-    const uint32_t hashValue_;
+    rfcommon::FighterMotion motion_;
+    rfcommon::FighterStatus status_;
+    rfcommon::FighterHitStatus hitStatus_;
+    uint8_t flags_;
 };
 
 class Edge
 {
 public:
     Edge(int from, int to)
-        : from(from), to(to)
+        : from_(from), to_(to)
     {}
 
-    int from, to;
+    struct Hasher {
+        typedef rfcommon::HashMapHasher<Edge>::HashType HashType;
+        HashType operator()(const Edge& edge) const {
+            const uint32_t data[2] = {
+                static_cast<uint32_t>(edge.from()),
+                static_cast<uint32_t>(edge.to())
+            };
+
+            return rfcommon::hash32_jenkins_oaat(&data, 8);
+        }
+    };
+
+    bool operator==(const Edge& other) const
+    {
+        return from_ == other.from_ &&
+                to_ == other.to_;
+    }
+
+    int from() const { return from_; }
+    int to() const { return to_; }
+
+    void addWeight() { weight_++; }
+    int weight() const { return weight_; }
+
+private:
+    int from_, to_;
+    int weight_ = 1;
 };
 
 class DecisionGraph
 {
 public:
-    void clear();
-    void addState(int fighterIdx, const rfcommon::Frame& frame);
+    void exportDOT(const char* fileName, const rfcommon::Session* session) const;
 
-    void addEdge(int from, int to);
-
-    int numNodes() const { return nodes_.count(); }
-    int numEdges() const { return edges_.count(); }
-
-private:
-    rfcommon::HashMap<NodeHash, int, NodeHash::Hasher> nodeLookup_;
-    rfcommon::Vector<Node> nodes_;
-    rfcommon::Vector<Edge> edges_;
-    int prevNodeIdx_ = -1;
+    rfcommon::Vector<Node> nodes;
+    rfcommon::Vector<Edge> edges;
 };

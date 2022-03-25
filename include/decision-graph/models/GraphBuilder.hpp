@@ -13,17 +13,26 @@ class GraphBuilderListener;
 class GraphBuilder
 {
 public:
-    void clear();
+    void prepareNew(int fighterCount);
     void addFrame(const rfcommon::Frame& frame);
     void notifyNewStatsAvailable();
 
-    int numNodes() const;
-    int numEdges() const;
     int numFrames() const;
+
+    const DecisionGraph& graph(int fighterIdx) const
+        { return graphData_[fighterIdx].graph; }
 
     rfcommon::ListenerDispatcher<GraphBuilderListener> dispatcher;
 
 private:
-    rfcommon::SmallVector<DecisionGraph, 2> graphs_;
+    struct GraphData
+    {
+        DecisionGraph graph;
+        rfcommon::HashMap<Node, int, Node::Hasher> nodeLookup;
+        rfcommon::HashMap<Edge, int, Edge::Hasher> edgeLookup;
+        int prevNodeIdx = -1;
+    };
+
+    rfcommon::SmallVector<GraphData, 2> graphData_;
     int frameCounter_ = 0;
 };
