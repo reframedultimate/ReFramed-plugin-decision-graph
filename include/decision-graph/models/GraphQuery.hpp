@@ -1,11 +1,12 @@
 #pragma once
 
 #include "decision-graph/models/DecisionGraph.hpp"
+#include "rfcommon/Vector.hpp"
 
 class GraphQuery
 {
 public:
-    static GraphQuery parse(const char* string);
+    DecisionGraph apply(const DecisionGraph& graph);
 
-    DecisionGraph filter(const DecisionGraph& graph);
+private:
 };

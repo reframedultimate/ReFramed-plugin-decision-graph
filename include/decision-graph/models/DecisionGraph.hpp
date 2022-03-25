@@ -80,22 +80,11 @@ public:
         : from_(from), to_(to)
     {}
 
-    struct Hasher {
-        typedef rfcommon::HashMapHasher<Edge>::HashType HashType;
-        HashType operator()(const Edge& edge) const {
-            const uint32_t data[2] = {
-                static_cast<uint32_t>(edge.from()),
-                static_cast<uint32_t>(edge.to())
-            };
-
-            return rfcommon::hash32_jenkins_oaat(&data, 8);
-        }
-    };
-
     bool operator==(const Edge& other) const
     {
         return from_ == other.from_ &&
-                to_ == other.to_;
+                to_ == other.to_ &&
+                weight_ == other.weight_;
     }
 
     int from() const { return from_; }

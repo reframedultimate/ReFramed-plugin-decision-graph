@@ -10,6 +10,20 @@ namespace rfcommon {
 
 class GraphBuilderListener;
 
+// When looking for existing connections in the graph, we do
+// not care about the weight or any other edge attribute
+struct EdgeConnectionHasher {
+    typedef rfcommon::HashMapHasher<Edge>::HashType HashType;
+    HashType operator()(const Edge& edge) const {
+        const uint32_t data[2] = {
+            static_cast<uint32_t>(edge.from()),
+            static_cast<uint32_t>(edge.to())
+        };
+
+        return rfcommon::hash32_jenkins_oaat(&data, 8);
+    }
+};
+
 class GraphBuilder
 {
 public:
@@ -29,7 +43,7 @@ private:
     {
         DecisionGraph graph;
         rfcommon::HashMap<Node, int, Node::Hasher> nodeLookup;
-        rfcommon::HashMap<Edge, int, Edge::Hasher> edgeLookup;
+        rfcommon::HashMap<Edge, int, EdgeConnectionHasher> edgeLookup;
         int prevNodeIdx = -1;
     };
 
