@@ -34,5 +34,10 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp")
 
 if (${REFRAMED_plugin-${PLUGIN_NAME}})
+    add_subdirectory ("thirdparty/ogdf.v2022.02")
+    target_link_libraries (plugin-${PLUGIN_NAME}
+        PRIVATE OGDF)
+    set (COIN_PIC ON CACHE BOOL "" FORCE)
+    set (OGDF_PIC ON CACHE BOOL "" FORCE)
 endif ()
 

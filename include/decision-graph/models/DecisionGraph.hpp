@@ -12,8 +12,7 @@ namespace rfcommon {
 class Node
 {
 public:
-    Node(
-        rfcommon::FighterMotion motion,
+    Node(rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
             rfcommon::FighterHitStatus hitStatus,
             bool inHitlag, bool inHitstun,
@@ -102,6 +101,7 @@ class DecisionGraph
 {
 public:
     void exportDOT(const char* fileName, const rfcommon::Session* session) const;
+    void exportOGDFSVG(const char* fileName, const rfcommon::Session* session) const;
 
     rfcommon::Vector<Node> nodes;
     rfcommon::Vector<Edge> edges;

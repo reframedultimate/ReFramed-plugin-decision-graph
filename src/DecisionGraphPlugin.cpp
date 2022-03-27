@@ -3,6 +3,8 @@
 #include "decision-graph/models/GraphBuilder.hpp"
 #include "rfcommon/SavedGameSession.hpp"
 
+#include "decision-graph/models/GraphQuery.hpp"
+
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
     : RealtimePlugin(factory)
@@ -38,7 +40,15 @@ void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* sessio
         graphBuilder_->addFrame(session->frame(frameIdx));
 
     graphBuilder_->notifyNewStatsAvailable();
-    graphBuilder_->graph(0).exportDOT("decision_graph.dot", session);
+
+    const DecisionGraph& graph = graphBuilder_->graph(0);
+    graph.exportOGDFSVG("decision_graph.svg", session);
+    graph.exportDOT("decision_graph.dot", session);
+
+    GraphQuery query = GraphQuery::nair_utilt_example();
+    DecisionGraph result = query.apply(graph);
+    result.exportOGDFSVG("decision_graph_search.svg", session);
+    result.exportDOT("decision_graph_search.dot", session);
 }
 
 // ----------------------------------------------------------------------------
