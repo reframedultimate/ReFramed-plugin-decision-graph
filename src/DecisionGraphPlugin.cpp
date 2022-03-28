@@ -39,6 +39,7 @@ void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* sessio
     for (int frameIdx = 0; frameIdx != session->frameCount(); ++frameIdx)
         graphBuilder_->addFrame(session->frame(frameIdx));
 
+    graphBuilder_->buildExample1();
     graphBuilder_->notifyNewStatsAvailable();
 
     const DecisionGraph& graph = graphBuilder_->graph(0);

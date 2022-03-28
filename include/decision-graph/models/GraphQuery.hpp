@@ -26,16 +26,14 @@ public:
     static NodeMatcher motion(rfcommon::FighterMotion motion);
 
     bool matches(const Node& node) const;
-    int repeats() const { return repeats_; }
 
     rfcommon::Vector<int> next;
 
 private:
-    NodeMatcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags, int repeats);
+    NodeMatcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags);
 
     const rfcommon::FighterMotion motion_;
     const rfcommon::FighterStatus status_;
-    const int repeats_;
     const uint8_t hitType_;
     const uint8_t matchFlags_;
 };
@@ -51,7 +49,7 @@ private:
             const DecisionGraph& graph,
             int nodeIdx,
             int matchIdx,
-            rfcommon::Vector<int>* nodeStack,
+            rfcommon::HashMap<Node, int, Node::Hasher>* foundNodes,
             rfcommon::HashMap<Node, int, Node::Hasher>* visited);
 
 private:

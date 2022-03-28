@@ -31,6 +31,8 @@ public:
     void addFrame(const rfcommon::Frame& frame);
     void notifyNewStatsAvailable();
 
+    void buildExample1();
+
     int numFrames() const;
 
     const DecisionGraph& graph(int fighterIdx) const

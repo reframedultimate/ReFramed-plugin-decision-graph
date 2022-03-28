@@ -71,34 +71,34 @@ endif()
 # autogen header variables for debug mode
 set (SHOW_STACKTRACE 0)
 if (OGDF_DEBUG AND OGDF_USE_ASSERT_EXCEPTIONS)
-	check_cxx_source_compiles ("
+    check_cxx_source_compiles ("
 #include <string>
 int main() {
-	std::string copy(__PRETTY_FUNCTION__);
-	return 0;
+    std::string copy(__PRETTY_FUNCTION__);
+    return 0;
 }" 
-	compiler_has_pretty_function)
+    compiler_has_pretty_function)
 
-	if (compiler_has_pretty_function)
-		set (OGDF_FUNCTION_NAME "__PRETTY_FUNCTION__")
-	else () # fallback to C++11 standard
-		set (OGDF_FUNCTION_NAME "__func__")
-	endif ()
-	if (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBDW)
-		set (SHOW_STACKTRACE 1)
-		set (BACKWARD_HAS_DW 1)
-	elseif (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBBFD)
-		set (SHOW_STACKTRACE 1)
-		set (BACKWARD_HAS_BFD 1)
-	elseif (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBUNWIND)
-		set (SHOW_STACKTRACE 1)
-		set (BACKWARD_HAS_UNWIND 1)
-	endif()
+    if (compiler_has_pretty_function)
+        set (OGDF_FUNCTION_NAME "__PRETTY_FUNCTION__")
+    else () # fallback to C++11 standard
+        set (OGDF_FUNCTION_NAME "__func__")
+    endif ()
+    if (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBDW)
+        set (SHOW_STACKTRACE 1)
+        set (BACKWARD_HAS_DW 1)
+    elseif (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBBFD)
+        set (SHOW_STACKTRACE 1)
+        set (BACKWARD_HAS_BFD 1)
+    elseif (OGDF_USE_ASSERT_EXCEPTIONS_WITH_STACK_TRACE MATCHES LIBUNWIND)
+        set (SHOW_STACKTRACE 1)
+        set (BACKWARD_HAS_UNWIND 1)
+    endif()
 endif()
 
 # autogen header variables if libs are shared
 if (OGDF_LIB_TYPE STREQUAL "SHARED")
-	set (OGDF_DLL 1)
+    set (OGDF_DLL 1)
 endif ()
 
 # autogen header variables for mallinfo2
@@ -110,7 +110,7 @@ int main() {
 }" 
 has_mallinfo2)
 if (has_mallinfo2)
-	set (OGDF_HAS_MALLINFO2 1)
+    set (OGDF_HAS_MALLINFO2 1)
 endif ()
 
 # autogen header variables for SSE3
@@ -130,14 +130,14 @@ int main() {
     _mm_hadd_pd(a, b);
     return 0;
 }" 
-	has_sse3_intrin)
+    has_sse3_intrin)
 endif()
 if (has_sse3_intrin)
-	set (OGDF_SSE3_EXTENSIONS <intrin.h>)
+    set (OGDF_SSE3_EXTENSIONS <intrin.h>)
 elseif (has_sse3_pmmintrin)
-	set (OGDF_SSE3_EXTENSIONS <pmmintrin.h>)
+    set (OGDF_SSE3_EXTENSIONS <pmmintrin.h>)
 else ()
-	message (STATUS "SSE3 could not be activated")
+    message (STATUS "SSE3 could not be activated")
 endif ()
 
 # autogen header variables for Linux-specific CPU_SET, etc.
@@ -150,7 +150,7 @@ int main() {
 }" 
 has_linux_cpu_macros)
 if (has_linux_cpu_macros)
-	set (OGDF_HAS_LINUX_CPU_MACROS 1)
+    set (OGDF_HAS_LINUX_CPU_MACROS 1)
 endif ()
 
 # add stack trace settings
@@ -162,13 +162,13 @@ elseif (BACKWARD_HAS_UNWIND)
     target_include_directories (OGDF SYSTEM PUBLIC ${LIBUNWIND_INCLUDE_DIR})
 endif()
 if(SHOW_STACKTRACE)
-	if(BACKWARD_HAS_DW)
-		target_link_libraries (OGDF PUBLIC ${LIBDW_LIBRARY})
-	elseif(BACKWARD_HAS_BFD)
-		target_link_libraries (OGDF PUBLIC ${LIBBFD_LIBRARY} ${LIBDL_LIBRARY})
-	elseif(BACKWARD_HAS_UNWIND)
-		target_link_libraries (OGDF PUBLIC ${LIBUNWIND_LIBRARY}	)
-	endif()
+    if(BACKWARD_HAS_DW)
+        target_link_libraries (OGDF PUBLIC ${LIBDW_LIBRARY})
+    elseif(BACKWARD_HAS_BFD)
+        target_link_libraries (OGDF PUBLIC ${LIBBFD_LIBRARY} ${LIBDL_LIBRARY})
+    elseif(BACKWARD_HAS_UNWIND)
+        target_link_libraries (OGDF PUBLIC ${LIBUNWIND_LIBRARY}    )
+    endif()
 endif()
 
 configure_file ("templates/config_autogen.h.in" "include/ogdf/basic/internal/config_autogen.h")
@@ -526,15 +526,16 @@ add_library (OGDF ${OGDF_LIB_TYPE}
 target_compile_features (OGDF
     PUBLIC cxx_range_for)
 target_compile_options (OGDF
-    PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wextra -Wno-unused-parameters -Wno-unknown-pragmas -Wno-error=sign-compare -Wno-error=conversion -Wno-error=strict-aliasing>
-    PRIVATE $<$<AND:$<CXX_COMPILER_ID:GNU,Clang,AppleClang>,$<CONFIG:Release>>:-Wno-error=unused-variable>
-    PRIVATE $<$<AND:$<CXX_COMPILER_ID:GNU,Clang,AppleClang>,$<BOOL:${OGDF_WARNING_ERRORS}>>:-Werror>
-    PRIVATE $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-error=zero-length-array -Wno-error=uninitialized>
-    PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wshadow -Wno-error=maybe-uninitialized -Wno-error=unused-but-set-parameter>
-    PRIVATE $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-Wno-error=unused-but-set-variable -Wno-error=strict-overflow>
-    PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W3 /wd4018 /wd4068 /wd4101 /wd4244 /wd4250 /wd4267 /wd4373 /wd4800>
-    PRIVATE $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<BOOL:${OGDF_WARNING_ERRORS}>>:/WX>
-    PRIVATE $<$<AND:$<OR:$<BOOL:${has_sse3_pmmintrin}>,$<BOOL:${has_sse3_intrin}>>,$<CXX_COMPILER_ID:GNU,Clang,AppleClang>>:-march=native>)
+    PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wextra -Wno-unused-parameters -Wno-unknown-pragmas -Wno-error=sign-compare -Wno-error=conversion -Wno-error=strict-aliasing>
+        $<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Release>>:-Wno-error=unused-variable>
+        $<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<BOOL:${OGDF_WARNING_ERRORS}>>:-Werror>
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-error=zero-length-array -Wno-error=uninitialized>
+        $<$<CXX_COMPILER_ID:GNU>:-Wshadow -Wno-error=maybe-uninitialized -Wno-error=unused-but-set-parameter>
+        $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-Wno-error=unused-but-set-variable -Wno-error=strict-overflow>
+        $<$<CXX_COMPILER_ID:MSVC>:/W3 /wd4018 /wd4068 /wd4101 /wd4244 /wd4250 /wd4267 /wd4373 /wd4800>
+        $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<BOOL:${OGDF_WARNING_ERRORS}>>:/WX>
+        $<$<AND:$<OR:$<BOOL:${has_sse3_pmmintrin}>,$<BOOL:${has_sse3_intrin}>>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>>:-march=native>)
 set_target_properties (OGDF PROPERTIES 
     CXX_STANDARD 11)
 if (OGDF_PIC)
@@ -542,10 +543,12 @@ if (OGDF_PIC)
         POSITION_INDEPENDENT_CODE ON)
 endif ()
 target_link_libraries (OGDF
-    PUBLIC COIN
-    PUBLIC $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang,GCC>:pthread>)
+    PUBLIC
+        COIN
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:pthread>)
 target_include_directories (OGDF
-    PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-    PUBLIC $<INSTALL_INTERFACE:include>)
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 

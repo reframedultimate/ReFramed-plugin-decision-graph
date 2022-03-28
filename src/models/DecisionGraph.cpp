@@ -3,6 +3,7 @@
 #include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/Session.hpp"
 #include <cstdio>
+#include <cinttypes>
 
 #include "ogdf/energybased/FMMMLayout.h"
 #include "ogdf/fileformats/GraphIO.h"
@@ -22,7 +23,7 @@ void DecisionGraph::exportDOT(const char* fileName, const rfcommon::Session* ses
         const rfcommon::String* name = statusMapping.statusToBaseEnumName(nodes[nodeIdx].status());
         if (name == nullptr)
             name = statusMapping.statusToFighterSpecificEnumName(nodes[nodeIdx].status(), session->fighterID(0));
-        fprintf(fp, "  n%d [shape=record,label=\"{ %s | %ld }\"];\n", nodeIdx, name ? name->cStr() : "(unknown)", nodes[nodeIdx].motion().value());
+        fprintf(fp, "  n%d [shape=record,label=\"{ %s | %" PRIu64 " }\"];\n", nodeIdx, name ? name->cStr() : "(unknown)", nodes[nodeIdx].motion().value());
     }
 
     for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)

@@ -1,6 +1,7 @@
 #include "decision-graph/models/GraphBuilder.hpp"
 #include "decision-graph/listeners/GraphBuilderListener.hpp"
 #include "rfcommon/Frame.hpp"
+#include "rfcommon/hash40.hpp"
 
 // ----------------------------------------------------------------------------
 void GraphBuilder::prepareNew(int fighterCount)
@@ -74,3 +75,42 @@ int GraphBuilder::numFrames() const
 {
     return frameCounter_;
 }
+
+// ----------------------------------------------------------------------------
+void GraphBuilder::buildExample1()
+{
+    Node nair(rfcommon::hash40("attack_air_n"), 0, 0, false, false, false, false);
+    Node utilt(rfcommon::hash40("attack_hi_3"), 0, 0, false, false, false, false);
+    Node c(rfcommon::hash40("c"), 0, 0, false, false, false, false);
+    Node d(rfcommon::hash40("c"), 0, 0, false, false, false, false);
+    Node e(rfcommon::hash40("c"), 0, 0, false, false, false, false);
+    Node f(rfcommon::hash40("c"), 0, 0, false, false, false, false);
+
+    GraphData& data = graphData_[0];
+    data.graph.nodes.clear();
+    data.graph.edges.clear();
+
+    data.graph.nodes.push(nair);
+    data.graph.nodes.push(utilt);
+    data.graph.nodes.push(c);
+    data.graph.nodes.push(d);
+    data.graph.nodes.push(e);
+    data.graph.nodes.push(f);
+
+    data.graph.edges.emplace(2, 0);
+    data.graph.edges.emplace(0, 3);
+    data.graph.edges.emplace(0, 4);
+    data.graph.edges.emplace(3, 2);
+    data.graph.edges.emplace(0, 5);
+    data.graph.edges.emplace(2, 5);
+    data.graph.edges.emplace(5, 1);
+
+    data.graph.nodes[0].outgoingEdges.push(1);
+    data.graph.nodes[0].outgoingEdges.push(2);
+    data.graph.nodes[0].outgoingEdges.push(4);
+    data.graph.nodes[2].outgoingEdges.push(0);
+    data.graph.nodes[2].outgoingEdges.push(5);
+    data.graph.nodes[3].outgoingEdges.push(3);
+    data.graph.nodes[5].outgoingEdges.push(6);
+}
+

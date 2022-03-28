@@ -8,11 +8,11 @@ set_property (CACHE COIN_SOLVER PROPERTY STRINGS "CLP" "CPX" "GRB")
 option (COIN_PIC "Generate position independent code" OFF)
 
 if (NOT COIN_SOLVER STREQUAL "CLP")
-	set (COIN_EXTERNAL_SOLVER_INCLUDE_DIRECTORIES "" CACHE PATH "Locations of required header files for the external LP solver")
-	set (COIN_EXTERNAL_SOLVER_LIBRARIES "" CACHE FILEPATH "Libraries for the external LP solver")
+    set (COIN_EXTERNAL_SOLVER_INCLUDE_DIRECTORIES "" CACHE PATH "Locations of required header files for the external LP solver")
+    set (COIN_EXTERNAL_SOLVER_LIBRARIES "" CACHE FILEPATH "Libraries for the external LP solver")
 else ()
-	unset (COIN_EXTERNAL_SOLVER_INCLUDE_DIRECTORIES CACHE)
-	unset (COIN_EXTERNAL_SOLVER_LIBRARIES CACHE)
+    unset (COIN_EXTERNAL_SOLVER_INCLUDE_DIRECTORIES CACHE)
+    unset (COIN_EXTERNAL_SOLVER_LIBRARIES CACHE)
 endif ()
 
 add_library (COIN STATIC
@@ -123,36 +123,37 @@ add_library (COIN STATIC
     "src/CoinUtils/CoinWarmStartPrimalDual.cpp"
     "src/CoinUtils/CoinWarmStartVector.cpp"
 
-	"src/Osi/OsiAuxInfo.cpp"
-	"src/Osi/OsiBranchingObject.cpp"
-	"src/Osi/OsiChooseVariable.cpp"
-	"src/Osi/OsiColCut.cpp"
-	"src/Osi/OsiCut.cpp"
-	"src/Osi/OsiCuts.cpp"
-	"src/Osi/OsiNames.cpp"
-	"src/Osi/OsiPresolve.cpp"
-	"src/Osi/OsiRowCut.cpp"
-	"src/Osi/OsiRowCutDebugger.cpp"
-	"src/Osi/OsiSolverBranch.cpp"
-	"src/Osi/OsiSolverInterface.cpp"
+    "src/Osi/OsiAuxInfo.cpp"
+    "src/Osi/OsiBranchingObject.cpp"
+    "src/Osi/OsiChooseVariable.cpp"
+    "src/Osi/OsiColCut.cpp"
+    "src/Osi/OsiCut.cpp"
+    "src/Osi/OsiCuts.cpp"
+    "src/Osi/OsiNames.cpp"
+    "src/Osi/OsiPresolve.cpp"
+    "src/Osi/OsiRowCut.cpp"
+    "src/Osi/OsiRowCutDebugger.cpp"
+    "src/Osi/OsiSolverBranch.cpp"
+    "src/Osi/OsiSolverInterface.cpp"
 
-	"src/OsiClp/OsiClpSolverInterface.cpp"
+    "src/OsiClp/OsiClpSolverInterface.cpp"
     $<$<STREQUAL:${COIN_SOLVER},"GRB">:src/Osi/OsiGrbSolverInterface.cpp>
     $<$<STREQUAL:${COIN_SOLVER},"CPX">:src/Osi/OsiCpxSolverInterface.cpp>)
 target_include_directories (COIN
-	PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-	PUBLIC $<INSTALL_INTERFACE:include>)
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 target_compile_definitions (COIN
-	PRIVATE
-		CLP_BUILD
-		COINUTILS_BUILD
-		OSI_BUILD
-		__OSI_CLP__
-		COMPILE_IN_CG
-		COMPILE_IN_LP
-		COMPILE_IN_TM
-		HAVE_CONFIG_H
-		_CRT_SECURE_NO_WARNINGS)
+    PRIVATE
+        CLP_BUILD
+        COINUTILS_BUILD
+        OSI_BUILD
+        __OSI_CLP__
+        COMPILE_IN_CG
+        COMPILE_IN_LP
+        COMPILE_IN_TM
+        HAVE_CONFIG_H
+        _CRT_SECURE_NO_WARNINGS)
 if (COIN_PIC)
     set_target_properties (COIN PROPERTIES
         POSITION_INDEPENDENT_CODE ON)

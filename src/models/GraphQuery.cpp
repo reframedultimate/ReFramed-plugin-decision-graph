@@ -1,15 +1,15 @@
 #include "decision-graph/models/GraphQuery.hpp"
 #include "rfcommon/hash40.hpp"
+#include <cstdio>
 
 // ----------------------------------------------------------------------------
-NodeMatcher NodeMatcher::wildCard(int repeats)
+NodeMatcher NodeMatcher::wildCard()
 {
     return NodeMatcher(
         0,
         0,
         0,
-        0,
-        repeats
+        0
     );
 }
 
@@ -20,8 +20,7 @@ NodeMatcher NodeMatcher::motion(rfcommon::FighterMotion motion)
         motion,
         0,
         HIT_CONNECT | HIT_WHIFF | HIT_ON_SHIELD,
-        MATCH_MOTION,
-        1
+        MATCH_MOTION
     );
 }
 
@@ -30,11 +29,9 @@ NodeMatcher::NodeMatcher(
         rfcommon::FighterMotion motion,
         rfcommon::FighterStatus status,
         uint8_t hitType,
-        uint8_t matchFlags,
-        int repeats)
+        uint8_t matchFlags)
     : motion_(motion)
     , status_(status)
-    , repeats_(repeats)
     , hitType_(hitType)
     , matchFlags_(matchFlags)
 {}
@@ -74,25 +71,39 @@ bool GraphQuery::applyRecurse(
         const DecisionGraph& graph,
         int nodeIdx,
         int matchIdx,
-        rfcommon::Vector<int>* matchedNodes,
+        rfcommon::HashMap<Node, int, Node::Hasher>* foundNodes,
         rfcommon::HashMap<Node, int, Node::Hasher>* visited)
 {
     if (visited->insertNew(graph.nodes[nodeIdx], nodeIdx) == visited->end())
         return false;
+    printf("depth: %d, node: %d, match: %d\n", visited->count(), nodeIdx, matchIdx);
 
     const auto& matcher = matchers_[matchIdx];
     const auto& node = graph.nodes[nodeIdx];
     if (matcher.matches(node) == false)
+    {
+        visited->erase(graph.nodes[nodeIdx]);
         return false;
+    }
 
+    if (matcher.next.count() == 0)
+    {
+        foundNodes->insertNew(graph.nodes[nodeIdx], nodeIdx);
+        visited->erase(graph.nodes[nodeIdx]);
+        return true;
+    }
+
+    bool found = false;
     for (int edgeIdx : graph.nodes[nodeIdx].outgoingEdges)
         for (matchIdx = 0; matchIdx != matcher.next.count(); ++matchIdx)
-            if (applyRecurse(graph, graph.edges[edgeIdx].to(), matchIdx, matchedNodes, visited))
+            if (applyRecurse(graph, graph.edges[edgeIdx].to(), matcher.next[matchIdx], foundNodes, visited))
             {
-                matchedNodes->push(nodeIdx);
+                foundNodes->insertNew(graph.nodes[nodeIdx], nodeIdx);
+                found = true;
             }
 
-    return false;
+    visited->erase(graph.nodes[nodeIdx]);
+    return found;
 }
 
 // ----------------------------------------------------------------------------
@@ -110,17 +121,15 @@ DecisionGraph GraphQuery::apply(const DecisionGraph& graph)
         if (matchers_[0].matches(graph.nodes[nodeIdx]))
             startingNodes.push(nodeIdx);
 
-    rfcommon::HashMap<Node, int, Node::Hasher> matchingNodes;
+    rfcommon::HashMap<Node, int, Node::Hasher> foundNodes;
     for (int startIdx : startingNodes)
     {
-        rfcommon::Vector<int> matchingNodesList;
         rfcommon::HashMap<Node, int, Node::Hasher> visited;
-        if (applyRecurse(graph, startIdx, 0, &matchingNodesList, &visited))
-        {
-            for (int nodeIdx : matchingNodesList)
-                matchingNodes.insertNew(graph.nodes[nodeIdx], nodeIdx);
-        }
+        applyRecurse(graph, startIdx, 0, &foundNodes, &visited);
     }
+
+    for (auto& kv : foundNodes)
+        result.nodes.push(kv.key());
 
     return result;
 }
