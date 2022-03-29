@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
     : RealtimePlugin(factory)
-    , graphBuilder_(new GraphBuilder)
+    , graphBuilder_(new IncrementalData)
 {
 }
 
@@ -39,14 +39,14 @@ void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* sessio
     for (int frameIdx = 0; frameIdx != session->frameCount(); ++frameIdx)
         graphBuilder_->addFrame(session->frame(frameIdx));
 
-    graphBuilder_->buildExample1();
+    //graphBuilder_->buildExample1();
     graphBuilder_->notifyNewStatsAvailable();
 
     const DecisionGraph& graph = graphBuilder_->graph(0);
     graph.exportOGDFSVG("decision_graph.svg", session);
     graph.exportDOT("decision_graph.dot", session);
 
-    GraphQuery query = GraphQuery::nair_utilt_example();
+    GraphQuery query = GraphQuery::nair_wildcard_example();
     DecisionGraph result = query.apply(graph);
     result.exportOGDFSVG("decision_graph_search.svg", session);
     result.exportDOT("decision_graph_search.dot", session);

@@ -4,7 +4,7 @@
 #include "rfcommon/ListenerDispatcher.hpp"
 #include <memory>
 
-class GraphBuilder;
+class IncrementalData;
 
 class DecisionGraphPlugin : public rfcommon::RealtimePlugin
 {
@@ -48,5 +48,5 @@ public:
     void clearSavedGameSession(rfcommon::SavedGameSession* session) override;
 
 private:
-    std::unique_ptr<GraphBuilder> graphBuilder_;
+    std::unique_ptr<IncrementalData> graphBuilder_;
 };

@@ -3,7 +3,7 @@
 #include "decision-graph/models/GraphBuilder.hpp"
 
 // ----------------------------------------------------------------------------
-SequenceSearchView::SequenceSearchView(GraphBuilder* builder, QWidget* parent)
+SequenceSearchView::SequenceSearchView(IncrementalData* builder, QWidget* parent)
     : QWidget(parent)
     , builder_(builder)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner

@@ -41,16 +41,9 @@ private:
 class GraphQuery
 {
 public:
-    static GraphQuery nair_utilt_example();
+    static GraphQuery nair_mixup_example();
+    static GraphQuery nair_wildcard_example();
     DecisionGraph apply(const DecisionGraph& graph);
-
-private:
-    bool applyRecurse(
-            const DecisionGraph& graph,
-            int nodeIdx,
-            int matchIdx,
-            rfcommon::HashMap<Node, int, Node::Hasher>* foundNodes,
-            rfcommon::HashMap<Node, int, Node::Hasher>* visited);
 
 private:
     rfcommon::Vector<NodeMatcher> matchers_;

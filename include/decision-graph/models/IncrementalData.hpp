@@ -1,6 +1,7 @@
 #pragma once
 
-#include "decision-graph/models/DecisionGraph.hpp"
+#include "decision-graph/models/Sequence.hpp"
+#include "decision-graph/models/Graph.hpp"
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
 
@@ -8,7 +9,7 @@ namespace rfcommon {
     class Frame;
 }
 
-class GraphBuilderListener;
+class IncrementalDataListener;
 
 // When looking for existing connections in the graph, we do
 // not care about the weight or any other edge attribute
@@ -24,31 +25,43 @@ struct EdgeConnectionHasher {
     }
 };
 
-class GraphBuilder
+// Only hashes the node state, not the outgoing/incoming connections,
+// since we only care about unique states when building the graph
+struct NodeStateHasher {
+    typedef rfcommon::HashMapHasher<Node>::HashType HashType;
+    HashType operator()(const Node& node) const {
+        return State::Hasher()(node.state);
+    }
+};
+
+class IncrementalData
 {
 public:
     void prepareNew(int fighterCount);
     void addFrame(const rfcommon::Frame& frame);
     void notifyNewStatsAvailable();
 
-    void buildExample1();
-
     int numFrames() const;
 
-    const DecisionGraph& graph(int fighterIdx) const
+    void buildExample1();
+
+    const Sequence& sequence(int fighterIdx) const
+        { return sequences_[fighterIdx]; }
+
+    const Graph& graph(int fighterIdx) const
         { return graphData_[fighterIdx].graph; }
 
-    rfcommon::ListenerDispatcher<GraphBuilderListener> dispatcher;
+    rfcommon::ListenerDispatcher<IncrementalDataListener> dispatcher;
 
 private:
     struct GraphData
     {
-        DecisionGraph graph;
-        rfcommon::HashMap<Node, int, Node::Hasher> nodeLookup;
+        Graph graph;
+        rfcommon::HashMap<Node, int, NodeStateHasher> nodeLookup;
         rfcommon::HashMap<Edge, int, EdgeConnectionHasher> edgeLookup;
-        int prevNodeIdx = -1;
     };
 
+    rfcommon::SmallVector<Sequence, 2> sequences_;
     rfcommon::SmallVector<GraphData, 2> graphData_;
     int frameCounter_ = 0;
 };

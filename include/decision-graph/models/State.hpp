@@ -1,18 +1,23 @@
 #pragma once
 
-#include "rfcommon/Vector.hpp"
-#include "rfcommon/HashMap.hpp"
-#include "rfcommon/FighterState.hpp"
+#include "rfcommon/Types.hpp"
 
-namespace rfcommon {
-    class Frame;
-    class Session;
-}
-
-class Node
+class State
 {
+    State(
+            rfcommon::FighterMotion motion,
+            rfcommon::FighterStatus status,
+            rfcommon::FighterHitStatus hitStatus,
+            uint8_t flags)
+        : motion_(motion)
+        , status_(status)
+        , hitStatus_(hitStatus)
+        , flags_(flags)
+    {}
+
 public:
-    Node(rfcommon::FighterMotion motion,
+    State(
+            rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
             rfcommon::FighterHitStatus hitStatus,
             bool inHitlag, bool inHitstun,
@@ -29,8 +34,8 @@ public:
 
     struct Hasher
     {
-        typedef rfcommon::HashMapHasher<Node>::HashType HashType;
-        HashType operator()(const Node& node) const {
+        typedef rfcommon::HashMapHasher<State>::HashType HashType;
+        HashType operator()(const State& node) const {
             const uint32_t motion_l = node.motion().lower();
             const uint16_t status = node.status().value();
             const uint8_t motion_h = node.motion().upper();
@@ -44,7 +49,7 @@ public:
         }
     };
 
-    bool operator==(const Node& other) const
+    bool operator==(const State& other) const
     {
         return motion_ == other.motion_ &&
                 status_ == other.status_ &&
@@ -62,47 +67,9 @@ public:
     bool opponentInHitlag() const { return !!(flags_ & 0x04); }
     bool opponentInHitstun() const { return !!(flags_ & 0x08); }
 
-    rfcommon::Vector<int> outgoingEdges;
-    rfcommon::Vector<int> incomingEdges;
-
 private:
     rfcommon::FighterMotion motion_;
     rfcommon::FighterStatus status_;
     rfcommon::FighterHitStatus hitStatus_;
     uint8_t flags_;
-};
-
-class Edge
-{
-public:
-    Edge(int from, int to)
-        : from_(from), to_(to)
-    {}
-
-    bool operator==(const Edge& other) const
-    {
-        return from_ == other.from_ &&
-                to_ == other.to_ &&
-                weight_ == other.weight_;
-    }
-
-    int from() const { return from_; }
-    int to() const { return to_; }
-
-    void addWeight() { weight_++; }
-    int weight() const { return weight_; }
-
-private:
-    int from_, to_;
-    int weight_ = 1;
-};
-
-class DecisionGraph
-{
-public:
-    void exportDOT(const char* fileName, const rfcommon::Session* session) const;
-    void exportOGDFSVG(const char* fileName, const rfcommon::Session* session) const;
-
-    rfcommon::Vector<Node> nodes;
-    rfcommon::Vector<Edge> edges;
 };

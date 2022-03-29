@@ -1,4 +1,4 @@
-#include "decision-graph/models/DecisionGraph.hpp"
+#include "decision-graph/models/Graph.hpp"
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/Session.hpp"
@@ -9,7 +9,7 @@
 #include "ogdf/fileformats/GraphIO.h"
 
 // ----------------------------------------------------------------------------
-void DecisionGraph::exportDOT(const char* fileName, const rfcommon::Session* session) const
+void Graph::exportDOT(const char* fileName, const rfcommon::Session* session) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -40,7 +40,7 @@ void DecisionGraph::exportDOT(const char* fileName, const rfcommon::Session* ses
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraph::exportOGDFSVG(const char* fileName, const rfcommon::Session* session) const
+void Graph::exportOGDFSVG(const char* fileName, const rfcommon::Session* session) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,

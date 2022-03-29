@@ -8,22 +8,22 @@ namespace Ui {
     class SequenceSearchView;
 }
 
-class GraphBuilder;
+class IncrementalData;
 
 class SequenceSearchView : public QWidget
-                         , public GraphBuilderListener
+                         , public IncrementalDataListener
 {
     Q_OBJECT
 
 public:
-    explicit SequenceSearchView(GraphBuilder* builder, QWidget* parent=nullptr);
+    explicit SequenceSearchView(IncrementalData* builder, QWidget* parent=nullptr);
     ~SequenceSearchView();
 
 private:
     void onGraphBuilderNewStats() override;
 
 private:
-    GraphBuilder* builder_;
+    IncrementalData* builder_;
     Ui::SequenceSearchView* ui_;
 };
 
