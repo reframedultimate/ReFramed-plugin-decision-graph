@@ -1,9 +1,9 @@
 #pragma once
 
-#include "decision-graph/models/DecisionGraph.hpp"
+#include "decision-graph/models/Sequence.hpp"
 #include "rfcommon/Vector.hpp"
 
-class NodeMatcher
+class Matcher
 {
 public:
     enum MatchFlags
@@ -20,17 +20,17 @@ public:
     };
 
     //! Wildcard, matches anything
-    static NodeMatcher wildCard();
+    static Matcher wildCard();
 
     //! Match a specific motion hash40 value. Hit type, status, and flags don't matter
-    static NodeMatcher motion(rfcommon::FighterMotion motion);
+    static Matcher motion(rfcommon::FighterMotion motion);
 
-    bool matches(const Node& node) const;
+    bool matches(const State& node) const;
 
     rfcommon::Vector<int> next;
 
 private:
-    NodeMatcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags);
+    Matcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags);
 
     const rfcommon::FighterMotion motion_;
     const rfcommon::FighterStatus status_;
@@ -38,13 +38,13 @@ private:
     const uint8_t matchFlags_;
 };
 
-class GraphQuery
+class Query
 {
 public:
-    static GraphQuery nair_mixup_example();
-    static GraphQuery nair_wildcard_example();
-    DecisionGraph apply(const DecisionGraph& graph);
+    static Query nair_mixup_example();
+    static Query nair_wildcard_example();
+    rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
 
 private:
-    rfcommon::Vector<NodeMatcher> matchers_;
+    rfcommon::Vector<Matcher> matchers_;
 };

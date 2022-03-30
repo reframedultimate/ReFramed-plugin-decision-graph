@@ -48,5 +48,5 @@ public:
     void clearSavedGameSession(rfcommon::SavedGameSession* session) override;
 
 private:
-    std::unique_ptr<IncrementalData> graphBuilder_;
+    std::unique_ptr<IncrementalData> incData_;
 };

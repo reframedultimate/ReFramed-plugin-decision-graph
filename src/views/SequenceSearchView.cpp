@@ -1,31 +1,32 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/views/SequenceSearchView.hpp"
-#include "decision-graph/models/GraphBuilder.hpp"
+#include "decision-graph/models/IncrementalData.hpp"
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(IncrementalData* builder, QWidget* parent)
     : QWidget(parent)
-    , builder_(builder)
+    , incData_(builder)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
 
-    builder_->dispatcher.addListener(this);
+    incData_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::~SequenceSearchView()
 {
     // Remove things in reverse order
-    builder_->dispatcher.removeListener(this);
+    incData_->dispatcher.removeListener(this);
     delete ui_;
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onGraphBuilderNewStats()
+void SequenceSearchView::onIncrementalDataNewStats()
 {
-    ui_->label_frames->setText("Frames: " + QString::number(builder_->numFrames()));
-    ui_->label_nodes->setText("Nodes: " + QString::number(builder_->graph(0).nodes.count()));
-    ui_->label_edges->setText("Edges: " + QString::number(builder_->graph(0).edges.count()));
+    ui_->label_frames->setText("Frames: " + QString::number(incData_->numFrames()));
+    ui_->label_states->setText("States: " + QString::number(incData_->sequence(0).states.count()));
+    ui_->label_nodes->setText("Nodes: " + QString::number(incData_->graph(0).nodes.count()));
+    ui_->label_edges->setText("Edges: " + QString::number(incData_->graph(0).edges.count()));
 }

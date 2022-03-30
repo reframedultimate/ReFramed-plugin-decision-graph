@@ -1,1 +1,1 @@
-#include "decision-graph/models/GraphQueryBuilder.hpp"
+#include "decision-graph/models/QueryBuilder.hpp"

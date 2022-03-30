@@ -1,14 +1,14 @@
 #include "decision-graph/DecisionGraphPlugin.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
-#include "decision-graph/models/GraphBuilder.hpp"
+#include "decision-graph/models/IncrementalData.hpp"
 #include "rfcommon/SavedGameSession.hpp"
 
-#include "decision-graph/models/GraphQuery.hpp"
+#include "decision-graph/models/Query.hpp"
 
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
     : RealtimePlugin(factory)
-    , graphBuilder_(new IncrementalData)
+    , incData_(new IncrementalData)
 {
 }
 
@@ -21,7 +21,7 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(graphBuilder_.get());
+    return new SequenceSearchView(incData_.get());
 }
 
 // ----------------------------------------------------------------------------
@@ -34,22 +34,22 @@ void DecisionGraphPlugin::destroyView(QWidget* view)
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* session)
 {
-    graphBuilder_->prepareNew(session->fighterCount());
+    incData_->prepareNew(session->fighterCount());
 
     for (int frameIdx = 0; frameIdx != session->frameCount(); ++frameIdx)
-        graphBuilder_->addFrame(session->frame(frameIdx));
+        incData_->addFrame(session->frame(frameIdx));
 
     //graphBuilder_->buildExample1();
-    graphBuilder_->notifyNewStatsAvailable();
+    incData_->notifyNewStatsAvailable();
 
-    const DecisionGraph& graph = graphBuilder_->graph(0);
-    graph.exportOGDFSVG("decision_graph.svg", session);
-    graph.exportDOT("decision_graph.dot", session);
+    incData_->graph(0).exportOGDFSVG("decision_graph.svg", session);
+    incData_->graph(0).exportDOT("decision_graph.dot", session);
 
-    GraphQuery query = GraphQuery::nair_wildcard_example();
-    DecisionGraph result = query.apply(graph);
-    result.exportOGDFSVG("decision_graph_search.svg", session);
-    result.exportDOT("decision_graph_search.dot", session);
+    Query query = Query::nair_wildcard_example();
+    rfcommon::Vector<SequenceRange> queryResult = query.apply(incData_->sequence(0));
+    Graph graph = Graph::fromSequenceRanges(incData_->sequence(0), queryResult);
+    graph.exportOGDFSVG("decision_graph_search.svg", session);
+    graph.exportDOT("decision_graph_search.dot", session);
 }
 
 // ----------------------------------------------------------------------------

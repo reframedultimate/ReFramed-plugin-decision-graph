@@ -1,6 +1,6 @@
 #pragma once
 
-#include "decision-graph/listeners/GraphBuilderListener.hpp"
+#include "decision-graph/listeners/IncrementalDataListener.hpp"
 #include <QWidget>
 
 // Forward declare the class created by Qt designer
@@ -20,10 +20,10 @@ public:
     ~SequenceSearchView();
 
 private:
-    void onGraphBuilderNewStats() override;
+    void onIncrementalDataNewStats() override;
 
 private:
-    IncrementalData* builder_;
+    IncrementalData* incData_;
     Ui::SequenceSearchView* ui_;
 };
 

@@ -6,8 +6,12 @@
 // ----------------------------------------------------------------------------
 void IncrementalData::prepareNew(int fighterCount)
 {
+    sequences_.clearCompact();
     graphData_.clearCompact();
+
+    sequences_.resize(fighterCount);
     graphData_.resize(fighterCount);
+
     frameCounter_ = 0;
 }
 
@@ -18,38 +22,36 @@ void IncrementalData::addFrame(const rfcommon::Frame& frame)
     {
         const auto& fighterState = frame.fighter(fighterIdx);
         GraphData& data = graphData_[fighterIdx];
+        Sequence& seq = sequences_[fighterIdx];
 
-        State state(
+        const State state(
             fighterState.motion(),
             fighterState.status(),
             fighterState.hitStatus(),
             true, true, true, true  // TODO
         );
 
-        // Only process node if it is meaningfully different from the previously
-        // processed node
-        if (sequences_[fighterIdx].states.count() > 0 && state == sequences_[fighterIdx].states.back())
+        // Only process state if it is meaningfully different from the previously
+        // processed state
+        if (seq.states.count() > 0 && state == seq.states.back())
             continue;
 
         // Add to sequence
-        sequences_[fighterIdx].states.push(state);
+        seq.states.push(state);
 
         // New unique state
-        auto nodeLookupResult = data.nodeLookup.insertOrGet(node, -1);
+        auto nodeLookupResult = data.stateLookup.insertOrGet(state, -1);
         if (nodeLookupResult->value() == -1)
         {
-            data.graph.nodes.push(node);
+            data.graph.nodes.emplace(state);
             nodeLookupResult->value() = data.graph.nodes.count() - 1;
         }
         const int currentNodeIdx = nodeLookupResult->value();
 
-        // Add to sequence
-        data.graph.nodeSequence.push(currentNodeIdx);
-
         // Create a new edge to the previously added/visited node
         if (data.prevNodeIdx != -1)
         {
-            auto edgeLookupResult = data.edgeLookup.insertOrGet(Edge(data.prevNodeIdx, currentNodeIdx), -1);
+            auto edgeLookupResult = data.edgeLookup.insertOrGet(EdgeConnection(data.prevNodeIdx, currentNodeIdx), -1);
 
             // If edge does not exist yet, create it. Otherwise, add weight to
             // the existing edge
@@ -58,11 +60,11 @@ void IncrementalData::addFrame(const rfcommon::Frame& frame)
                 data.graph.edges.emplace(data.prevNodeIdx, currentNodeIdx);
                 data.graph.nodes[data.prevNodeIdx].outgoingEdges.push(data.graph.edges.count() - 1);
                 data.graph.nodes[currentNodeIdx].incomingEdges.push(data.graph.edges.count() - 1);
+
+                edgeLookupResult->value() = data.graph.edges.count() - 1;
             }
             else
                 data.graph.edges[edgeLookupResult->value()].addWeight();
-
-            edgeLookupResult->value() = data.graph.edges.count() - 1;
         }
         data.prevNodeIdx = currentNodeIdx;
     }
