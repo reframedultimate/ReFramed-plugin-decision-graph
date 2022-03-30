@@ -2,6 +2,7 @@
 
 #include "rfcommon/RealtimePlugin.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
+#include "decision-graph/models/MotionsTable.hpp"
 #include <memory>
 
 class IncrementalData;
@@ -49,4 +50,5 @@ public:
 
 private:
     std::unique_ptr<IncrementalData> incData_;
+    MotionsTable motionsTable_;
 };

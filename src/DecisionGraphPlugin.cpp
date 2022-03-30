@@ -9,6 +9,7 @@
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
     : RealtimePlugin(factory)
     , incData_(new IncrementalData)
+    , motionsTable_(MotionsTable::load())
 {
 }
 

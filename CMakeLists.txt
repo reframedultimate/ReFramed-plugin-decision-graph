@@ -16,16 +16,18 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/views/SequenceSearchView.cpp"
         "src/models/Graph.cpp"
         "src/models/IncrementalData.cpp"
+        "src/models/MotionsTable.cpp"
         "src/models/Query.cpp"
         "src/models/QueryBuilder.cpp"
         "src/models/Sequence.cpp"
         "src/DecisionGraphPlugin.cpp"
         "src/Plugin.cpp"
-	HEADERS
+    HEADERS
         "include/${PLUGIN_NAME}/listeners/IncrementalDataListener.hpp"
         "include/${PLUGIN_NAME}/models/Edge.hpp"
         "include/${PLUGIN_NAME}/models/Graph.hpp"
         "include/${PLUGIN_NAME}/models/IncrementalData.hpp"
+        "include/${PLUGIN_NAME}/models/MotionsTable.hpp"
         "include/${PLUGIN_NAME}/models/Node.hpp"
         "include/${PLUGIN_NAME}/models/Query.hpp"
         "include/${PLUGIN_NAME}/models/QueryBuilder.hpp"
@@ -36,7 +38,9 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     INCLUDE_DIRECTORIES
         "include"
     MOC_HEADERS
-        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp")
+        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
+    DATA
+        "data/ParamLabels.csv")
 
 if (${REFRAMED_plugin-${PLUGIN_NAME}})
     add_subdirectory ("thirdparty/ogdf.v2022.02")
