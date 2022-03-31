@@ -22,7 +22,7 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(incData_.get());
+    return new SequenceSearchView(incData_.get(), &motionsTable_);
 }
 
 // ----------------------------------------------------------------------------

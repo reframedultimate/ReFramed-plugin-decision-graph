@@ -9,6 +9,7 @@ namespace Ui {
 }
 
 class IncrementalData;
+class MotionsTable;
 
 class SequenceSearchView : public QWidget
                          , public IncrementalDataListener
@@ -16,14 +17,18 @@ class SequenceSearchView : public QWidget
     Q_OBJECT
 
 public:
-    explicit SequenceSearchView(IncrementalData* builder, QWidget* parent=nullptr);
+    explicit SequenceSearchView(IncrementalData* incData, MotionsTable* motionsTable, QWidget* parent=nullptr);
     ~SequenceSearchView();
+
+private slots:
+    void onLineEditQueryTextChanged(const QString& text);
 
 private:
     void onIncrementalDataNewStats() override;
 
 private:
     IncrementalData* incData_;
+    MotionsTable* motionsTable_;
     Ui::SequenceSearchView* ui_;
 };
 

@@ -1,15 +1,20 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/views/SequenceSearchView.hpp"
 #include "decision-graph/models/IncrementalData.hpp"
+#include "decision-graph/models/QueryBuilder.hpp"
 
 // ----------------------------------------------------------------------------
-SequenceSearchView::SequenceSearchView(IncrementalData* builder, QWidget* parent)
+SequenceSearchView::SequenceSearchView(IncrementalData* incData, MotionsTable* motionsTable, QWidget* parent)
     : QWidget(parent)
-    , incData_(builder)
+    , incData_(incData)
+    , motionsTable_(motionsTable)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
+
+    connect(ui_->lineEdit_query, &QLineEdit::textChanged,
+            this, &SequenceSearchView::onLineEditQueryTextChanged);
 
     incData_->dispatcher.addListener(this);
 }
@@ -23,10 +28,17 @@ SequenceSearchView::~SequenceSearchView()
 }
 
 // ----------------------------------------------------------------------------
+void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
+{
+    QByteArray ba = text.toLocal8Bit();
+    QueryBuilder builder(motionsTable_);
+    if (builder.parse(ba.data()))
+    {
+
+    }
+}
+
+// ----------------------------------------------------------------------------
 void SequenceSearchView::onIncrementalDataNewStats()
 {
-    ui_->label_frames->setText("Frames: " + QString::number(incData_->numFrames()));
-    ui_->label_states->setText("States: " + QString::number(incData_->sequence(0).states.count()));
-    ui_->label_nodes->setText("Nodes: " + QString::number(incData_->graph(0).nodes.count()));
-    ui_->label_edges->setText("Edges: " + QString::number(incData_->graph(0).edges.count()));
 }

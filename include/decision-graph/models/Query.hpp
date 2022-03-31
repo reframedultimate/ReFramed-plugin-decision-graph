@@ -38,6 +38,7 @@ private:
     const uint8_t matchFlags_;
 };
 
+class QueryBuilder;
 class Query
 {
 public:
@@ -46,5 +47,6 @@ public:
     rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
 
 private:
+    friend class QueryBuilder;
     rfcommon::Vector<Matcher> matchers_;
 };
