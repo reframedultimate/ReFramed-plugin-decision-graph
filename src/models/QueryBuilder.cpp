@@ -1,200 +1,52 @@
 #include "decision-graph/models/QueryBuilder.hpp"
+#include "decision-graph/parsers/QueryASTNode.hpp"
+#include "decision-graph/parsers/QueryParser.y.hpp"
+#include "decision-graph/parsers/QueryScanner.lex.hpp"
 #include <cstring>
-
-// ----------------------------------------------------------------------------
-static bool isNumber(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-// ----------------------------------------------------------------------------
-static bool isAlpha(char c)
-{
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-}
-
-// ----------------------------------------------------------------------------
-static bool isWhitespace(char c)
-{
-    return c == ' ';
-}
-
-// ----------------------------------------------------------------------------
-static bool isAlphaNum(char c)
-{
-    return isNumber(c) || isAlpha(c);
-}
-
-// ----------------------------------------------------------------------------
-static int toNumber(const char* begin, const char* end)
-{
-    int value = 0;
-    while (begin != end)
-    {
-        value *= 10;
-        value += *begin - '0';
-        begin++;
-    }
-    return value;
-}
 
 // ----------------------------------------------------------------------------
 QueryBuilder::QueryBuilder(const MotionsTable* motionsTable)
     : motionsTable_(motionsTable)
-    , input_(nullptr)
 {
 }
 
 // ----------------------------------------------------------------------------
 bool QueryBuilder::parse(const char* text)
 {
-    newInput(text);
+    qpscan_t scanner;
+    qppstate* parser;
+    YY_BUFFER_STATE buf;
+    QPSTYPE pushed_value;
+    int pushed_char;
+    int parse_result;
 
-    // stmnts
-    //   : stmnts
-    //   | qualified_stmnt
-    //   ;
-    // qualified_stmnt
-    //   : '(' stmnts ')'
-    //   | qualified_stmnt '|' qualified_stmnt
-    //   | qualified_stmnt "->" qualified_stmnt
-    //   | stmnt
-    //   ;
-    // qualifier
-    //   : '(' qualifier ')
-    //   | qualifier '|' qualifier
-    //   | "os"
-    //   | "oos"
-    //   | "hit"
-    //   | "whiff"
-    //   | "dmg"
-    //   ;
-    // stmnt
-    //   : '.'
-    //   | "die"
-    //   | stmnt '+'
-    //   | stmnt "os"
-    //   | stmnt "oos"
-    //   | stmnt "hit"
-    //   | "whiff"
-    //   | "die"
-    //   | "dmg"
-    //   | "label"
-    //   ;
+    if (qplex_init_extra(this, &scanner) != 0)
+        goto init_scanner_failed;
+    buf = qp_scan_bytes(text, strlen(text), scanner);
+    if (buf == nullptr)
+        goto scan_bytes_failed;
+    parser = qppstate_new();
+    if (parser == nullptr)
+        goto init_parser_failed;
 
-    int result = expectStmnt();
-    for (; result > 0; result = expectStmnt())
+    do
     {
+        pushed_char = qplex(&pushed_value, scanner);
+        parse_result = qppush_parse(parser, pushed_char, &pushed_value, scanner);
+    } while (parse_result == YYPUSH_MORE);
 
-    }
+    qppstate_delete(parser);
+    qp_delete_buffer(buf, scanner);
+    qplex_destroy(scanner);
+    return parse_result == 0;
+
+    init_parser_failed : qp_delete_buffer(buf, scanner);
+    scan_bytes_failed: qplex_destroy(scanner); 
+    init_scanner_failed : return false;
 }
 
 // ----------------------------------------------------------------------------
-int QueryBuilder::expectStmnt()
+void QueryBuilder::parseAST(const QueryASTNode* ast)
 {
-    expect
-}
-
-// ----------------------------------------------------------------------------
-void QueryBuilder::newInput(const char* text)
-{
-    token_.begin = text;
-    token_.end = text;
-    query_.matchers_.clear();
-}
-
-// ----------------------------------------------------------------------------
-int QueryBuilder::nextToken()
-{
-    if (*token_.end == '\0')
-        return 0;
-
-    if (isWhitespace(*token_.end))
-        while (isWhitespace(*token_.end))
-            token_.end++;
-
-    token_.begin = token_.end;
-    switch (*token_.end++)
-    {
-        case '.': {
-            token_.type = Token::WILDCARD;
-            token_.wildcardRepeats = 1;
-            if (isNumber(*token_.end))
-            {
-                const char* begin = token_.end;
-                while (isNumber(*token_.end))
-                    token_.end++;
-                token_.wildcardRepeats = toNumber(begin, token_.end);
-            }
-        } break;
-
-        case '-':
-            if (*token_.end != '>')
-                return -1;
-            token_.end++;
-        case '>': {
-            token_.type = Token::SEQDELIM;
-        } break;
-
-        case '(': {
-            token_.type = Token::LPAREN;
-        } break;
-
-        case ')': {
-            token_.type = Token::LPAREN;
-        } break;
-
-        case '|': {
-            token_.type = Token::OR;
-        } break;
-
-        case '?': {
-            token_.type = Token::OPTIONAL;
-        } break;
-
-        case '+': {
-            token_.type = Token::REPEAT;
-        } break;
-
-        default: {
-            if (strcmp(token_.end-1, "os") == 0)
-            {
-                token_.type = Token::ONSHIELD;
-                token_.end += 1;
-            }
-            else if (strcmp(token_.end-1, "oos") == 0)
-            {
-                token_.type = Token::OUTOFSHIELD;
-                token_.end += 2;
-            }
-            else if (strcmp(token_.end-1, "hit") == 0)
-            {
-                token_.type = Token::HIT;
-                token_.end += 2;
-            }
-            else if (strcmp(token_.end-1, "whiff") == 0)
-            {
-                token_.type = Token::WHIFF;
-                token_.end += 4;
-            }
-            else if (strcmp(token_.end-1, "die") == 0)
-            {
-                token_.type = Token::WHIFF;
-                token_.end += 2;
-            }
-            else if (strcmp(token_.end-1, "dmg") == 0)
-            {
-                token_.type = Token::DMG;
-                token_.end += 2;
-            }
-            else
-            {
-                token_.type = Token::LABEL;
-                while (isAlphaNum(*token_.end))
-                    token_.end++;
-            }
-        } break;
-    }
-
-    return 1;
+    ast->exportDOT("query-ast.dot");
 }

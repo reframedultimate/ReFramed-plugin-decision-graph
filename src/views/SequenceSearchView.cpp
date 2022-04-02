@@ -33,9 +33,9 @@ void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
     QByteArray ba = text.toLocal8Bit();
     QueryBuilder builder(motionsTable_);
     if (builder.parse(ba.data()))
-    {
-
-    }
+        ui_->label_parseError->setText("No errors found.");
+    else
+        ui_->label_parseError->setText("Error");
 }
 
 // ----------------------------------------------------------------------------
