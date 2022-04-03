@@ -89,5 +89,50 @@ MotionsTable MotionsTable::load()
 
     fprintf(stderr, "Loaded %d motion labels\n", table.entries.count());
 
+    auto insertUser = [&table](const char* userLabel, const char* label) {
+        auto labelIt = table.labelMap.find(label);
+        if (labelIt != table.labelMap.end())
+        {
+            auto userIt = table.userMap.insertOrGet(userLabel, rfcommon::SmallVector<int, 4>());
+            userIt->value().push(labelIt->value());
+        }
+    };
+
+    insertUser("nair", "attack_air_n");
+    insertUser("nair", "landing_air_n");
+    insertUser("grab", "catch");
+    insertUser("utilt", "attack_hi3");
+
     return table;
+}
+
+// ----------------------------------------------------------------------------
+const char* MotionsTable::motionToLabel(rfcommon::FighterMotion motion) const
+{
+    auto it = motionMap.find(motion);
+    if (it == motionMap.end())
+        return nullptr;
+    return entries[it->value()].label.cStr();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::SmallVector<rfcommon::FighterMotion, 4> MotionsTable::userLabelToMotion(const char* userLabel) const
+{
+    auto it = userMap.find(userLabel);
+    if (it == userMap.end())
+        return {};
+
+    rfcommon::SmallVector<rfcommon::FighterMotion, 4> result;
+    for (int i : it->value())
+        result.push(entries[i].motion);
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::FighterMotion MotionsTable::labelToMotion(const char* label) const
+{
+    auto it = labelMap.find(label);
+    if (it == labelMap.end())
+        return 0;
+    return entries[it->value()].motion;
 }

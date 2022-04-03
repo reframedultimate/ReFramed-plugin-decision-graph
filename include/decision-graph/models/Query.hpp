@@ -3,6 +3,11 @@
 #include "decision-graph/models/Sequence.hpp"
 #include "rfcommon/Vector.hpp"
 
+class MappingInfo;
+class MotionsTable;
+class QueryBuilder;
+class Query;
+
 class Matcher
 {
 public:
@@ -19,6 +24,8 @@ public:
         HIT_ON_SHIELD = 0x04
     };
 
+    static Matcher start();
+
     //! Wildcard, matches anything
     static Matcher wildCard();
 
@@ -30,6 +37,7 @@ public:
     rfcommon::Vector<int> next;
 
 private:
+    friend class Query;
     Matcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags);
 
     const rfcommon::FighterMotion motion_;
@@ -38,13 +46,13 @@ private:
     const uint8_t matchFlags_;
 };
 
-class QueryBuilder;
 class Query
 {
 public:
     static Query nair_mixup_example();
     static Query nair_wildcard_example();
     rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
+    void exportDOT(const char* filename, const MotionsTable* table);
 
 private:
     friend class QueryBuilder;

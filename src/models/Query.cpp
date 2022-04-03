@@ -1,6 +1,14 @@
 #include "decision-graph/models/Query.hpp"
+#include "decision-graph/models/MotionsTable.hpp"
 #include "rfcommon/hash40.hpp"
 #include <cstdio>
+#include <cinttypes>
+
+// ----------------------------------------------------------------------------
+Matcher Matcher::start()
+{
+    return wildCard();
+}
 
 // ----------------------------------------------------------------------------
 Matcher Matcher::wildCard()
@@ -145,4 +153,33 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
     }
 
     return result;
+}
+
+// ----------------------------------------------------------------------------
+void Query::exportDOT(const char* filename, const MotionsTable* table)
+{
+    FILE* fp = fopen(filename, "w");
+    fprintf(fp, "digraph query {\n");
+
+    for (int i = 0; i != matchers_.count(); ++i)
+    {
+        const char* label = table->motionToLabel(matchers_[i].motion_);
+        if (i == 0)
+            fprintf(fp, "m%d [label=\"start\"];\n", i);
+        else if (label)
+            fprintf(fp, "m%d [shape=\"rectangle\",label=\"%s\"];\n", i, label);
+        else if (matchers_[i].matchFlags_ == 0)
+            fprintf(fp, "m%d [label=\".\"];\n", i);
+        else
+            fprintf(fp, "m%d [shape=\"rectangle\",label=\"%" PRIu64 "\"];\n",
+                    i, matchers_[i].motion_.value());
+    }
+    for (int i = 0; i != matchers_.count(); ++i)
+    {
+        for (int e : matchers_[i].next)
+            fprintf(fp, "m%d -> m%d;\n", i, e);
+    }
+
+    fprintf(fp, "}\n");
+    fclose(fp);
 }

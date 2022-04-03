@@ -11,7 +11,7 @@ public:
     QueryBuilder(const MotionsTable* motionsTable);
 
     bool parse(const char* text);
-    void parseAST(const QueryASTNode* ast);
+    bool parseAST(const QueryASTNode* ast);
 
 private:
     const MotionsTable* motionsTable_;

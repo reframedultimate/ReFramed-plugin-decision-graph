@@ -9,6 +9,9 @@ class MotionsTable
 {
 public:
     static MotionsTable load();
+    const char* motionToLabel(rfcommon::FighterMotion motion) const;
+    rfcommon::SmallVector<rfcommon::FighterMotion, 4> userLabelToMotion(const char* userLabel) const;
+    rfcommon::FighterMotion labelToMotion(const char* label) const;
 
 private:
     MotionsTable() {}
@@ -33,5 +36,5 @@ private:
     rfcommon::Vector<Entry> entries;
     rfcommon::HashMap<rfcommon::FighterMotion, int, FighterMotionHasher> motionMap;
     rfcommon::HashMap<rfcommon::SmallString<31>, int> labelMap;
-    rfcommon::HashMap<rfcommon::SmallString<7>, rfcommon::SmallVector<int, 4>> userMap;
+    rfcommon::HashMap<rfcommon::SmallString<15>, rfcommon::SmallVector<int, 4>> userMap;
 };
