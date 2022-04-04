@@ -1,6 +1,6 @@
 #pragma once
 
-#include "decision-graph/listeners/IncrementalDataListener.hpp"
+#include "decision-graph/listeners/SequenceSearchListener.hpp"
 #include <QWidget>
 #include <memory>
 
@@ -9,31 +9,31 @@ namespace Ui {
     class SequenceSearchView;
 }
 
-class IncrementalData;
-class MotionsTable;
-class Query;
+class SequenceSearchModel;
 
 class SequenceSearchView : public QWidget
-                         , public IncrementalDataListener
+                         , public SequenceSearchListener
 {
     Q_OBJECT
 
 public:
-    explicit SequenceSearchView(IncrementalData* incData, MotionsTable* motionsTable, QWidget* parent=nullptr);
+    explicit SequenceSearchView(SequenceSearchModel* model, QWidget* parent=nullptr);
     ~SequenceSearchView();
 
 private slots:
     void onLineEditQueryTextChanged(const QString& text);
+    void onComboBoxPlayerChanged(int index);
 
 private:
     void applyCurrentQuery();
 
 private:
-    void onIncrementalDataNewStats() override;
+    void onSessionChanged() override;
+    void onCurrentFighterChanged() override;
+    void onSequenceChanged() override;
+    void onQueryChanged() override;
 
 private:
-    IncrementalData* incData_;
-    MotionsTable* motionsTable_;
+    SequenceSearchModel* model_;
     Ui::SequenceSearchView* ui_;
-    std::unique_ptr<Query> query_;
 };

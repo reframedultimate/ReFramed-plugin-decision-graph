@@ -6,7 +6,7 @@
 class MappingInfo;
 class MotionsTable;
 class Query;
-class QueryASTNode;
+struct QueryASTNode;
 
 class Matcher
 {

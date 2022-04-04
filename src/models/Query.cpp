@@ -126,6 +126,7 @@ struct Fragment
 {
     rfcommon::SmallVector<int, 4> in;
     rfcommon::SmallVector<int, 4> out;
+    bool bridge = false;
 };
 
 // ----------------------------------------------------------------------------
@@ -182,7 +183,19 @@ static bool compileASTRecurse(
         for (int o : left.out)
             for (int i : right.in)
                 matchers->at(o).next.push(i);
-        left.out = right.out;
+
+        if (right.bridge)
+            left.out.push(std::move(right.out));
+        else
+            left.out = std::move(right.out);
+
+        if (left.bridge)
+        {
+            for (int i : right.in)
+                left.in.push(i);
+            left.bridge = false;
+        }
+
         fstack->pop();
     } break;
 
@@ -190,32 +203,89 @@ static bool compileASTRecurse(
         if (!compileASTRecurse(node->repitition.child, table, matchers, fstack, qstack)) return false;
         if (fstack->count() < 1) return false;
 
+        // Invalid values
+        if (node->repitition.minreps < 0)
+            return false;
+
         Fragment& f = fstack->back();
+
+        // Mark the entire fragment as optional if minreps or maxreps is 0
+        if (node->repitition.minreps == 0 || node->repitition.maxreps == 0)
+            f.bridge = true;
+
         if (node->repitition.maxreps == -1)
         {
+            // We will need min-1 duplicates of the current fragment to implement the
+            // repitition logic
+            rfcommon::SmallVector<Fragment, 8> fragments;
+            for (int n = 1; n < node->repitition.minreps; ++n)
+                fragments.push(duplicateFragment(f, matchers));
+
+            // Add repeat to fragment
             for (int a : f.out)
                 for (int b : f.in)
                     matchers->at(a).next.push(b);
+
+            // Wire up outputs among duplicates
+            for (int n = 1; n < fragments.count(); ++n)
+            {
+                for (int o : fragments[n].out)
+                    for (int i : fragments[n-1].in)
+                        matchers->at(o).next.push(i);
+            }
+
+            if (fragments.count() > 0)
+            {
+                for (int i : f.in)
+                    for (int o : fragments[0].out)
+                        matchers->at(o).next.push(i);
+                f.in = std::move(fragments.back().in);
+            }
         }
         else
         {
-            // Put a hard limit on how many reps are allowed
-            if (node->repitition.maxreps > 1000 || node->repitition.maxreps < 1)
-                return false;
-            if (node->repitition.minreps < 1)
+            // Invalid values
+            if (node->repitition.maxreps < 0 || node->repitition.minreps > node->repitition.maxreps)
                 return false;
 
-            Fragment templateMatcher(f);
-            Fragment prevDup(f);
-            for (int n = 1; n != node->repitition.maxreps; ++n)
+            // Special case if maxreps is 0, remove all connections
+            if (node->repitition.maxreps == 0)
             {
-                Fragment dup = duplicateFragment(templateMatcher, matchers);
-                for (int i : dup.in)
-                    f.in.push(i);
-                for (int o : dup.out)
-                    for (int i : prevDup.out)
+                f.in.clear();
+                f.out.clear();
+                break;
+            }
+
+            // Nothing to do
+            if (node->repitition.maxreps == 1)
+                break;
+
+            // We will need max-1 duplicates of the current fragment to implement the
+            // repitition logic
+            rfcommon::SmallVector<Fragment, 8> fragments;
+            for (int n = 1; n != node->repitition.maxreps; ++n)
+                fragments.push(duplicateFragment(f, matchers));
+
+            // Wire up outputs among duplicates
+            for (int n = 1; n != fragments.count(); ++n)
+            {
+                for (int o : fragments[n].out)
+                    for (int i : fragments[n-1].in)
                         matchers->at(o).next.push(i);
-                prevDup = std::move(dup);
+            }
+
+            // Wire up outputs to original fragment
+            for (int o : fragments[0].out)
+                for (int i : f.in)
+                    matchers->at(o).next.push(i);
+
+            // Wire up inputs to original fragment
+            if (node->repitition.minreps > 1)
+                f.in.clear();
+            for (int n = std::max(0, node->repitition.minreps - 2); n != node->repitition.maxreps - 1; ++n)
+            {
+                for (int i : fragments[n].in)
+                    f.in.push(i);
             }
         }
     } break;
@@ -228,10 +298,10 @@ static bool compileASTRecurse(
         Fragment& f1 = fstack->back(1);
         Fragment& f2 = fstack->back(2);
 
-        for (int i : f1.in)
-            f2.in.push(i);
-        for (int i : f1.out)
-            f2.out.push(i);
+        f2.in.push(std::move(f1.in));
+        f2.out.push(std::move(f1.out));
+        f2.bridge = (f1.bridge || f2.bridge);
+
         fstack->pop();
     } break;
 
@@ -355,14 +425,19 @@ Query* Query::compileAST(const QueryASTNode* ast, const MotionsTable* table)
 // ----------------------------------------------------------------------------
 rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
 {
+    struct MatchInfo
+    {
+        int lastList;
+    };
+
     rfcommon::Vector<SequenceRange> result;
     rfcommon::SmallVector<int, 16> l1, l2;
-    rfcommon::SmallVector<int, 16> lastListLookup(matchers_.count());
+    rfcommon::SmallVector<MatchInfo, 16> info(matchers_.count());
 
     // Returns the ending index in the sequence (exclusive) for the
     // current search pattern. If no pattern was found then this returns
     // the starting index
-    auto doSequenceMatch = [this, &seq, &l1, &l2, &lastListLookup](const int startIdx) -> int {
+    auto doSequenceMatch = [this, &seq, &l1, &l2, &info](const int startIdx) -> int {
         int stateIdx = startIdx;
 
         // Prepare current and next state lists
@@ -373,40 +448,41 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
         for (int i : matchers_[0].next)
             clist->emplace(i);
 
-        memset(lastListLookup.data(), 0, sizeof(int) * matchers_.count());
+        memset(info.data(), 0, sizeof(int) * matchers_.count());
 
         while (true)
         {
             listid++;
             nlist->clear();
-            int matchCount = 0;
             for (int matcherIdx : *clist)
                 if (matchers_[matcherIdx].matches(seq.states[stateIdx]))
                 {
-                    matchCount++;
                     for (int nextMatcherIdx : matchers_[matcherIdx].next)
-                        if (lastListLookup[nextMatcherIdx] != listid)
+                        if (info[nextMatcherIdx].lastList != listid)
                         {
-                            lastListLookup[nextMatcherIdx] = listid;
+                            info[nextMatcherIdx].lastList = listid;
                             nlist->push(nextMatcherIdx);
                         }
+
+                    if (stateIdx + 1 >= seq.states.count())
+                        return stateIdx + 1;
+
+                    if (matchers_[matcherIdx].isStop())
+                    {
+                        for (int nextMatcherIdx : matchers_[matcherIdx].next)
+                            if (matchers_[nextMatcherIdx].matches(seq.states[stateIdx + 1]))
+                                goto skip_return;
+                        
+                        return stateIdx + 1;
+                        skip_return:;
+                    }
                 }
 
-            // If no more matchers are in the next list, or if we've
-            // reached the end of the sequence, check if state machine 
-            // has reached any stop matchers and if so return the matched
-            // range
-            stateIdx++;
-            if (nlist->count() == 0 || stateIdx >= seq.states.count())
-            {
-                if (matchCount > 0)
-                    for (int matcherIdx : *clist)
-                        if (matchers_[matcherIdx].isStop())
-                            return stateIdx;  // Successful match
+            if (nlist->count() == 0 || stateIdx + 1 >= seq.states.count())
                 return startIdx;  // Failed to match anything
-            }
 
             // Advance
+            stateIdx++;
             std::swap(clist, nlist);
         }
     };

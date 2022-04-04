@@ -178,18 +178,12 @@ static void writeEdges(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
             nodeIDs.find(node)->value(), nodeIDs.find(node->statement.child)->value());
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->statement.next)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->statement.child)->value(), nodeIDs.find(node->statement.child->parent)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->statement.next)->value(), nodeIDs.find(node->statement.next->parent)->value());
         writeEdges(node->statement.child, fp, nodeIDs);
         writeEdges(node->statement.next, fp, nodeIDs);
         break;
     case QueryASTNode::REPITITION:
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->repitition.child)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->repitition.child)->value(), nodeIDs.find(node->repitition.child->parent)->value());
         writeEdges(node->repitition.child, fp, nodeIDs);
         break;
     case QueryASTNode::UNION:
@@ -197,18 +191,12 @@ static void writeEdges(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
             nodeIDs.find(node)->value(), nodeIDs.find(node->union_.child)->value());
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->union_.next)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->union_.child)->value(), nodeIDs.find(node->union_.child->parent)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->union_.next)->value(), nodeIDs.find(node->union_.next->parent)->value());
         writeEdges(node->union_.child, fp, nodeIDs);
         writeEdges(node->union_.next, fp, nodeIDs);
         break;
     case QueryASTNode::INVERSION:
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->inversion.child)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->inversion.child)->value(), nodeIDs.find(node->inversion.child->parent)->value());
         writeEdges(node->inversion.child, fp, nodeIDs);
         break;
     case QueryASTNode::WILDCARD:
@@ -218,8 +206,6 @@ static void writeEdges(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
     case QueryASTNode::QUALIFIER:
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->qualifier.child)->value());
-        fprintf(fp, "n%d -> n%d [color=blue];\n",
-            nodeIDs.find(node->qualifier.child)->value(), nodeIDs.find(node->qualifier.child->parent)->value());
         writeEdges(node->qualifier.child, fp, nodeIDs);
         break;
     }

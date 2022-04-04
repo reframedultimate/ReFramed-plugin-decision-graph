@@ -109,7 +109,10 @@ repitition
   : inversion '+'       { $$ = QueryASTNode::newRepitition($1, 1, -1); }
   | inversion '*'       { $$ = QueryASTNode::newRepitition($1, 0, -1); }
   | inversion '?'       { $$ = QueryASTNode::newRepitition($1, 0, 1); }
-  | inversion NUM       { $$ = QueryASTNode::newRepitition($1, 1, $2); }
+  | inversion NUM       { $$ = QueryASTNode::newRepitition($1, $2, $2); }
+  | inversion NUM ',' NUM { $$ = QueryASTNode::newRepitition($1, $2, $4); }
+  | inversion NUM ',' '+' { $$ = QueryASTNode::newRepitition($1, $2, -1); }
+  | inversion NUM ',' '*' { $$ = QueryASTNode::newRepitition($1, $2, -1); }
   | inversion           { $$ = $1; }
   ;
 inversion

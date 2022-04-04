@@ -8,8 +8,9 @@
 class MotionsTable
 {
 public:
-    static MotionsTable load();
+    static MotionsTable* load();
     const char* motionToLabel(rfcommon::FighterMotion motion) const;
+    const char* motionToUserLabel(rfcommon::FighterMotion motion) const;
     rfcommon::SmallVector<rfcommon::FighterMotion, 4> userLabelToMotion(const char* userLabel) const;
     rfcommon::FighterMotion labelToMotion(const char* label) const;
 

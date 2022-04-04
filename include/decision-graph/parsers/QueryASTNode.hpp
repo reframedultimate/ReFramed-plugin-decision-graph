@@ -57,20 +57,20 @@ struct QueryASTNode
     };
 
 private:
-    QueryASTNode(Statement statement) : type(STATEMENT), parent(nullptr), statement(statement)
-        { statement.child->parent = this; statement.next->parent = this; }
-    QueryASTNode(Repitition repitition) : type(REPITITION), parent(nullptr), repitition(repitition)
-        { repitition.child->parent = this; }
-    QueryASTNode(Union union_) : type(UNION), parent(nullptr), union_(union_)
-        { union_.child->parent = this; union_.next->parent = this; }
-    QueryASTNode(Inversion inversion) : type(INVERSION), parent(nullptr), inversion(inversion)
-        { inversion.child->parent = this; }
-    QueryASTNode(Type type) : type(type), parent(nullptr)
+    QueryASTNode(Statement statement) : type(STATEMENT), statement(statement)
         {}
-    QueryASTNode(const char* label) : type(LABEL), parent(nullptr), label(label)
+    QueryASTNode(Repitition repitition) : type(REPITITION), repitition(repitition)
         {}
-    QueryASTNode(Qualifier qualifier) : type(QUALIFIER), parent(nullptr), qualifier(qualifier)
-        { qualifier.child->parent = this;  }
+    QueryASTNode(Union union_) : type(UNION), union_(union_)
+        {}
+    QueryASTNode(Inversion inversion) : type(INVERSION), inversion(inversion)
+        {}
+    QueryASTNode(Type type) : type(type)
+        {}
+    QueryASTNode(const char* label) : type(LABEL), label(label)
+        {}
+    QueryASTNode(Qualifier qualifier) : type(QUALIFIER), qualifier(qualifier)
+        {}
     ~QueryASTNode() {}
 
 public:
@@ -87,7 +87,6 @@ public:
 
     void exportDOT(const char* filename) const;
 
-    QueryASTNode* parent;
     union {
         Statement statement;
         Repitition repitition;

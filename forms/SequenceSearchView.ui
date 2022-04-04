@@ -6,59 +6,41 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>779</width>
-    <height>530</height>
+    <width>986</width>
+    <height>652</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1">
-   <item row="0" column="1">
-    <widget class="QComboBox" name="comboBox_player"/>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_frames">
-     <property name="text">
-      <string>Query:</string>
+  <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
+   <item row="2" column="0">
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>Graph Settings</string>
      </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QCheckBox" name="checkBox_mergeMotions">
+        <property name="text">
+         <string>Merge nodes with same motion values</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBox_mergeUserLabels">
+        <property name="text">
+         <string>Merge nodes with same user labels</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Player:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>Available Labels:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0" colspan="2">
-    <widget class="QLabel" name="label_parseError">
-     <property name="text">
-      <string>No Results found.</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="lineEdit_query"/>
-   </item>
-   <item row="6" column="0" colspan="2">
-    <widget class="QPushButton" name="pushButton_editLabels">
-     <property name="text">
-      <string>Edit User Labels...</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="2">
-    <widget class="QTableWidget" name="tableWidget_labels"/>
-   </item>
-   <item row="0" column="2" rowspan="7">
+   <item row="0" column="1" rowspan="6">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>0</number>
@@ -68,6 +50,103 @@
        <string>Graph</string>
       </attribute>
      </widget>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QListWidget" name="listWidget_labels"/>
+   </item>
+   <item row="5" column="0">
+    <widget class="QPushButton" name="pushButton_editLabels">
+     <property name="text">
+      <string>Edit User Labels...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Available Labels:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Query</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="lineEdit_query"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Player:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Query:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QLabel" name="label_parseError">
+        <property name="text">
+         <string>No Results found.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBox_player"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Query Result Stats</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_frames">
+        <property name="text">
+         <string>Total Frames: 0</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_sequenceLength">
+        <property name="text">
+         <string>Total Sequence Length: 0</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_matches">
+        <property name="text">
+         <string>Matches: 0</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_matchedStates">
+        <property name="text">
+         <string>Matched States: 0</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_matchedUniqueStates">
+        <property name="text">
+         <string>Matched Unique States: 0</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
   </layout>

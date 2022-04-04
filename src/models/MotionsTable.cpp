@@ -1,5 +1,6 @@
-#include "decision-graph/models/MotionsTable.hpp"
+#include "decision-graph/models/Motionstable.hpp"
 #include <cstdio>
+#include <memory>
 
 // ----------------------------------------------------------------------------
 static uint64_t hexStringToValue(const char* hex, int* error)
@@ -29,9 +30,9 @@ static uint64_t hexStringToValue(const char* hex, int* error)
 }
 
 // ----------------------------------------------------------------------------
-MotionsTable MotionsTable::load()
+MotionsTable* MotionsTable::load()
 {
-    MotionsTable table;
+    std::unique_ptr<MotionsTable> table(new MotionsTable);
 
 #if defined(_WIN32)
     FILE* fp = fopen("share\\reframed\\data\\plugin-decision-graph\\ParamLabels.csv", "r");
@@ -68,32 +69,33 @@ MotionsTable MotionsTable::load()
         rfcommon::FighterMotion motion(motionValue);
         rfcommon::SmallString<31> label(labelStr);
 
-        auto motionMapResult = table.motionMap.insertNew(motion, -1);
-        if (motionMapResult == table.motionMap.end())
+        auto motionMapResult = table->motionMap.insertNew(motion, -1);
+        if (motionMapResult == table->motionMap.end())
         {
             fprintf(stderr, "Duplicate motion value: %s\n", line);
             continue;
         }
 
-        auto labelMapResult = table.labelMap.insertNew(label, -1);
-        if (labelMapResult == table.labelMap.end())
+        auto labelMapResult = table->labelMap.insertNew(label, -1);
+        if (labelMapResult == table->labelMap.end())
         {
             fprintf(stderr, "Duplicate motion label: %s\n", labelStr);
             continue;
         }
 
-        table.entries.emplace(motion, label);
-        motionMapResult->value() = table.entries.count() - 1;
-        labelMapResult->value() = table.entries.count() - 1;
+        table->entries.emplace(motion, label);
+        motionMapResult->value() = table->entries.count() - 1;
+        labelMapResult->value() = table->entries.count() - 1;
     }
 
-    fprintf(stderr, "Loaded %d motion labels\n", table.entries.count());
+    fprintf(stderr, "Loaded %d motion labels\n", table->entries.count());
 
     auto insertUser = [&table](const char* userLabel, const char* label) {
-        auto labelIt = table.labelMap.find(label);
-        if (labelIt != table.labelMap.end())
+        auto labelIt = table->labelMap.find(label);
+        if (labelIt != table->labelMap.end())
         {
-            auto userIt = table.userMap.insertOrGet(userLabel, rfcommon::SmallVector<int, 4>());
+            auto userIt = table->userMap.insertOrGet(userLabel, rfcommon::SmallVector<int, 4>());
+            table->entries[labelIt->value()].user = userLabel;
             userIt->value().push(labelIt->value());
         }
     };
@@ -101,9 +103,11 @@ MotionsTable MotionsTable::load()
     insertUser("nair", "attack_air_n");
     insertUser("nair", "landing_air_n");
     insertUser("uair", "attack_air_hi");
+    insertUser("uair", "landing_air_hi");
     insertUser("bair", "attack_air_b");
     insertUser("bair", "landing_air_b");
     insertUser("dair", "attack_air_lw");
+    insertUser("dair", "landing_air_lw");
     insertUser("dair", "attack_air_lw_hit");
     insertUser("fair", "attack_air_f");
     insertUser("fair", "landing_air_f");
@@ -134,7 +138,7 @@ MotionsTable MotionsTable::load()
     insertUser("thunder", "special_air_lw_hit");
     insertUser("bluethunder", "special_air_lw_hit");
 
-    return table;
+    return table.release();
 }
 
 // ----------------------------------------------------------------------------
@@ -143,7 +147,18 @@ const char* MotionsTable::motionToLabel(rfcommon::FighterMotion motion) const
     auto it = motionMap.find(motion);
     if (it == motionMap.end())
         return nullptr;
-    return entries[it->value()].label.cStr();
+    const auto& s = entries[it->value()].label;
+    return s.count() ? s.cStr() : nullptr;
+}
+
+// ----------------------------------------------------------------------------
+const char* MotionsTable::motionToUserLabel(rfcommon::FighterMotion motion) const
+{
+    auto it = motionMap.find(motion);
+    if (it == motionMap.end())
+        return nullptr;
+    const auto& s = entries[it->value()].user;
+    return s.count() ? s.cStr() : nullptr;
 }
 
 // ----------------------------------------------------------------------------

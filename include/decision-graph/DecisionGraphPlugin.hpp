@@ -2,10 +2,10 @@
 
 #include "rfcommon/RealtimePlugin.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
-#include "decision-graph/models/MotionsTable.hpp"
 #include <memory>
 
-class IncrementalData;
+class MotionsTable;
+class SequenceSearchModel;
 
 class DecisionGraphPlugin : public rfcommon::RealtimePlugin
 {
@@ -49,6 +49,6 @@ public:
     void clearSavedGameSession(rfcommon::SavedGameSession* session) override;
 
 private:
-    std::unique_ptr<IncrementalData> incData_;
-    MotionsTable motionsTable_;
+    std::unique_ptr<MotionsTable> motionsTable_;
+    std::unique_ptr<SequenceSearchModel> seqSearchModel_;
 };

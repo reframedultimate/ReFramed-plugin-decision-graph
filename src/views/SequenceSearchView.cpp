@@ -1,76 +1,131 @@
 #include "ui_SequenceSearchView.h"
+#include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
-#include "decision-graph/models/IncrementalData.hpp"
-#include "decision-graph/models/Query.hpp"
-#include "decision-graph/parsers/QueryASTNode.hpp"
 
 // ----------------------------------------------------------------------------
-SequenceSearchView::SequenceSearchView(IncrementalData* incData, MotionsTable* motionsTable, QWidget* parent)
+SequenceSearchView::SequenceSearchView(SequenceSearchModel* model, QWidget* parent)
     : QWidget(parent)
-    , incData_(incData)
-    , motionsTable_(motionsTable)
+    , model_(model)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
+    ui_->label_parseError->setText("Query string empty.");
+    ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+
+    SequenceSearchView::onSessionChanged();
 
     connect(ui_->lineEdit_query, &QLineEdit::textChanged,
             this, &SequenceSearchView::onLineEditQueryTextChanged);
+    connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
+            this, &SequenceSearchView::onComboBoxPlayerChanged);
 
-    incData_->dispatcher.addListener(this);
+    model_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::~SequenceSearchView()
 {
     // Remove things in reverse order
-    incData_->dispatcher.removeListener(this);
+    model_->dispatcher.removeListener(this);
     delete ui_;
 }
 
 // ----------------------------------------------------------------------------
 void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
 {
-    QueryASTNode* ast;
-    Query* query;
+    if (text.length() == 0)
+    {
+        ui_->label_parseError->setText("Query string empty.");
+        ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+        return;
+    }
 
     QByteArray ba = text.toLocal8Bit();
-    ast = Query::parse(ba.data());
-    if (ast == nullptr)
+    if (model_->setQuery(ba.data()))
     {
-        ui_->label_parseError->setText("Parse error");
-        return;
+        ui_->label_parseError->setText("Query string Valid.");
+        ui_->label_parseError->setStyleSheet("QLabel {color: #20C020}");
     }
-    ast->exportDOT("query-ast.dot");
-
-    query = Query::compileAST(ast, motionsTable_);
-    QueryASTNode::destroyRecurse(ast);
-    if (query == nullptr)
+    else
     {
-        ui_->label_parseError->setText("Compile error");
-        return;
+        ui_->label_parseError->setText(model_->queryError());
+        ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
     }
-    query->exportDOT("query.dot", motionsTable_);
-
-    query_.reset(query);
-    ui_->label_parseError->setText("No errors found.");
-
-    applyCurrentQuery();
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::applyCurrentQuery()
+void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
-    if (incData_->session() == nullptr || query_.get() == nullptr)
-        return;
-
-    rfcommon::Vector<SequenceRange> queryResult = query_->apply(incData_->sequence(0));
-    Graph graph = Graph::fromSequenceRanges(incData_->sequence(0), queryResult);
-    graph.exportDOT("decision_graph_search.dot", 0, incData_->session(), motionsTable_);
+    model_->setCurrentFighter(index);
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onIncrementalDataNewStats()
+void SequenceSearchView::onSessionChanged()
 {
-    applyCurrentQuery();
+    bool blocked = ui_->comboBox_player->blockSignals(true);
+
+    ui_->comboBox_player->clear();
+    for (int i = 0; i != model_->fighterCount(); ++i)
+        ui_->comboBox_player->addItem(QString(model_->fighterName(i)) + " (" + model_->fighterCharacter(i) + ")");
+    if (model_->fighterCount() > 0)
+        ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+    ui_->comboBox_player->blockSignals(blocked);
+
+    ui_->listWidget_labels->clear();
+    for (const auto& label : model_->availableLabels(model_->currentFighter()))
+        ui_->listWidget_labels->addItem(label.cStr());
+
+    ui_->label_frames->setText("Total Frames: " + QString::number(model_->frameCount()));
+    ui_->label_sequenceLength->setText(
+                "Total Sequence Length: " +
+                QString::number(model_->sequenceLength(model_->currentFighter())));
+
+    int numMatches, numMatchedStates;
+    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
+    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
+    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
+    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onCurrentFighterChanged()
+{
+    bool blocked = ui_->comboBox_player->blockSignals(true);
+    ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+    ui_->comboBox_player->blockSignals(blocked);
+
+    ui_->listWidget_labels->clear();
+    for (const auto& label : model_->availableLabels(model_->currentFighter()))
+        ui_->listWidget_labels->addItem(label.cStr());
+
+    int numMatches, numMatchedStates;
+    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
+    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
+    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
+    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onSequenceChanged()
+{
+    ui_->label_sequenceLength->setText(
+                "Total Sequence Length: " +
+                QString::number(model_->sequenceLength(model_->currentFighter())));
+
+    int numMatches, numMatchedStates;
+    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
+    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
+    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
+    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onQueryChanged()
+{
+    int numMatches, numMatchedStates;
+    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
+    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
+    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
+    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
 }
