@@ -20,16 +20,19 @@ public:
             rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
             rfcommon::FighterHitStatus hitStatus,
-            bool inHitlag, bool inHitstun,
-            bool opponentInHitlag, bool opponentInHitstun)
+            bool inHitlag, bool inHitstun, bool inShieldlag,
+            bool opponentInHitlag, bool opponentInHitstun,
+            bool opponentInShieldlag)
         : motion_(motion)
         , status_(status)
         , hitStatus_(hitStatus)
         , flags_(
               (static_cast<uint8_t>(inHitlag) << 0)
             | (static_cast<uint8_t>(inHitstun) << 1)
-            | (static_cast<uint8_t>(opponentInHitlag) << 2)
-            | (static_cast<uint8_t>(opponentInHitstun) << 3))
+            | (static_cast<uint8_t>(inShieldlag) << 2)
+            | (static_cast<uint8_t>(opponentInHitlag) << 3)
+            | (static_cast<uint8_t>(opponentInHitstun) << 4)
+            | (static_cast<uint8_t>(opponentInShieldlag) << 5))
     {}
 
     struct Hasher
@@ -64,8 +67,10 @@ public:
 
     bool inHitlag() const { return !!(flags_ & 0x01); }
     bool inHitstun() const { return !!(flags_ & 0x02); }
-    bool opponentInHitlag() const { return !!(flags_ & 0x04); }
-    bool opponentInHitstun() const { return !!(flags_ & 0x08); }
+    bool inShieldlag() const { return !!(flags_ & 0x04); }
+    bool opponentInHitlag() const { return !!(flags_ & 0x08); }
+    bool opponentInHitstun() const { return !!(flags_ & 0x10); }
+    bool opponentInShieldlag() const { return !!(flags_ & 0x20); }
 
 private:
     rfcommon::FighterMotion motion_;

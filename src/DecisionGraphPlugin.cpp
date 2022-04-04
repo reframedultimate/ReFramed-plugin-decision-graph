@@ -35,25 +35,16 @@ void DecisionGraphPlugin::destroyView(QWidget* view)
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* session)
 {
-    incData_->prepareNew(session->fighterCount());
+    incData_->setSession(session);
 
     for (int frameIdx = 0; frameIdx != session->frameCount(); ++frameIdx)
-        incData_->addFrame(session->frame(frameIdx));
+        incData_->addFrame(frameIdx, session->frame(frameIdx));
 
-    //graphBuilder_->buildExample1();
     incData_->notifyNewStatsAvailable();
-
-    incData_->graph(0).exportOGDFSVG("decision_graph.svg", session);
-    incData_->graph(0).exportDOT("decision_graph.dot", session);
-
-    Query query = Query::nair_wildcard_example();
-    rfcommon::Vector<SequenceRange> queryResult = query.apply(incData_->sequence(0));
-    Graph graph = Graph::fromSequenceRanges(incData_->sequence(0), queryResult);
-    graph.exportOGDFSVG("decision_graph_search.svg", session);
-    graph.exportDOT("decision_graph_search.dot", session);
 }
 
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::clearSavedGameSession(rfcommon::SavedGameSession* session)
 {
+    incData_->clearSession(session);
 }

@@ -1,6 +1,6 @@
 #include "decision-graph/models/Graph.hpp"
+#include "decision-graph/models/MotionsTable.hpp"
 #include "rfcommon/Frame.hpp"
-#include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/Session.hpp"
 #include <cstdio>
 #include <cinttypes>
@@ -52,7 +52,7 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, const rfcommon::Session* session) const
+void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -85,13 +85,31 @@ void Graph::exportDOT(const char* fileName, const rfcommon::Session* session) co
     {
         const auto& statusMapping = session->mappingInfo().fighterStatus;
         const rfcommon::String* name = statusMapping.statusToBaseEnumName(nodes[nodeIdx].state.status());
+        const char* motionLabel = table->motionToLabel(nodes[nodeIdx].state.motion());
+
+        rfcommon::String flags;
+        if (nodes[nodeIdx].state.inHitlag())
+            flags += rfcommon::String("| hitlag");
+        if (nodes[nodeIdx].state.inHitstun())
+            flags += rfcommon::String(flags.count() ? ", hitstun" : "| hitstun");
+        if (nodes[nodeIdx].state.inShieldlag())
+            flags += rfcommon::String(flags.count() ? ", shieldlag" : "| shieldlag");
+        if (nodes[nodeIdx].state.opponentInHitlag())
+            flags += rfcommon::String(flags.count() ? ", op hitlag" : "| op hitlag");
+        if (nodes[nodeIdx].state.opponentInHitstun())
+            flags += rfcommon::String(flags.count() ? ", op hitstun" : "| op hitstun");
+        if (nodes[nodeIdx].state.opponentInShieldlag())
+            flags += rfcommon::String(flags.count() ? ", op shieldlag" : "| op shieldlag");
+
         if (name == nullptr)
-            name = statusMapping.statusToFighterSpecificEnumName(nodes[nodeIdx].state.status(), session->fighterID(0));
-        fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s | %" PRIu64 " }\"];\n",
+            name = statusMapping.statusToFighterSpecificEnumName(nodes[nodeIdx].state.status(), session->fighterID(fighterIdx));
+        fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s | %s (%" PRIu64 ") %s }\"];\n",
                 nodeIdx,
                 hue(accIncomingWeights(nodeIdx)),
                 name ? name->cStr() : "(unknown)",
-                nodes[nodeIdx].state.motion().value());
+                motionLabel ? motionLabel : "",
+                nodes[nodeIdx].state.motion().value(),
+                flags.cStr());
     }
 
     for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
@@ -108,7 +126,7 @@ void Graph::exportDOT(const char* fileName, const rfcommon::Session* session) co
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, const rfcommon::Session* session) const
+void Graph::exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -127,7 +145,7 @@ void Graph::exportOGDFSVG(const char* fileName, const rfcommon::Session* session
         const auto& statusMapping = session->mappingInfo().fighterStatus;
         const rfcommon::String* name = statusMapping.statusToBaseEnumName(node.state.status());
         if (name == nullptr)
-            name = statusMapping.statusToFighterSpecificEnumName(node.state.status(), session->fighterID(0));
+            name = statusMapping.statusToFighterSpecificEnumName(node.state.status(), session->fighterID(fighterIdx));
         if (name == nullptr)
             name = &defaultName;
 

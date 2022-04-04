@@ -1,14 +1,12 @@
 %require "3.8"
 %code top
 {
-    class QueryBuilder;
+    class QueryASTNode;
 
     #include "decision-graph/parsers/QueryParser.y.hpp"
     #include "decision-graph/parsers/QueryScanner.lex.hpp"
     #include "decision-graph/parsers/QueryASTNode.hpp"
-    #include "decision-graph/models/QueryBuilder.hpp"
     #include "decision-graph/util/Str.hpp"
-    #define queryBuilder (static_cast<QueryBuilder*>(qpget_extra(scanner)))
 
     static void qperror(qpscan_t scanner, const char* msg, ...);
 }
@@ -54,8 +52,7 @@
  * How Bison obtains an instance of yyscan_t is up to you, but the most sensible way is to pass it into the
  * yyparse(void) method, making the  new signature yyparse(yyscan_t). This is what the %parse-param does.
  */
-%lex-param {qpscan_t scanner}
-%parse-param {qpscan_t scanner}
+%parse-param {QueryASTNode** ast}
 
 %define api.token.prefix {TOK_}
 
@@ -63,6 +60,7 @@
 %union {
     char* string_value;
     int integer_value;
+    uint8_t qual_flags;
     struct QueryASTNode* node_value;
 }
 
@@ -75,12 +73,15 @@
 %token OOS
 %token HIT
 %token WHIFF
-%token DMG
-%token DIE
+%token SH
+%token FH
+%token DJ
+%token IDJ
 %token<integer_value> NUM
 %token<string_value> LABEL
 
 %type<node_value> stmnts stmnt repitition union inversion label
+%type<qual_flags> pre_qual post_qual
 
 %right '|'
 
@@ -88,34 +89,53 @@
 
 %%
 query
-  : stmnts           { queryBuilder->parseAST($1); QueryASTNode::destroyRecurse($1); }
+  : stmnts              { *ast = $1; }
   ;
 stmnts
-  : stmnt '>' stmnts { $$ = QueryASTNode::newStatement($1, $3); }
-  | stmnt            { $$ = $1; }
+  : stmnt '>' stmnts    { $$ = QueryASTNode::newStatement($1, $3); }
+  | stmnt               { $$ = $1; }
   ;
 stmnt
-  : union            { $$ = $1; }
+  : pre_qual union post_qual { $$ = QueryASTNode::newQualifier($2, $1 | $3); }
+  | union post_qual     { $$ = QueryASTNode::newQualifier($1, $2); }
+  | pre_qual union      { $$ = QueryASTNode::newQualifier($2, $1); }
+  | union               { $$ = $1; }
   ;
 union
-  : union '|' union  { $$ = QueryASTNode::newUnion($1, $3); }
-  | repitition       { $$ = $1; }
+  : union '|' union     { $$ = QueryASTNode::newUnion($1, $3); }
+  | repitition          { $$ = $1; }
   ;
 repitition
-  : inversion '+'    { $$ = QueryASTNode::newRepitition($1, 1, -1); }
-  | inversion '*'    { $$ = QueryASTNode::newRepitition($1, 0, -1); }
-  | inversion '?'    { $$ = QueryASTNode::newRepitition($1, 0, 1); }
-  | inversion NUM    { $$ = QueryASTNode::newRepitition($1, 1, $2); }
-  | inversion        { $$ = $1; }
+  : inversion '+'       { $$ = QueryASTNode::newRepitition($1, 1, -1); }
+  | inversion '*'       { $$ = QueryASTNode::newRepitition($1, 0, -1); }
+  | inversion '?'       { $$ = QueryASTNode::newRepitition($1, 0, 1); }
+  | inversion NUM       { $$ = QueryASTNode::newRepitition($1, 1, $2); }
+  | inversion           { $$ = $1; }
   ;
 inversion
-  : '!' label        { $$ = QueryASTNode::newInversion($2); }
-  | label            { $$ = $1; }
-  | '.'              { $$ = QueryASTNode::newWildcard(); }
+  : '!' label           { $$ = QueryASTNode::newInversion($2); }
+  | label               { $$ = $1; }
+  | '.'                 { $$ = QueryASTNode::newWildcard(); }
+  | '(' stmnts ')'      { $$ = $2; }
   ;
 label
-  : LABEL            { $$ = QueryASTNode::newLabel($1); StrFree($1); }
-  | '(' stmnts ')'   { $$ = $2; }
+  : LABEL               { $$ = QueryASTNode::newLabel($1); StrFree($1); }
+  ;
+pre_qual
+  : pre_qual '|' pre_qual { $$ = $1; $$ |= $3; }
+  | '(' pre_qual ')'    { $$ = $2; }
+  | FH                  { $$ = QueryASTNode::QUAL_FH; }
+  | SH                  { $$ = QueryASTNode::QUAL_SH; }
+  | DJ                  { $$ = QueryASTNode::QUAL_DJ; }
+  | IDJ                 { $$ = QueryASTNode::QUAL_IDJ; }
+  ;
+post_qual
+  : post_qual '|' post_qual { $$ = $1; $$ |= $3; }
+  | '(' post_qual ')'   { $$ = $2; }
+  | OS                  { $$ = QueryASTNode::QUAL_OS; }
+  | OOS                 { $$ = QueryASTNode::QUAL_OOS; }
+  | HIT                 { $$ = QueryASTNode::QUAL_HIT; }
+  | WHIFF               { $$ = QueryASTNode::QUAL_WHIFF; }
   ;
 %%
 

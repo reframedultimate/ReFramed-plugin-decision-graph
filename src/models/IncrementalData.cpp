@@ -2,21 +2,29 @@
 #include "decision-graph/listeners/IncrementalDataListener.hpp"
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/hash40.hpp"
+#include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
-void IncrementalData::prepareNew(int fighterCount)
+void IncrementalData::setSession(rfcommon::Session* session)
 {
     sequences_.clearCompact();
     graphData_.clearCompact();
 
-    sequences_.resize(fighterCount);
-    graphData_.resize(fighterCount);
+    sequences_.resize(session->fighterCount());
+    graphData_.resize(session->fighterCount());
 
     frameCounter_ = 0;
+    session_ = session;
 }
 
 // ----------------------------------------------------------------------------
-void IncrementalData::addFrame(const rfcommon::Frame& frame)
+void IncrementalData::clearSession(rfcommon::Session* session)
+{
+    session_ = nullptr;
+}
+
+// ----------------------------------------------------------------------------
+void IncrementalData::addFrame(int frameIdx, const rfcommon::Frame& frame)
 {
     for (int fighterIdx = 0; fighterIdx != frame.fighterCount(); ++fighterIdx)
     {
@@ -24,11 +32,60 @@ void IncrementalData::addFrame(const rfcommon::Frame& frame)
         GraphData& data = graphData_[fighterIdx];
         Sequence& seq = sequences_[fighterIdx];
 
+        const bool inHitlag = [this, fighterIdx, frameIdx, &fighterState]() -> bool {
+            if (session_->fighterCount() != 2)
+                return false;
+
+            const auto& opponentState = session_->state(frameIdx, 1 - fighterIdx);
+            const auto& prevFighterState = frameIdx > 0 ? session_->state(frameIdx - 1, fighterIdx) : fighterState;
+            if (opponentState.flags().attackConnected())
+                return fighterState.hitstun() == prevFighterState.hitstun();
+
+            return false;
+        }();
+
+        const bool inHitstun = [&fighterState]() -> bool {
+            return fighterState.hitstun() > 0;
+        }();
+
+        const bool inShieldlag = [&fighterState]() -> bool {
+            return fighterState.status() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
+        }();
+
+        const bool opponentInHitlag = [this, fighterIdx, frameIdx, &fighterState]() -> bool {
+            if (session_->fighterCount() != 2)
+                return false;
+
+            const auto& opponentState = session_->state(frameIdx, 1 - fighterIdx);
+            const auto& prevOpponentState = frameIdx > 0 ? session_->state(frameIdx - 1, 1 - fighterIdx) : opponentState;
+            if (fighterState.flags().attackConnected())
+                return opponentState.hitstun() == prevOpponentState.hitstun();
+
+            return false;
+        }();
+
+        const bool opponentInHitstun = [fighterIdx, &frame]() -> bool {
+            if (frame.fighterCount() != 2)
+                return false;
+
+            const auto& opponentState = frame.fighter(1 - fighterIdx);
+            return opponentState.hitstun() > 0;
+        }();
+
+        const bool opponentInShieldlag = [fighterIdx, &frame]() -> bool {
+            if (frame.fighterCount() != 2)
+                return false;
+
+            const auto& opponentState = frame.fighter(1 - fighterIdx);
+            return opponentState.status() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
+        }();
+
         const State state(
             fighterState.motion(),
             fighterState.status(),
             fighterState.hitStatus(),
-            true, true, true, true  // TODO
+            inHitlag, inHitstun, inShieldlag,
+            opponentInHitlag, opponentInHitstun, opponentInShieldlag
         );
 
         // Only process state if it is meaningfully different from the previously
@@ -83,74 +140,3 @@ int IncrementalData::numFrames() const
 {
     return frameCounter_;
 }
-
-// ----------------------------------------------------------------------------
-void IncrementalData::buildExample1()
-{
-    State nair   = State(rfcommon::hash40("attack_air_n"), 0, 0, false, false, false, false);
-    State utilt  = State(rfcommon::hash40("attack_hi_3"), 0, 0, false, false, false, false);
-    State jump   = State(2, 0, 0, false, false, false, false);
-    State land   = State(3, 0, 0, false, false, false, false);
-    State roll   = State(4, 0, 0, false, false, false, false);
-    State shield = State(5, 0, 0, false, false, false, false);
-    State grab   = State(6, 0, 0, false, false, false, false);
-
-    GraphData& data = graphData_[0];
-    Sequence& seq = sequences_[0];
-    seq.states.clear();
-    data.graph.nodes.clear();
-    data.graph.edges.clear();
-
-    // Input sequence
-    seq.states.push(jump);
-    seq.states.push(nair);
-    seq.states.push(land);
-    seq.states.push(roll);
-    seq.states.push(jump);
-    seq.states.push(nair);
-    seq.states.push(land);
-    seq.states.push(shield);
-    seq.states.push(jump);
-    seq.states.push(nair);
-    seq.states.push(land);
-    seq.states.push(grab);
-    seq.states.push(jump);
-    seq.states.push(nair);
-    seq.states.push(land);
-    seq.states.push(utilt);
-    seq.states.push(shield);
-
-    // All nodes
-    data.graph.nodes.emplace(nair);   // 0
-    data.graph.nodes.emplace(utilt);  // 1
-    data.graph.nodes.emplace(jump);   // 2
-    data.graph.nodes.emplace(land);   // 3
-    data.graph.nodes.emplace(roll);   // 4
-    data.graph.nodes.emplace(shield); // 5
-    data.graph.nodes.emplace(grab);   // 6
-
-    // Unique edges
-    data.graph.edges.emplace(2, 0);  // 0: jump -> nair
-    data.graph.edges.emplace(0, 3);  // 1: nair -> land
-    data.graph.edges.emplace(3, 4);  // 2: land -> roll
-    data.graph.edges.emplace(4, 2);  // 3: roll -> jump
-    data.graph.edges.emplace(3, 5);  // 4: land -> shield
-    data.graph.edges.emplace(5, 2);  // 5: shield -> jump
-    data.graph.edges.emplace(3, 6);  // 6: land -> grab
-    data.graph.edges.emplace(6, 2);  // 7: grab -> jump
-    data.graph.edges.emplace(3, 1);  // 8: land -> utilt
-    data.graph.edges.emplace(1, 5);  // 9: utilt -> shield
-
-    // Edge indices
-    data.graph.nodes[0].outgoingEdges.push(1);  // nair -> land
-    data.graph.nodes[1].outgoingEdges.push(9);  // utilt -> shield
-    data.graph.nodes[2].outgoingEdges.push(0);  // jump -> nair
-    data.graph.nodes[3].outgoingEdges.push(2);  // land -> roll
-    data.graph.nodes[3].outgoingEdges.push(4);  // land -> shield
-    data.graph.nodes[3].outgoingEdges.push(6);  // land -> grab
-    data.graph.nodes[3].outgoingEdges.push(8);  // land -> utilt
-    data.graph.nodes[4].outgoingEdges.push(3);  // roll -> jump
-    data.graph.nodes[5].outgoingEdges.push(5);  // shield -> jump
-    data.graph.nodes[6].outgoingEdges.push(7);  // grab -> jump
-}
-

@@ -100,8 +100,39 @@ MotionsTable MotionsTable::load()
 
     insertUser("nair", "attack_air_n");
     insertUser("nair", "landing_air_n");
+    insertUser("uair", "attack_air_hi");
+    insertUser("bair", "attack_air_b");
+    insertUser("bair", "landing_air_b");
+    insertUser("dair", "attack_air_lw");
+    insertUser("dair", "attack_air_lw_hit");
+    insertUser("fair", "attack_air_f");
+    insertUser("fair", "landing_air_f");
     insertUser("grab", "catch");
     insertUser("utilt", "attack_hi3");
+    insertUser("dtilt", "attack_lw3");
+    insertUser("shield", "guard_on");
+    insertUser("dash", "dash");
+    insertUser("dash", "turn_dash");
+    insertUser("walk", "walk_slow");
+    insertUser("walk", "walk_middle");
+    insertUser("usmash", "attack_hi4");
+    insertUser("usmash", "attack_hi4_hold");
+    insertUser("turnaround", "turn");
+    insertUser("dthrow", "throw_lw");
+
+    insertUser("qa1", "special_air_hi_start");
+    insertUser("qa1", "special_air_hi1");
+    insertUser("qa1", "special_air_hi_end");
+    insertUser("qa2", "special_air_hi2");
+
+    insertUser("qa", "special_air_hi_start");
+    insertUser("qa", "special_air_hi1");
+    insertUser("qa", "special_air_hi_end");
+    insertUser("qa", "special_air_hi2");
+
+    insertUser("thunder", "special_air_lw");
+    insertUser("thunder", "special_air_lw_hit");
+    insertUser("bluethunder", "special_air_lw_hit");
 
     return table;
 }

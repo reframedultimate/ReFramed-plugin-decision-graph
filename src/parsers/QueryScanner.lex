@@ -16,8 +16,6 @@
         } \
     }*/
 
-class QueryBuilder;
-
 #include "decision-graph/parsers/QueryParser.y.hpp"
 #include "decision-graph/util/Str.hpp"
 #include <cstring>
@@ -26,9 +24,8 @@ class QueryBuilder;
 
 %option nodefault
 %option noyywrap
-%option reentrant
 %option bison-bridge
-%option extra-type="QueryBuilder*"
+%option reentrant
 %option prefix="qp"
 
 %%
@@ -38,8 +35,10 @@ class QueryBuilder;
 "oos"                   { return TOK_OOS; }
 "hit"                   { return TOK_HIT; }
 "whiff"                 { return TOK_WHIFF; }
-"dmg"                   { return TOK_DMG; }
-"die"                   { return TOK_DIE; }
+"fh"                    { return TOK_FH; }
+"sh"                    { return TOK_SH; }
+"dj"                    { return TOK_DJ; }
+"idj"                   { return TOK_IDJ; }
 [0-9]+                  { yylval->integer_value = atoi(yytext); return TOK_NUM; }
 [a-zA-Z_][a-zA-Z0-9_]+? { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 " "

@@ -12,8 +12,20 @@ struct QueryASTNode
         UNION,
         INVERSION,
         WILDCARD,
-        LABEL
+        LABEL,
+        QUALIFIER
     } type;
+
+    enum QualifierFlags {
+        QUAL_OS    = 0x01,
+        QUAL_OOS   = 0x02,
+        QUAL_HIT   = 0x04,
+        QUAL_WHIFF = 0x08,
+        QUAL_FH    = 0x10,
+        QUAL_SH    = 0x20,
+        QUAL_DJ    = 0x04,
+        QUAL_IDJ   = 0x80
+    };
 
     struct Statement {
         Statement(QueryASTNode* child, QueryASTNode* next) : child(child), next(next) {}
@@ -38,6 +50,12 @@ struct QueryASTNode
         QueryASTNode* child;
     };
 
+    struct Qualifier {
+        Qualifier(QueryASTNode* child, uint8_t flags) : child(child), flags(flags) {}
+        QueryASTNode* child;
+        uint8_t flags;
+    };
+
 private:
     QueryASTNode(Statement statement) : type(STATEMENT), parent(nullptr), statement(statement)
         { statement.child->parent = this; statement.next->parent = this; }
@@ -51,6 +69,8 @@ private:
         {}
     QueryASTNode(const char* label) : type(LABEL), parent(nullptr), label(label)
         {}
+    QueryASTNode(Qualifier qualifier) : type(QUALIFIER), parent(nullptr), qualifier(qualifier)
+        { qualifier.child->parent = this;  }
     ~QueryASTNode() {}
 
 public:
@@ -60,6 +80,7 @@ public:
     static QueryASTNode* newInversion(QueryASTNode* child);
     static QueryASTNode* newWildcard();
     static QueryASTNode* newLabel(const char* label);
+    static QueryASTNode* newQualifier(QueryASTNode* child, uint8_t flags);
 
     static void destroySingle(QueryASTNode* node);
     static void destroyRecurse(QueryASTNode* node);
@@ -73,5 +94,6 @@ public:
         Union union_;
         Inversion inversion;
         rfcommon::SmallString<7> label;
+        Qualifier qualifier;
     };
 };

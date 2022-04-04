@@ -3,6 +3,7 @@
 #include "decision-graph/models/Sequence.hpp"
 #include "decision-graph/models/Graph.hpp"
 #include "rfcommon/Vector.hpp"
+#include "rfcommon/Reference.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
 
 namespace rfcommon {
@@ -14,13 +15,17 @@ class IncrementalDataListener;
 class IncrementalData
 {
 public:
+    void setSession(rfcommon::Session* session);
+    void clearSession(rfcommon::Session* session);
+
+    rfcommon::Session* session() const
+        { return session_; }
+
     void prepareNew(int fighterCount);
-    void addFrame(const rfcommon::Frame& frame);
+    void addFrame(int frameIdx, const rfcommon::Frame& frame);
     void notifyNewStatsAvailable();
 
     int numFrames() const;
-
-    void buildExample1();
 
     const Sequence& sequence(int fighterIdx) const
         { return sequences_[fighterIdx]; }
@@ -39,6 +44,7 @@ private:
         int prevNodeIdx = -1;
     };
 
+    rfcommon::Reference<rfcommon::Session> session_;
     rfcommon::SmallVector<Sequence, 2> sequences_;
     rfcommon::SmallVector<GraphData, 2> graphData_;
     int frameCounter_ = 0;

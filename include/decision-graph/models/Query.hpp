@@ -5,32 +5,45 @@
 
 class MappingInfo;
 class MotionsTable;
-class QueryBuilder;
 class Query;
+class QueryASTNode;
 
 class Matcher
 {
 public:
     enum MatchFlags
     {
-        MATCH_MOTION = 0x01,
-        MATCH_STATUS = 0x02,
+        MATCH_STOP   = 0x01,
+        MATCH_MOTION = 0x02,
+        MATCH_STATUS = 0x04,
     };
 
     enum HitType
     {
-        HIT_CONNECT   = 0x01,
-        HIT_WHIFF     = 0x02,
-        HIT_ON_SHIELD = 0x04
+        HIT       = 0x01,
+        WHIFF     = 0x02,
+        ON_SHIELD = 0x04,
     };
 
     static Matcher start();
 
+    //! Set this matcher as the stop condition
+    Matcher& setStop()
+        { matchFlags_ |= MATCH_STOP; return *this; }
+
+    bool isStop() const
+        { return !!(matchFlags_ & MATCH_STOP); }
+
     //! Wildcard, matches anything
-    static Matcher wildCard();
+    static Matcher wildCard(uint8_t hitFlags);
+
+    bool isWildcard() const
+        { return !(matchFlags_ & (MATCH_MOTION | MATCH_STATUS)); }
 
     //! Match a specific motion hash40 value. Hit type, status, and flags don't matter
-    static Matcher motion(rfcommon::FighterMotion motion);
+    static Matcher motion(rfcommon::FighterMotion motion, uint8_t hitFlags);
+
+    bool hitFlagSet(HitType flag) { return !!(hitFlags_ & flag); }
 
     bool matches(const State& node) const;
 
@@ -40,17 +53,17 @@ private:
     friend class Query;
     Matcher(rfcommon::FighterMotion motion, rfcommon::FighterStatus status, uint8_t hitType, uint8_t matchFlags);
 
-    const rfcommon::FighterMotion motion_;
-    const rfcommon::FighterStatus status_;
-    const uint8_t hitType_;
-    const uint8_t matchFlags_;
+    rfcommon::FighterMotion motion_;
+    rfcommon::FighterStatus status_;
+    uint8_t hitFlags_;
+    uint8_t matchFlags_;
 };
 
 class Query
 {
 public:
-    static Query nair_mixup_example();
-    static Query nair_wildcard_example();
+    static QueryASTNode* parse(const char* text);
+    static Query* compileAST(const QueryASTNode* ast, const MotionsTable* table);
     rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
     void exportDOT(const char* filename, const MotionsTable* table);
 
