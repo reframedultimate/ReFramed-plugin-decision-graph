@@ -15,8 +15,10 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     FORMS
         "forms/SequenceSearchView.ui"
     SOURCES
+        "src/views/GraphView.cpp"
         "src/views/SequenceSearchView.cpp"
         "src/models/Graph.cpp"
+        "src/models/GraphModel.cpp"
         "src/models/MotionsTable.cpp"
         "src/models/Query.cpp"
         "src/models/Sequence.cpp"
@@ -29,9 +31,11 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/Plugin.cpp"
     HEADERS
         "include/${PLUGIN_NAME}/listeners/SequenceSearchListener.hpp"
+        "include/${PLUGIN_NAME}/views/GraphView.hpp"
         "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
         "include/${PLUGIN_NAME}/models/Edge.hpp"
         "include/${PLUGIN_NAME}/models/Graph.hpp"
+        "include/${PLUGIN_NAME}/models/GraphModel.hpp"
         "include/${PLUGIN_NAME}/models/MotionsTable.hpp"
         "include/${PLUGIN_NAME}/models/Node.hpp"
         "include/${PLUGIN_NAME}/models/Query.hpp"
@@ -44,6 +48,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     INCLUDE_DIRECTORIES
         "include"
     MOC_HEADERS
+        "include/${PLUGIN_NAME}/views/GraphView.hpp"
         "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
     DATA
         "data/ParamLabels.csv")

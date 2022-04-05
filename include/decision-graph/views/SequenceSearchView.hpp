@@ -10,6 +10,7 @@ namespace Ui {
 }
 
 class SequenceSearchModel;
+class GraphModel;
 
 class SequenceSearchView : public QWidget
                          , public SequenceSearchListener
@@ -35,5 +36,6 @@ private:
 
 private:
     SequenceSearchModel* model_;
+    std::unique_ptr<GraphModel> graphModel_;
     Ui::SequenceSearchView* ui_;
 };

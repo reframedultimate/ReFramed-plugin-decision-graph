@@ -1,17 +1,24 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/models/SequenceSearchModel.hpp"
+#include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/views/GraphView.hpp"
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(SequenceSearchModel* model, QWidget* parent)
     : QWidget(parent)
     , model_(model)
+    , graphModel_(new GraphModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
     ui_->label_parseError->setText("Query string empty.");
     ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+
+    graphModel_->addEllipse(0, 0, 10, 15);
+    ui_->tab_graph->setLayout(new QVBoxLayout);
+    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_.get()));
 
     SequenceSearchView::onSessionChanged();
 
