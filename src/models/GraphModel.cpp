@@ -6,6 +6,7 @@
 // ----------------------------------------------------------------------------
 void GraphModel::setGraph(const Graph& graph)
 {
+    /*
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
         ogdf::GraphAttributes::nodeGraphics
@@ -47,5 +48,5 @@ void GraphModel::setGraph(const Graph& graph)
     fmmm.newInitialPlacement(true);
     fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
     fmmm.call(GA);
-    ogdf::GraphIO::write(GA, fileName);
+    ogdf::GraphIO::write(GA, fileName);*/
 }

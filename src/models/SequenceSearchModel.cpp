@@ -2,14 +2,14 @@
 #include "decision-graph/parsers/QueryASTNode.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
-#include "decision-graph/models/MotionsTable.hpp"
+#include "decision-graph/models/UserLabelsModel.hpp"
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/hash40.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
-SequenceSearchModel::SequenceSearchModel(const MotionsTable* motionsTable)
-    : motionsTable_(motionsTable)
+SequenceSearchModel::SequenceSearchModel(const UserLabelsModel* userLabelsModel)
+    : userLabelsModel_(userLabelsModel)
 {}
 
 // ----------------------------------------------------------------------------
@@ -91,6 +91,7 @@ int SequenceSearchModel::sequenceLength(int fighterIdx) const
     return fighterIdx < sequences_.count() ? sequences_[fighterIdx].states.count() : 0;
 }
 
+/*
 // ----------------------------------------------------------------------------
 rfcommon::Vector<rfcommon::String> SequenceSearchModel::availableLabels(int fighterIdx) const
 {
@@ -105,9 +106,9 @@ rfcommon::Vector<rfcommon::String> SequenceSearchModel::availableLabels(int figh
         if (map.insertNew(state.motion().value(), result.count()) == map.end())
             continue;
 
-        if (const char* user = motionsTable_->motionToUserLabel(state.motion()))
+        if (const char* user = userLabelsModel_->motionToUserLabel(state.motion()))
             l1.emplace(user);
-        else if (const char* label = motionsTable_->motionToLabel(state.motion()))
+        else if (const char* label = userLabelsModel_->motionToLabel(state.motion()))
             l2.emplace(label);
         else
             l3.emplace(state.motion().toStdString().c_str());
@@ -117,13 +118,16 @@ rfcommon::Vector<rfcommon::String> SequenceSearchModel::availableLabels(int figh
     result.push(std::move(l2));
     result.push(std::move(l3));
     return result;
-}
+}*/
 
 // ----------------------------------------------------------------------------
-bool SequenceSearchModel::setQuery(const char* queryStr)
+bool SequenceSearchModel::setQuery(const char* queryStr, int fighterIdx)
 {
     QueryASTNode* ast;
     Query* query;
+
+    if (session_.isNull())
+        return false;
 
     ast = Query::parse(queryStr);
     if (ast == nullptr)
@@ -133,14 +137,14 @@ bool SequenceSearchModel::setQuery(const char* queryStr)
     }
     ast->exportDOT("query-ast.dot");
 
-    query = Query::compileAST(ast, motionsTable_);
+    query = Query::compileAST(ast, userLabelsModel_, session_->fighterID(fighterIdx));
     QueryASTNode::destroyRecurse(ast);
     if (query == nullptr)
     {
         queryError_ = "Compile error";
         return false;
     }
-    query->exportDOT("query.dot", motionsTable_);
+    query->exportDOT("query.dot", userLabelsModel_, session_->fighterID(fighterIdx));
 
     query_.reset(query);
     dispatcher.dispatch(&SequenceSearchListener::onQueryChanged);
@@ -157,7 +161,7 @@ Graph SequenceSearchModel::applyQuery(int* numMatches, int* numMatchedStates)
 
     rfcommon::Vector<SequenceRange> matchingSequences = query_->apply(sequences_[currentFighter_]);
     Graph graph = Graph::fromSequenceRanges(sequences_[currentFighter_], matchingSequences);
-    graph.exportDOT("decision_graph_search.dot", currentFighter_, session_, motionsTable_);
+    graph.exportDOT("decision_graph_search.dot", currentFighter_, session_, userLabelsModel_);
 
     *numMatches = matchingSequences.count();
     for (const auto& range : matchingSequences)

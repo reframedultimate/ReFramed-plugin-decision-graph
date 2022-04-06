@@ -4,7 +4,7 @@
 #include "rfcommon/Vector.hpp"
 
 class MappingInfo;
-class MotionsTable;
+class UserLabelsModel;
 class Query;
 struct QueryASTNode;
 
@@ -63,9 +63,9 @@ class Query
 {
 public:
     static QueryASTNode* parse(const char* text);
-    static Query* compileAST(const QueryASTNode* ast, const MotionsTable* table);
+    static Query* compileAST(const QueryASTNode* ast, const UserLabelsModel* table, rfcommon::FighterID fighterID);
     rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
-    void exportDOT(const char* filename, const MotionsTable* table);
+    void exportDOT(const char* filename, const UserLabelsModel* table, rfcommon::FighterID fighterID);
 
 private:
     friend class QueryBuilder;

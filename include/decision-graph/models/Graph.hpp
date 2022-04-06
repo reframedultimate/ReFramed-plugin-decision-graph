@@ -9,7 +9,7 @@ namespace rfcommon {
     class Session;
 };
 
-class MotionsTable;
+class UserLabelsModel;
 
 class Graph
 {
@@ -20,6 +20,6 @@ public:
 public:
     static Graph fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector<SequenceRange>& ranges);
 
-    void exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const;
-    void exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const;
+    void exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* table) const;
+    void exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* table) const;
 };

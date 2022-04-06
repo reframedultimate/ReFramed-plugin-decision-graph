@@ -1,5 +1,5 @@
 #include "decision-graph/models/Query.hpp"
-#include "decision-graph/models/MotionsTable.hpp"
+#include "decision-graph/models/UserLabelsModel.hpp"
 #include "decision-graph/parsers/QueryParser.y.hpp"
 #include "decision-graph/parsers/QueryScanner.lex.hpp"
 #include "decision-graph/parsers/QueryASTNode.hpp"
@@ -166,7 +166,8 @@ static Fragment duplicateFragment(const Fragment& f, rfcommon::Vector<Matcher>* 
 // ----------------------------------------------------------------------------
 static bool compileASTRecurse(
         const QueryASTNode* node,
-        const MotionsTable* table,
+        const UserLabelsModel* userLabels,
+        rfcommon::FighterID fighterID,
         rfcommon::Vector<Matcher>* matchers,
         rfcommon::SmallVector<Fragment, 16>* fstack,
         rfcommon::SmallVector<uint8_t, 16>* qstack)
@@ -174,8 +175,8 @@ static bool compileASTRecurse(
     switch (node->type)
     {
     case QueryASTNode::STATEMENT: {
-        if (!compileASTRecurse(node->statement.child, table, matchers, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->statement.next, table, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->statement.child, userLabels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->statement.next, userLabels, fighterID, matchers, fstack, qstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& right = fstack->back(1);
@@ -200,7 +201,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::REPITITION: {
-        if (!compileASTRecurse(node->repitition.child, table, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->repitition.child, userLabels, fighterID, matchers, fstack, qstack)) return false;
         if (fstack->count() < 1) return false;
 
         // Invalid values
@@ -291,8 +292,8 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::UNION: {
-        if (!compileASTRecurse(node->union_.child, table, matchers, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->union_.next, table, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->union_.child, userLabels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->union_.next, userLabels, fighterID, matchers, fstack, qstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& f1 = fstack->back(1);
@@ -306,7 +307,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::INVERSION:
-        if (!compileASTRecurse(node->inversion.child, table, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->inversion.child, userLabels, fighterID, matchers, fstack, qstack)) return false;
         break;
 
     case QueryASTNode::WILDCARD: {
@@ -339,7 +340,7 @@ static bool compileASTRecurse(
 
         // Assume label is a user label and maps to one more more motion
         // values
-        auto motions = table->userLabelToMotion(node->label.cStr());
+        auto motions = userLabels->userLabelToMotion(node->label.cStr(), fighterID);
         if (motions.count() > 0)
         {
             Fragment& fragment = fstack->emplace();
@@ -363,7 +364,7 @@ static bool compileASTRecurse(
 
         // Assume label is actually a label and maps to a single motion
         // value
-        auto motion = table->labelToMotion(node->label.cStr());
+        auto motion = userLabels->labelToMotion(node->label.cStr());
         if (motion.value() > 0)
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
@@ -376,7 +377,7 @@ static bool compileASTRecurse(
 
     case QueryASTNode::QUALIFIER: {
         qstack->push(node->qualifier.flags);
-        if (!compileASTRecurse(node->qualifier.child, table, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->qualifier.child, userLabels, fighterID, matchers, fstack, qstack)) return false;
         qstack->pop();
         if (fstack->count() < 1) return false;
     } break;
@@ -386,14 +387,14 @@ static bool compileASTRecurse(
 }
 
 // ----------------------------------------------------------------------------
-Query* Query::compileAST(const QueryASTNode* ast, const MotionsTable* table)
+Query* Query::compileAST(const QueryASTNode* ast, const UserLabelsModel* userLabels, rfcommon::FighterID fighterID)
 {
     std::unique_ptr<Query> query(new Query);
     query->matchers_.push(Matcher::start());
 
     rfcommon::SmallVector<Fragment, 16> fstack;
     rfcommon::SmallVector<uint8_t, 16> qstack;
-    if (!compileASTRecurse(ast, table, &query->matchers_, &fstack, &qstack))
+    if (!compileASTRecurse(ast, userLabels, fighterID, &query->matchers_, &fstack, &qstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;
@@ -472,7 +473,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
                         for (int nextMatcherIdx : matchers_[matcherIdx].next)
                             if (matchers_[nextMatcherIdx].matches(seq.states[stateIdx + 1]))
                                 goto skip_return;
-                        
+
                         return stateIdx + 1;
                         skip_return:;
                     }
@@ -504,7 +505,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
 }
 
 // ----------------------------------------------------------------------------
-void Query::exportDOT(const char* filename, const MotionsTable* table)
+void Query::exportDOT(const char* filename, const UserLabelsModel* userLabels, rfcommon::FighterID fighterID)
 {
     FILE* fp = fopen(filename, "w");
     fprintf(fp, "digraph query {\n");
@@ -514,7 +515,7 @@ void Query::exportDOT(const char* filename, const MotionsTable* table)
         const char* label =
                 i == 0 ? "start" :
                 matchers_[i].isWildcard() ? "." :
-                table->motionToLabel(matchers_[i].motion_);
+                userLabels->motionToLabel(matchers_[i].motion_);
         const char* color = matchers_[i].isStop() ? "red" : "black";
         if (label)
             fprintf(fp, "m%d [shape=\"record\",color=\"%s\",label=\"%s", i, color, label);

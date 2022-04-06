@@ -4,8 +4,9 @@
 #include "rfcommon/ListenerDispatcher.hpp"
 #include <memory>
 
-class MotionsTable;
+class GraphModel;
 class SequenceSearchModel;
+class UserLabelsModel;
 
 class DecisionGraphPlugin : public rfcommon::RealtimePlugin
 {
@@ -49,6 +50,7 @@ public:
     void clearSavedGameSession(rfcommon::SavedGameSession* session) override;
 
 private:
-    std::unique_ptr<MotionsTable> motionsTable_;
+    std::unique_ptr<GraphModel> graphModel_;
+    std::unique_ptr<UserLabelsModel> userLabelsModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
 };

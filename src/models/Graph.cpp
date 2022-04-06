@@ -1,5 +1,5 @@
 #include "decision-graph/models/Graph.hpp"
-#include "decision-graph/models/MotionsTable.hpp"
+#include "decision-graph/models/UserLabelsModel.hpp"
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/Session.hpp"
 #include <cstdio>
@@ -52,7 +52,7 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const
+void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* userLabels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -85,7 +85,7 @@ void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Sess
     {
         const auto& statusMapping = session->mappingInfo().fighterStatus;
         const rfcommon::String* name = statusMapping.statusToBaseEnumName(nodes[nodeIdx].state.status());
-        const char* motionLabel = table->motionToLabel(nodes[nodeIdx].state.motion());
+        const char* motionLabel = userLabels->motionToLabel(nodes[nodeIdx].state.motion());
 
         rfcommon::String flags;
         if (nodes[nodeIdx].state.inHitlag())
@@ -126,7 +126,7 @@ void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Sess
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const MotionsTable* table) const
+void Graph::exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* userLabels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,

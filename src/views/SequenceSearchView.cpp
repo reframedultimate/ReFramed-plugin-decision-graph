@@ -1,14 +1,20 @@
 #include "ui_SequenceSearchView.h"
-#include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/GraphModel.hpp"
-#include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/views/GraphView.hpp"
+#include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/views/UserLabelsView.hpp"
 
 // ----------------------------------------------------------------------------
-SequenceSearchView::SequenceSearchView(SequenceSearchModel* model, QWidget* parent)
+SequenceSearchView::SequenceSearchView(
+        SequenceSearchModel* model,
+        GraphModel* graphModel,
+        UserLabelsModel* userLabelsModel,
+        QWidget* parent)
     : QWidget(parent)
     , model_(model)
-    , graphModel_(new GraphModel)
+    , graphModel_(graphModel)
+    , userLabelsModel_(userLabelsModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
@@ -18,7 +24,7 @@ SequenceSearchView::SequenceSearchView(SequenceSearchModel* model, QWidget* pare
 
     graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
-    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_.get()));
+    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_));
 
     SequenceSearchView::onSessionChanged();
 
@@ -26,6 +32,8 @@ SequenceSearchView::SequenceSearchView(SequenceSearchModel* model, QWidget* pare
             this, &SequenceSearchView::onLineEditQueryTextChanged);
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
+    connect(ui_->pushButton_editLabels, &QPushButton::released,
+            this, &SequenceSearchView::onPushButtonEditLabelsReleased);
 
     model_->dispatcher.addListener(this);
 }
@@ -49,7 +57,7 @@ void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
     }
 
     QByteArray ba = text.toLocal8Bit();
-    if (model_->setQuery(ba.data()))
+    if (model_->setQuery(ba.data(), model_->currentFighter()))
     {
         ui_->label_parseError->setText("Query string Valid.");
         ui_->label_parseError->setStyleSheet("QLabel {color: #20C020}");
@@ -68,6 +76,16 @@ void SequenceSearchView::onComboBoxPlayerChanged(int index)
 }
 
 // ----------------------------------------------------------------------------
+void SequenceSearchView::onPushButtonEditLabelsReleased()
+{
+    UserLabelsView* w = new UserLabelsView(userLabelsModel_);
+    w->setAttribute(Qt::WA_DeleteOnClose);
+    w->setModal(true);
+    w->show();
+    w->exec();
+}
+
+// ----------------------------------------------------------------------------
 void SequenceSearchView::onSessionChanged()
 {
     bool blocked = ui_->comboBox_player->blockSignals(true);
@@ -79,9 +97,10 @@ void SequenceSearchView::onSessionChanged()
         ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
     ui_->comboBox_player->blockSignals(blocked);
 
+    /*
     ui_->listWidget_labels->clear();
     for (const auto& label : model_->availableLabels(model_->currentFighter()))
-        ui_->listWidget_labels->addItem(label.cStr());
+        ui_->listWidget_labels->addItem(label.cStr());*/
 
     ui_->label_frames->setText("Total Frames: " + QString::number(model_->frameCount()));
     ui_->label_sequenceLength->setText(
@@ -102,9 +121,10 @@ void SequenceSearchView::onCurrentFighterChanged()
     ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
     ui_->comboBox_player->blockSignals(blocked);
 
+    /*
     ui_->listWidget_labels->clear();
     for (const auto& label : model_->availableLabels(model_->currentFighter()))
-        ui_->listWidget_labels->addItem(label.cStr());
+        ui_->listWidget_labels->addItem(label.cStr());*/
 
     int numMatches, numMatchedStates;
     Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);

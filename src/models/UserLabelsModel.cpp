@@ -1,4 +1,5 @@
-#include "decision-graph/models/Motionstable.hpp"
+#include "decision-graph/models/UserLabelsModel.hpp"
+#include "decision-graph/listeners/UserLabelsListener.hpp"
 #include <cstdio>
 #include <memory>
 
@@ -30,15 +31,11 @@ static uint64_t hexStringToValue(const char* hex, int* error)
 }
 
 // ----------------------------------------------------------------------------
-MotionsTable* MotionsTable::load()
+bool UserLabelsModel::loadMotionLabels(const char* fileName)
 {
-    std::unique_ptr<MotionsTable> table(new MotionsTable);
-
-#if defined(_WIN32)
-    FILE* fp = fopen("share\\reframed\\data\\plugin-decision-graph\\ParamLabels.csv", "r");
-#else
-    FILE* fp = fopen("share/reframed/data/plugin-decision-graph/ParamLabels.csv", "r");
-#endif
+    FILE* fp = fopen(fileName, "r");
+    if (fp == nullptr)
+        return false;
 
     char line[128];
     while (fgets(line, sizeof(line), fp))
@@ -69,37 +66,29 @@ MotionsTable* MotionsTable::load()
         rfcommon::FighterMotion motion(motionValue);
         rfcommon::SmallString<31> label(labelStr);
 
-        auto motionMapResult = table->motionMap.insertNew(motion, -1);
-        if (motionMapResult == table->motionMap.end())
+        auto motionMapResult = motionLabels.motionMap.insertNew(motion, -1);
+        if (motionMapResult == motionLabels.motionMap.end())
         {
             fprintf(stderr, "Duplicate motion value: %s\n", line);
             continue;
         }
 
-        auto labelMapResult = table->labelMap.insertNew(label, -1);
-        if (labelMapResult == table->labelMap.end())
+        auto labelMapResult = motionLabels.labelMap.insertNew(label, -1);
+        if (labelMapResult == motionLabels.labelMap.end())
         {
             fprintf(stderr, "Duplicate motion label: %s\n", labelStr);
             continue;
         }
 
-        table->entries.emplace(motion, label);
-        motionMapResult->value() = table->entries.count() - 1;
-        labelMapResult->value() = table->entries.count() - 1;
+        motionLabels.entries.emplace(motion, label);
+        motionMapResult->value() = motionLabels.entries.count() - 1;
+        labelMapResult->value() = motionLabels.entries.count() - 1;
     }
+    fclose(fp);
 
-    fprintf(stderr, "Loaded %d motion labels\n", table->entries.count());
+    fprintf(stderr, "Loaded %d motion labels\n", motionLabels.entries.count());
 
-    auto insertUser = [&table](const char* userLabel, const char* label) {
-        auto labelIt = table->labelMap.find(label);
-        if (labelIt != table->labelMap.end())
-        {
-            auto userIt = table->userMap.insertOrGet(userLabel, rfcommon::SmallVector<int, 4>());
-            table->entries[labelIt->value()].user = userLabel;
-            userIt->value().push(labelIt->value());
-        }
-    };
-
+    /*
     insertUser("nair", "attack_air_n");
     insertUser("nair", "landing_air_n");
     insertUser("uair", "attack_air_hi");
@@ -136,49 +125,58 @@ MotionsTable* MotionsTable::load()
 
     insertUser("thunder", "special_air_lw");
     insertUser("thunder", "special_air_lw_hit");
-    insertUser("bluethunder", "special_air_lw_hit");
+    insertUser("bluethunder", "special_air_lw_hit");*/
 
-    return table.release();
+    return true;
 }
 
 // ----------------------------------------------------------------------------
-const char* MotionsTable::motionToLabel(rfcommon::FighterMotion motion) const
+const char* UserLabelsModel::motionToLabel(rfcommon::FighterMotion motion) const
 {
-    auto it = motionMap.find(motion);
-    if (it == motionMap.end())
+    auto it = motionLabels.motionMap.find(motion);
+    if (it == motionLabels.motionMap.end())
         return nullptr;
-    const auto& s = entries[it->value()].label;
+    const auto& s = motionLabels.entries[it->value()].label;
     return s.count() ? s.cStr() : nullptr;
 }
 
 // ----------------------------------------------------------------------------
-const char* MotionsTable::motionToUserLabel(rfcommon::FighterMotion motion) const
+const char* UserLabelsModel::motionToUserLabel(rfcommon::FighterMotion motion, rfcommon::FighterID fighterID) const
 {
-    auto it = motionMap.find(motion);
-    if (it == motionMap.end())
+    if (fighterID.value() >= fighterUserLabels.count())
         return nullptr;
-    const auto& s = entries[it->value()].user;
+
+    const FighterUserLabels& fighter = fighterUserLabels[fighterID.value()];
+    auto it = fighter.motionMap.find(motion);
+    if (it == fighter.motionMap.end())
+        return nullptr;
+    const auto& s = fighter.entries[it->value()].userLabel;
     return s.count() ? s.cStr() : nullptr;
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::SmallVector<rfcommon::FighterMotion, 4> MotionsTable::userLabelToMotion(const char* userLabel) const
+rfcommon::SmallVector<rfcommon::FighterMotion, 4> UserLabelsModel::userLabelToMotion(const char* userLabel, rfcommon::FighterID fighterID) const
 {
-    auto it = userMap.find(userLabel);
-    if (it == userMap.end())
+    rfcommon::SmallVector<rfcommon::FighterMotion, 4> result;
+
+    if (fighterID.value() >= fighterUserLabels.count())
+        return result;
+
+    const FighterUserLabels& fighter = fighterUserLabels[fighterID.value()];
+    auto it = fighter.userMap.find(userLabel);
+    if (it == fighter.userMap.end())
         return {};
 
-    rfcommon::SmallVector<rfcommon::FighterMotion, 4> result;
     for (int i : it->value())
-        result.push(entries[i].motion);
+        result.push(fighter.entries[i].motion);
     return result;
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::FighterMotion MotionsTable::labelToMotion(const char* label) const
+rfcommon::FighterMotion UserLabelsModel::labelToMotion(const char* label) const
 {
-    auto it = labelMap.find(label);
-    if (it == labelMap.end())
+    auto it = motionLabels.labelMap.find(label);
+    if (it == motionLabels.labelMap.end())
         return 0;
-    return entries[it->value()].motion;
+    return motionLabels.entries[it->value()].motion;
 }

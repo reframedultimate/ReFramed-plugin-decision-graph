@@ -18,7 +18,7 @@ class SequenceSearchListener;
 class SequenceSearchModel : public rfcommon::SessionListener
 {
 public:
-    SequenceSearchModel(const MotionsTable* motionsTable);
+    SequenceSearchModel(const UserLabelsModel* userLabelsModel);
 
     void setSession(rfcommon::Session* session);
     void clearSession(rfcommon::Session* session);
@@ -32,9 +32,7 @@ public:
     int frameCount() const;
     int sequenceLength(int fighterIdx) const;
 
-    rfcommon::Vector<rfcommon::String> availableLabels(int fighterIdx) const;
-
-    bool setQuery(const char* queryStr);
+    bool setQuery(const char* queryStr, int fighterIdx);
     const char* queryError() const { return queryError_.cStr(); }
     Graph applyQuery(int* numMatches, int* numMatchedStates);
 
@@ -56,7 +54,7 @@ private:
     void onRunningSessionNewFrame(int frameIdx, const rfcommon::Frame& frame) override {}
 
 private:
-    const MotionsTable* motionsTable_;
+    const UserLabelsModel* userLabelsModel_;
     rfcommon::Reference<rfcommon::Session> session_;
     rfcommon::SmallVector<Sequence, 2> sequences_;
     std::unique_ptr<Query> query_;
