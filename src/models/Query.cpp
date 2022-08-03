@@ -12,8 +12,8 @@
 Matcher Matcher::start()
 {
     return Matcher(
-        0,
-        0,
+        rfcommon::FighterMotion::makeInvalid(),
+        rfcommon::FighterStatus::makeInvalid(),
         0,
         0
     );
@@ -23,8 +23,8 @@ Matcher Matcher::start()
 Matcher Matcher::wildCard(uint8_t hitFlags)
 {
     return Matcher(
-        0,
-        0,
+        rfcommon::FighterMotion::makeInvalid(),
+        rfcommon::FighterStatus::makeInvalid(),
         hitFlags,
         0
     );
@@ -35,7 +35,7 @@ Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t hitFlags)
 {
     return Matcher(
         motion,
-        0,
+        rfcommon::FighterStatus::makeInvalid(),
         hitFlags,
         MATCH_MOTION
     );
@@ -132,7 +132,7 @@ struct Fragment
 // ----------------------------------------------------------------------------
 static void duplicateMatchers(int idx, rfcommon::Vector<Matcher>* matchers, rfcommon::HashMap<int, int>* indexMap)
 {
-    if (indexMap->insertNew(idx, matchers->count()) == indexMap->end())
+    if (indexMap->insertIfNew(idx, matchers->count()) == indexMap->end())
         return;
 
     matchers->push(Matcher(matchers->at(idx)));
@@ -433,7 +433,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
 
     rfcommon::Vector<SequenceRange> result;
     rfcommon::SmallVector<int, 16> l1, l2;
-    rfcommon::SmallVector<MatchInfo, 16> info(matchers_.count());
+    auto info = rfcommon::SmallVector<MatchInfo, 16>::makeResized(matchers_.count());
 
     // Returns the ending index in the sequence (exclusive) for the
     // current search pattern. If no pattern was found then this returns

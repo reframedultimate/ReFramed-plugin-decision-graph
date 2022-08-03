@@ -85,7 +85,7 @@ void QueryASTNode::destroyRecurse(QueryASTNode* node)
 static void calculateNodeIDs(const QueryASTNode* node, rfcommon::HashMap<const QueryASTNode*, int>* nodeIDs, int* counter)
 {
     *counter += 1;
-    nodeIDs->insertNew(node, *counter);
+    nodeIDs->insertIfNew(node, *counter);
 
     switch (node->type)
     {

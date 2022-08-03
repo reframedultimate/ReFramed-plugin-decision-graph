@@ -1,7 +1,7 @@
 #include "decision-graph/models/Graph.hpp"
 #include "decision-graph/models/UserLabelsModel.hpp"
 #include "rfcommon/Frame.hpp"
-#include "rfcommon/Session.hpp"
+#include "rfcommon/MappingInfo.hpp"
 #include <cstdio>
 #include <cinttypes>
 
@@ -52,7 +52,7 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* userLabels) const
+void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* userLabels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -83,8 +83,6 @@ void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Sess
 
     for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
     {
-        const auto& statusMapping = session->mappingInfo().fighterStatus;
-        const rfcommon::String* name = statusMapping.statusToBaseEnumName(nodes[nodeIdx].state.status());
         const char* motionLabel = userLabels->motionToLabel(nodes[nodeIdx].state.motion());
 
         rfcommon::String flags;
@@ -101,15 +99,13 @@ void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Sess
         if (nodes[nodeIdx].state.opponentInShieldlag())
             flags += rfcommon::String(flags.count() ? ", op shieldlag" : "| op shieldlag");
 
-        if (name == nullptr)
-            name = statusMapping.statusToFighterSpecificEnumName(nodes[nodeIdx].state.status(), session->fighterID(fighterIdx));
         fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s | %s (%" PRIu64 ") %s }\"];\n",
-                nodeIdx,
-                hue(accIncomingWeights(nodeIdx)),
-                name ? name->cStr() : "(unknown)",
-                motionLabel ? motionLabel : "",
-                nodes[nodeIdx].state.motion().value(),
-                flags.cStr());
+            nodeIdx,
+            hue(accIncomingWeights(nodeIdx)),
+            map->status.toName(fighterID, nodes[nodeIdx].state.status()),
+            motionLabel ? motionLabel : "",
+            nodes[nodeIdx].state.motion().value(),
+            flags.cStr());
     }
 
     for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
@@ -126,7 +122,7 @@ void Graph::exportDOT(const char* fileName, int fighterIdx, const rfcommon::Sess
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* userLabels) const
+void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* userLabels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -141,16 +137,8 @@ void Graph::exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::
 
     for (const auto& node : nodes)
     {
-        const rfcommon::String defaultName = "(unknown)";
-        const auto& statusMapping = session->mappingInfo().fighterStatus;
-        const rfcommon::String* name = statusMapping.statusToBaseEnumName(node.state.status());
-        if (name == nullptr)
-            name = statusMapping.statusToFighterSpecificEnumName(node.state.status(), session->fighterID(fighterIdx));
-        if (name == nullptr)
-            name = &defaultName;
-
         ogdf::node N = G.newNode();
-        GA.label(N) = name->cStr();
+        GA.label(N) = map->status.toName(fighterID, node.state.status());
         GA.width(N) = 250;
         GA.height(N) = 20;
         ogdfNodes.push(N);

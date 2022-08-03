@@ -4,9 +4,10 @@
 #include "decision-graph/models/Node.hpp"
 #include "decision-graph/models/Sequence.hpp"
 #include "rfcommon/Vector.hpp"
+#include "rfcommon/FighterID.hpp"
 
 namespace rfcommon {
-    class Session;
+    class MappingInfo;
 };
 
 class UserLabelsModel;
@@ -20,6 +21,6 @@ public:
 public:
     static Graph fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector<SequenceRange>& ranges);
 
-    void exportDOT(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* table) const;
-    void exportOGDFSVG(const char* fileName, int fighterIdx, const rfcommon::Session* session, const UserLabelsModel* table) const;
+    void exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* table) const;
+    void exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* table) const;
 };

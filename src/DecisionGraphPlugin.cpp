@@ -3,9 +3,8 @@
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/UserLabelsModel.hpp"
-#include "rfcommon/SavedGameSession.hpp"
-
 #include "decision-graph/models/Query.hpp"
+#include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
@@ -41,13 +40,30 @@ void DecisionGraphPlugin::destroyView(QWidget* view)
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraphPlugin::setSavedGameSession(rfcommon::SavedGameSession* session)
+void DecisionGraphPlugin::onProtocolAttemptConnectToServer(const char* ipAddress, uint16_t port) {}
+void DecisionGraphPlugin::onProtocolFailedToConnectToServer(const char* errormsg, const char* ipAddress, uint16_t port) {}
+void DecisionGraphPlugin::onProtocolConnectedToServer(const char* ipAddress, uint16_t port) {}
+void DecisionGraphPlugin::onProtocolDisconnectedFromServer() {}
+void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining) {}
+void DecisionGraphPlugin::onProtocolTrainingEnded(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game) {}
+void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game) {}
+void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game) {}
+
+// ----------------------------------------------------------------------------
+void DecisionGraphPlugin::onGameSessionLoaded(rfcommon::Session* game)
 {
-    seqSearchModel_->setSession(session);
+    seqSearchModel_->setSession(game);
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraphPlugin::clearSavedGameSession(rfcommon::SavedGameSession* session)
+void DecisionGraphPlugin::onGameSessionUnloaded(rfcommon::Session* game)
 {
-    seqSearchModel_->clearSession(session);
+    seqSearchModel_->clearSession(game);
 }
+void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int numGames) {}
+void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) {}

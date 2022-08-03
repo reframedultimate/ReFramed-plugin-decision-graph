@@ -29,25 +29,28 @@ public:
      */
     void destroyView(QWidget* view) override;
 
-    // These get called by the main application when connecting/disconnecting
-    // to the Nintendo Switch.
-    void onProtocolAttemptConnectToServer(const char* ipAddress, uint16_t port) override {}
-    void onProtocolFailedToConnectToServer(const char* errormsg, const char* ipAddress, uint16_t port) override {}
-    void onProtocolConnectedToServer(const char* ipAddress, uint16_t port) override {}
-    void onProtocolDisconnectedFromServer() override {}
+private:
+    void onProtocolAttemptConnectToServer(const char* ipAddress, uint16_t port) override;
+    void onProtocolFailedToConnectToServer(const char* errormsg, const char* ipAddress, uint16_t port) override;
+    void onProtocolConnectedToServer(const char* ipAddress, uint16_t port) override;
+    void onProtocolDisconnectedFromServer() override;
 
-    // These get called when a new game starts/ends, or if a new training mode session starts/ends.
-    void onProtocolTrainingStarted(rfcommon::RunningTrainingSession* session) override {}
-    void onProtocolTrainingResumed(rfcommon::RunningTrainingSession* session) override {}
-    void onProtocolTrainingReset(rfcommon::RunningTrainingSession* oldSession, rfcommon::RunningTrainingSession* newSession) override {}
-    void onProtocolTrainingEnded(rfcommon::RunningTrainingSession* session) override {}
-    void onProtocolMatchStarted(rfcommon::RunningGameSession* session) override {}
-    void onProtocolMatchResumed(rfcommon::RunningGameSession* session) override {}
-    void onProtocolMatchEnded(rfcommon::RunningGameSession* session) override {}
+    void onProtocolTrainingStarted(rfcommon::Session* training) override;
+    void onProtocolTrainingResumed(rfcommon::Session* training) override;
+    void onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining) override;
+    void onProtocolTrainingEnded(rfcommon::Session* training) override;
+    void onProtocolGameStarted(rfcommon::Session* game) override;
+    void onProtocolGameResumed(rfcommon::Session* game) override;
+    void onProtocolGameEnded(rfcommon::Session* game) override;
 
-    // These get called when ReFramed loads/unloads a replay file
-    void setSavedGameSession(rfcommon::SavedGameSession* session) override;
-    void clearSavedGameSession(rfcommon::SavedGameSession* session) override;
+private:
+    void onGameSessionLoaded(rfcommon::Session* game) override;
+    void onGameSessionUnloaded(rfcommon::Session* game) override;
+    void onTrainingSessionLoaded(rfcommon::Session* training) override;
+    void onTrainingSessionUnloaded(rfcommon::Session* training) override;
+
+    void onGameSessionSetLoaded(rfcommon::Session** games, int numGames) override;
+    void onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) override;
 
 private:
     std::unique_ptr<GraphModel> graphModel_;

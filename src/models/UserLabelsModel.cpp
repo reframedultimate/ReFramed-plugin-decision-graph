@@ -53,8 +53,8 @@ bool UserLabelsModel::loadMotionLabels(const char* fileName)
         *delim = '\0';
 
         int error = 0;
-        rfcommon::FighterMotion::Type motionValue = hexStringToValue(line, &error);
-        if (motionValue == 0)
+        const auto motion = rfcommon::FighterMotion::fromValue(hexStringToValue(line, &error));
+        if (motion.value() == 0)
         {
             if (error)
                 fprintf(stderr, "Failed to parse \"%s\" into hex value\n", line);
@@ -63,17 +63,16 @@ bool UserLabelsModel::loadMotionLabels(const char* fileName)
             continue;
         }
 
-        rfcommon::FighterMotion motion(motionValue);
         rfcommon::SmallString<31> label(labelStr);
 
-        auto motionMapResult = motionLabels.motionMap.insertNew(motion, -1);
+        auto motionMapResult = motionLabels.motionMap.insertIfNew(motion, -1);
         if (motionMapResult == motionLabels.motionMap.end())
         {
             fprintf(stderr, "Duplicate motion value: %s\n", line);
             continue;
         }
 
-        auto labelMapResult = motionLabels.labelMap.insertNew(label, -1);
+        auto labelMapResult = motionLabels.labelMap.insertIfNew(label, -1);
         if (labelMapResult == motionLabels.labelMap.end())
         {
             fprintf(stderr, "Duplicate motion label: %s\n", labelStr);
@@ -177,6 +176,6 @@ rfcommon::FighterMotion UserLabelsModel::labelToMotion(const char* label) const
 {
     auto it = motionLabels.labelMap.find(label);
     if (it == motionLabels.labelMap.end())
-        return 0;
+        return rfcommon::FighterMotion::makeInvalid();
     return motionLabels.entries[it->value()].motion;
 }

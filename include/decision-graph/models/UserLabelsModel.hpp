@@ -1,9 +1,12 @@
 #pragma once
 
 #include "decision-graph/models/UserLabelCategory.hpp"
-#include "rfcommon/Vector.hpp"
-#include "rfcommon/String.hpp"
+#include "rfcommon/FighterID.hpp"
+#include "rfcommon/FighterMotion.hpp"
+#include "rfcommon/FighterStatus.hpp"
 #include "rfcommon/HashMap.hpp"
+#include "rfcommon/String.hpp"
+#include "rfcommon/Vector.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
 
 class UserLabelsListener;

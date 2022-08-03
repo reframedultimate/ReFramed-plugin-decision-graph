@@ -4,7 +4,10 @@
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/UserLabelsModel.hpp"
 #include "rfcommon/Frame.hpp"
+#include "rfcommon/FrameData.hpp"
 #include "rfcommon/hash40.hpp"
+#include "rfcommon/MappingInfo.hpp"
+#include "rfcommon/MetaData.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
@@ -15,17 +18,24 @@ SequenceSearchModel::SequenceSearchModel(const UserLabelsModel* userLabelsModel)
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::setSession(rfcommon::Session* session)
 {
-    session_ = session;
-    sequences_.resize(session_->fighterCount());
+    rfcommon::FrameData* fdata = session->tryGetFrameData();
+    rfcommon::MetaData* mdata = session->tryGetMetaData();
+    rfcommon::MappingInfo* map = session->tryGetMappingInfo();
 
-    for (int f = 0; f != session_->frameCount(); ++f)
-        addFrame(f, session_->frame(f));
+    if (fdata == nullptr || mdata == nullptr || map == nullptr)
+        return;
+
+    session_ = session;
+    sequences_.resize(fdata->fighterCount());
+
+    for (int f = 0; f != fdata->frameCount(); ++f)
+        addFrame(f);
 
     // Be helpful and change the current fighter index if a character
     // matches the last fighter character
     if (currentFighterCharacter_.count() > 0 && currentFighterCharacter_ != fighterCharacter(currentFighter_))
     {
-        for (int p = 0; p != session_->fighterCount(); ++p)
+        for (int p = 0; p != fdata->fighterCount(); ++p)
             if (currentFighterCharacter_ == fighterCharacter(p))
             {
                 currentFighter_ = p;
@@ -34,14 +44,18 @@ void SequenceSearchModel::setSession(rfcommon::Session* session)
     }
     currentFighterCharacter_ = fighterCharacter(currentFighter_);
 
-    session_->dispatcher.addListener(this);
+    fdata->dispatcher.addListener(this);
+    mdata->dispatcher.addListener(this);
     dispatcher.dispatch(&SequenceSearchListener::onSessionChanged);
 }
 
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::clearSession(rfcommon::Session* session)
 {
-    session_->dispatcher.removeListener(this);
+    rfcommon::FrameData* fdata = session->tryGetFrameData();
+    rfcommon::MetaData* mdata = session->tryGetMetaData();
+    mdata->dispatcher.removeListener(this);
+    fdata->dispatcher.removeListener(this);
 
     sequences_.clearCompact();
     session_.drop();
@@ -52,13 +66,13 @@ void SequenceSearchModel::clearSession(rfcommon::Session* session)
 // ----------------------------------------------------------------------------
 int SequenceSearchModel::fighterCount() const
 {
-    return session_.notNull() ? session_->fighterCount() : 0;
+    return session_.notNull() ? session_->tryGetFrameData()->fighterCount() : 0;
 }
 
 // ----------------------------------------------------------------------------
 const char* SequenceSearchModel::fighterName(int fighterIdx) const
 {
-    return session_->name(fighterIdx).cStr();
+    return session_->tryGetMetaData()->name(fighterIdx).cStr();
 }
 
 // ----------------------------------------------------------------------------
@@ -66,9 +80,11 @@ const char* SequenceSearchModel::fighterCharacter(int fighterIdx) const
 {
     if (session_.isNull())
         return "(no session)";
-    const rfcommon::FighterID fighterID = session_->fighterID(fighterIdx);
-    const rfcommon::String* s = session_->mappingInfo().fighterID.map(fighterID);
-    return s ? s->cStr() : "(unknown fighter)";
+
+    const rfcommon::MetaData* mdata = session_->tryGetMetaData();
+    const rfcommon::MappingInfo* map = session_->tryGetMappingInfo();
+    const rfcommon::FighterID fighterID = mdata->fighterID(fighterIdx);
+    return map->fighter.toName(fighterID);
 }
 
 // ----------------------------------------------------------------------------
@@ -82,7 +98,7 @@ void SequenceSearchModel::setCurrentFighter(int fighterIdx)
 // ----------------------------------------------------------------------------
 int SequenceSearchModel::frameCount() const
 {
-    return session_.notNull() ? session_->frameCount() : 0;
+    return session_.notNull() ? session_->tryGetFrameData()->frameCount() : 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -129,6 +145,8 @@ bool SequenceSearchModel::setQuery(const char* queryStr, int fighterIdx)
     if (session_.isNull())
         return false;
 
+    const rfcommon::MetaData* mdata = session_->tryGetMetaData();
+
     ast = Query::parse(queryStr);
     if (ast == nullptr)
     {
@@ -137,14 +155,14 @@ bool SequenceSearchModel::setQuery(const char* queryStr, int fighterIdx)
     }
     ast->exportDOT("query-ast.dot");
 
-    query = Query::compileAST(ast, userLabelsModel_, session_->fighterID(fighterIdx));
+    query = Query::compileAST(ast, userLabelsModel_, mdata->fighterID(fighterIdx));
     QueryASTNode::destroyRecurse(ast);
     if (query == nullptr)
     {
         queryError_ = "Compile error";
         return false;
     }
-    query->exportDOT("query.dot", userLabelsModel_, session_->fighterID(fighterIdx));
+    query->exportDOT("query.dot", userLabelsModel_, mdata->fighterID(fighterIdx));
 
     query_.reset(query);
     dispatcher.dispatch(&SequenceSearchListener::onQueryChanged);
@@ -159,9 +177,12 @@ Graph SequenceSearchModel::applyQuery(int* numMatches, int* numMatchedStates)
     if (query_.get() == nullptr || session_.get() == nullptr)
         return Graph();
 
+    const rfcommon::MetaData* mdata = session_->tryGetMetaData();
+    const rfcommon::MappingInfo* map = session_->tryGetMappingInfo();
+
     rfcommon::Vector<SequenceRange> matchingSequences = query_->apply(sequences_[currentFighter_]);
     Graph graph = Graph::fromSequenceRanges(sequences_[currentFighter_], matchingSequences);
-    graph.exportDOT("decision_graph_search.dot", currentFighter_, session_, userLabelsModel_);
+    graph.exportDOT("decision_graph_search.dot", mdata->fighterID(currentFighter_), map, userLabelsModel_);
 
     *numMatches = matchingSequences.count();
     for (const auto& range : matchingSequences)
@@ -171,19 +192,20 @@ Graph SequenceSearchModel::applyQuery(int* numMatches, int* numMatchedStates)
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame<4>& frame)
+void SequenceSearchModel::addFrame(int frameIdx)
 {
-    for (int fighterIdx = 0; fighterIdx != session_->fighterCount(); ++fighterIdx)
+    rfcommon::FrameData* fdata = session_->tryGetFrameData();
+    for (int fighterIdx = 0; fighterIdx != fdata->fighterCount(); ++fighterIdx)
     {
-        const auto& fighterState = frame.fighter(fighterIdx);
+        const auto& fighterState = fdata->stateAt(fighterIdx, frameIdx);
         Sequence& seq = sequences_[fighterIdx];
 
-        const bool inHitlag = [this, fighterIdx, frameIdx, &fighterState]() -> bool {
-            if (session_->fighterCount() != 2)
+        const bool inHitlag = [this, fdata, fighterIdx, frameIdx, &fighterState]() -> bool {
+            if (fdata->fighterCount() != 2)
                 return false;
 
-            const auto& opponentState = session_->state(frameIdx, 1 - fighterIdx);
-            const auto& prevFighterState = frameIdx > 0 ? session_->state(frameIdx - 1, fighterIdx) : fighterState;
+            const auto& opponentState = fdata->stateAt(1 - fighterIdx, frameIdx);
+            const auto& prevFighterState = frameIdx > 0 ? fdata->stateAt(fighterIdx, frameIdx - 1) : fighterState;
             if (opponentState.flags().attackConnected())
                 return fighterState.hitstun() == prevFighterState.hitstun();
 
@@ -195,35 +217,35 @@ void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame<4>& frame
         }();
 
         const bool inShieldlag = [&fighterState]() -> bool {
-            return fighterState.status() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
+            return fighterState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
         }();
 
-        const bool opponentInHitlag = [this, fighterIdx, frameIdx, &fighterState]() -> bool {
-            if (session_->fighterCount() != 2)
+        const bool opponentInHitlag = [this, fdata, fighterIdx, frameIdx, &fighterState]() -> bool {
+            if (fdata->fighterCount() != 2)
                 return false;
 
-            const auto& opponentState = session_->state(frameIdx, 1 - fighterIdx);
-            const auto& prevOpponentState = frameIdx > 0 ? session_->state(frameIdx - 1, 1 - fighterIdx) : opponentState;
+            const auto& opponentState = fdata->stateAt(1 - fighterIdx, frameIdx);
+            const auto& prevOpponentState = frameIdx > 0 ? fdata->stateAt(1 - fighterIdx, frameIdx - 1) : opponentState;
             if (fighterState.flags().attackConnected())
                 return opponentState.hitstun() == prevOpponentState.hitstun();
 
             return false;
         }();
 
-        const bool opponentInHitstun = [fighterIdx, &frame]() -> bool {
-            if (frame.fighterCount() != 2)
+        const bool opponentInHitstun = [fdata, fighterIdx, frameIdx]() -> bool {
+            if (fdata->fighterCount() != 2)
                 return false;
 
-            const auto& opponentState = frame.fighter(1 - fighterIdx);
+            const auto& opponentState = fdata->stateAt(1 - fighterIdx, frameIdx);
             return opponentState.hitstun() > 0;
         }();
 
-        const bool opponentInShieldlag = [fighterIdx, &frame]() -> bool {
-            if (frame.fighterCount() != 2)
+        const bool opponentInShieldlag = [fdata, fighterIdx, frameIdx]() -> bool {
+            if (fdata->fighterCount() != 2)
                 return false;
 
-            const auto& opponentState = frame.fighter(1 - fighterIdx);
-            return opponentState.status() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
+            const auto& opponentState = fdata->stateAt(1 - fighterIdx, frameIdx);
+            return opponentState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
         }();
 
         const State state(
@@ -276,8 +298,21 @@ void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame<4>& frame
 }
 
 // ----------------------------------------------------------------------------
+void SequenceSearchModel::onMetaDataTimeStartedChanged(rfcommon::TimeStamp timeStarted) {}
+void SequenceSearchModel::onMetaDataTimeEndedChanged(rfcommon::TimeStamp timeEnded) {}
+void SequenceSearchModel::onMetaDataPlayerNameChanged(int fighterIdx, const rfcommon::SmallString<15>& name) {}
+void SequenceSearchModel::onMetaDataSetNumberChanged(rfcommon::SetNumber number) {}
+void SequenceSearchModel::onMetaDataGameNumberChanged(rfcommon::GameNumber number) {}
+void SequenceSearchModel::onMetaDataSetFormatChanged(const rfcommon::SetFormat& format) {}
+void SequenceSearchModel::onMetaDataWinnerChanged(int winnerPlayerIdx) {}
+void SequenceSearchModel::onMetaDataTrainingSessionNumberChanged(rfcommon::GameNumber number) {}
+
+// ----------------------------------------------------------------------------
 void SequenceSearchModel::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame)
 {
-    addFrame(frameIdx, frame);
+    addFrame(frameIdx);
     dispatcher.dispatch(&SequenceSearchListener::onSequenceChanged);
 }
+
+// ----------------------------------------------------------------------------
+void SequenceSearchModel::onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) {}
