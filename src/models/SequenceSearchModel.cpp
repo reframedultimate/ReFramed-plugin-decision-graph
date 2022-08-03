@@ -171,7 +171,7 @@ Graph SequenceSearchModel::applyQuery(int* numMatches, int* numMatchedStates)
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame& frame)
+void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame<4>& frame)
 {
     for (int fighterIdx = 0; fighterIdx != session_->fighterCount(); ++fighterIdx)
     {
@@ -276,7 +276,7 @@ void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::Frame& frame)
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::onRunningSessionNewUniqueFrame(int frameIdx, const rfcommon::Frame& frame)
+void SequenceSearchModel::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame)
 {
     addFrame(frameIdx, frame);
     dispatcher.dispatch(&SequenceSearchListener::onSequenceChanged);

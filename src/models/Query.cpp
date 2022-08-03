@@ -338,7 +338,7 @@ static bool compileASTRecurse(
                 hitFlags |= Matcher::ON_SHIELD;
         }
 
-        // Assume label is a user label and maps to one more more motion
+        // Assume label is a user label and maps to one or more motion
         // values
         auto motions = userLabels->userLabelToMotion(node->label.cStr(), fighterID);
         if (motions.count() > 0)
@@ -392,8 +392,8 @@ Query* Query::compileAST(const QueryASTNode* ast, const UserLabelsModel* userLab
     std::unique_ptr<Query> query(new Query);
     query->matchers_.push(Matcher::start());
 
-    rfcommon::SmallVector<Fragment, 16> fstack;
-    rfcommon::SmallVector<uint8_t, 16> qstack;
+    rfcommon::SmallVector<Fragment, 16> fstack;  // "fragment stack"
+    rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
     if (!compileASTRecurse(ast, userLabels, fighterID, &query->matchers_, &fstack, &qstack))
         return nullptr;
     if (fstack.count() != 1)

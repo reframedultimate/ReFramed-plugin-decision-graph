@@ -2,6 +2,7 @@
 
 #include "decision-graph/models/Sequence.hpp"
 #include "rfcommon/Vector.hpp"
+#include "rfcommon/FighterID.hpp"
 
 class MappingInfo;
 class UserLabelsModel;

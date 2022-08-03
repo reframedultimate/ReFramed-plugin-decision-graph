@@ -1,6 +1,9 @@
 #pragma once
 
-#include "rfcommon/Types.hpp"
+#include "rfcommon/FighterMotion.hpp"
+#include "rfcommon/FighterStatus.hpp"
+#include "rfcommon/FighterHitStatus.hpp"
+#include "rfcommon/Hashers.hpp"
 
 class State
 {
@@ -37,7 +40,7 @@ public:
 
     struct Hasher
     {
-        typedef rfcommon::HashMapHasher<State>::HashType HashType;
+        typedef uint32_t HashType;
         HashType operator()(const State& node) const {
             const uint32_t motion_l = node.motion().lower();
             const uint16_t status = node.status().value();

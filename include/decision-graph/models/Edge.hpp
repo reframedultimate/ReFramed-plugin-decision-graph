@@ -33,7 +33,7 @@ public:
     {}
 
     struct Hasher {
-        typedef rfcommon::HashMapHasher<EdgeConnection>::HashType HashType;
+        typedef uint32_t HashType;
         HashType operator()(const EdgeConnection& edge) const {
             const uint32_t data[2] = {
                 static_cast<uint32_t>(edge.from_),

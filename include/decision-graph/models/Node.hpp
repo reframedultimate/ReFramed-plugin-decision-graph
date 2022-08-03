@@ -15,7 +15,7 @@ public:
 // Only hashes the node state, not the outgoing/incoming connections,
 // since we only care about unique states when building the graph
 struct NodeStateHasher {
-    typedef rfcommon::HashMapHasher<Node>::HashType HashType;
+    typedef State::Hasher::HashType HashType;
     HashType operator()(const Node& node) const {
         return State::Hasher()(node.state);
     }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "decision-graph/models/UserLabelCategory.hpp"
-#include "rfcommon/Types.hpp"
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/String.hpp"
 #include "rfcommon/HashMap.hpp"
@@ -20,16 +19,8 @@ public:
         rfcommon::SmallString<31> label;
     };
 
-    struct FighterMotionHasher
-    {
-        typedef uint32_t HashType;
-        HashType operator()(rfcommon::FighterMotion motion) const {
-            return rfcommon::HashMapHasher<rfcommon::FighterMotion::Type, HashType>()(motion.value());
-        }
-    };
-
     rfcommon::Vector<Entry> entries;
-    rfcommon::HashMap<rfcommon::FighterMotion, int, FighterMotionHasher> motionMap;
+    rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> motionMap;
     rfcommon::HashMap<rfcommon::SmallString<31>, int> labelMap;
 };
 
@@ -52,16 +43,8 @@ public:
         uint8_t matchFlags;
     };
 
-    struct FighterMotionHasher
-    {
-        typedef uint32_t HashType;
-        HashType operator()(rfcommon::FighterMotion motion) const {
-            return rfcommon::HashMapHasher<rfcommon::FighterMotion::Type, HashType>()(motion.value());
-        }
-    };
-
     rfcommon::Vector<Entry> entries;
-    rfcommon::HashMap<rfcommon::FighterMotion, int, FighterMotionHasher> motionMap;
+    rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> motionMap;
     rfcommon::HashMap<rfcommon::String, rfcommon::SmallVector<int, 4>> userMap;
 };
 
