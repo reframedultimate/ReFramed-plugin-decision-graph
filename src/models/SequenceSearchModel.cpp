@@ -300,7 +300,7 @@ void SequenceSearchModel::addFrame(int frameIdx)
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::onMetaDataTimeStartedChanged(rfcommon::TimeStamp timeStarted) {}
 void SequenceSearchModel::onMetaDataTimeEndedChanged(rfcommon::TimeStamp timeEnded) {}
-void SequenceSearchModel::onMetaDataPlayerNameChanged(int fighterIdx, const rfcommon::SmallString<15>& name) {}
+void SequenceSearchModel::onMetaDataPlayerNameChanged(int fighterIdx, const rfcommon::String& name) {}
 void SequenceSearchModel::onMetaDataSetNumberChanged(rfcommon::SetNumber number) {}
 void SequenceSearchModel::onMetaDataGameNumberChanged(rfcommon::GameNumber number) {}
 void SequenceSearchModel::onMetaDataSetFormatChanged(const rfcommon::SetFormat& format) {}
