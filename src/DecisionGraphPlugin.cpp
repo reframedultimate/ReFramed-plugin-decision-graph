@@ -8,7 +8,7 @@
 
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
-    : RealtimePlugin(factory)
+    : Plugin(factory)
     , graphModel_(new GraphModel)
     , userLabelsModel_(new UserLabelsModel)
     , seqSearchModel_(new SequenceSearchModel(userLabelsModel_.get()))
@@ -24,6 +24,13 @@ DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
 DecisionGraphPlugin::~DecisionGraphPlugin()
 {
 }
+
+// ----------------------------------------------------------------------------
+rfcommon::Plugin::UIInterface* DecisionGraphPlugin::uiInterface() { return this; }
+rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
+rfcommon::Plugin::ReplayInterface* DecisionGraphPlugin::replayInterface() { return this; }
+rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return nullptr; }
+rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterface() { return nullptr; }
 
 // ----------------------------------------------------------------------------
 QWidget* DecisionGraphPlugin::createView()
