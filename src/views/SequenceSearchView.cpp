@@ -3,18 +3,15 @@
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/views/GraphView.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
-#include "decision-graph/views/UserLabelsView.hpp"
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
         GraphModel* graphModel,
-        UserLabelsModel* userLabelsModel,
         QWidget* parent)
     : QWidget(parent)
     , model_(model)
     , graphModel_(graphModel)
-    , userLabelsModel_(userLabelsModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
@@ -32,8 +29,6 @@ SequenceSearchView::SequenceSearchView(
             this, &SequenceSearchView::onLineEditQueryTextChanged);
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
-    connect(ui_->pushButton_editLabels, &QPushButton::released,
-            this, &SequenceSearchView::onPushButtonEditLabelsReleased);
 
     model_->dispatcher.addListener(this);
 }
@@ -73,16 +68,6 @@ void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
 void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
     model_->setCurrentFighter(index);
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onPushButtonEditLabelsReleased()
-{
-    UserLabelsView* w = new UserLabelsView(userLabelsModel_);
-    w->setAttribute(Qt::WA_DeleteOnClose);
-    w->setModal(true);
-    w->show();
-    w->exec();
 }
 
 // ----------------------------------------------------------------------------

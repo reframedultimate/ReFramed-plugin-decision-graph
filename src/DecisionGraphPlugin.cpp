@@ -1,23 +1,18 @@
 #include "decision-graph/DecisionGraphPlugin.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
 #include "decision-graph/models/GraphModel.hpp"
+#include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
-#include "decision-graph/models/UserLabelsModel.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
-DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory)
-    : RealtimePlugin(factory)
+DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
+    : Plugin(factory)
+    , labelMapper_(new LabelMapper(userLabels, hash40Strings))
     , graphModel_(new GraphModel)
-    , userLabelsModel_(new UserLabelsModel)
-    , seqSearchModel_(new SequenceSearchModel(userLabelsModel_.get()))
+    , seqSearchModel_(new SequenceSearchModel(labelMapper_.get()))
 {
-#if defined(_WIN32)
-    userLabelsModel_->loadMotionLabels("share\\reframed\\data\\plugin-decision-graph\\ParamLabels.csv");
-#else
-    userLabelsModel_->loadMotionLabels("share/reframed/data/plugin-decision-graph/ParamLabels.csv");
-#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -26,10 +21,17 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 }
 
 // ----------------------------------------------------------------------------
+rfcommon::Plugin::UIInterface* DecisionGraphPlugin::uiInterface() { return this; }
+rfcommon::Plugin::ReplayInterface* DecisionGraphPlugin::replayInterface() { return this; }
+rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return nullptr; }
+rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
+rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterface() { return nullptr; }
+
+// ----------------------------------------------------------------------------
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get(), userLabelsModel_.get());
+    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get());
 }
 
 // ----------------------------------------------------------------------------

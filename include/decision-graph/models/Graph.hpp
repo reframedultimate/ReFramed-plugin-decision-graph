@@ -6,11 +6,11 @@
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/FighterID.hpp"
 
+class LabelMapper;
+
 namespace rfcommon {
     class MappingInfo;
 };
-
-class UserLabelsModel;
 
 class Graph
 {
@@ -21,6 +21,6 @@ public:
 public:
     static Graph fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector<SequenceRange>& ranges);
 
-    void exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* table) const;
-    void exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* table) const;
+    void exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const;
+    void exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const;
 };

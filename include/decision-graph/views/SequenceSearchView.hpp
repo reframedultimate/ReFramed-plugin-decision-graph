@@ -11,10 +11,10 @@ namespace Ui {
 
 class GraphModel;
 class SequenceSearchModel;
-class UserLabelsModel;
 
-class SequenceSearchView : public QWidget
-                         , public SequenceSearchListener
+class SequenceSearchView 
+        : public QWidget
+        , public SequenceSearchListener
 {
     Q_OBJECT
 
@@ -22,14 +22,12 @@ public:
     explicit SequenceSearchView(
             SequenceSearchModel* model,
             GraphModel* graphModel,
-            UserLabelsModel* userLabelsModel,
             QWidget* parent=nullptr);
     ~SequenceSearchView();
 
 private slots:
     void onLineEditQueryTextChanged(const QString& text);
     void onComboBoxPlayerChanged(int index);
-    void onPushButtonEditLabelsReleased();
 
 private:
     void applyCurrentQuery();
@@ -43,6 +41,5 @@ private:
 private:
     SequenceSearchModel* model_;
     GraphModel* graphModel_;
-    UserLabelsModel* userLabelsModel_;
     Ui::SequenceSearchView* ui_;
 };

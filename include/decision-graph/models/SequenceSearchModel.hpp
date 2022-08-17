@@ -13,15 +13,17 @@ class Query;
 class SequenceSearchListener;
 
 namespace rfcommon {
+    class Hash40Strings;
     class Session;
+    class UserMotionLabels;
 }
 
 class SequenceSearchModel 
-    : public rfcommon::MetaDataListener
-    , public rfcommon::FrameDataListener
+        : public rfcommon::MetaDataListener
+        , public rfcommon::FrameDataListener
 {
 public:
-    SequenceSearchModel(const UserLabelsModel* userLabelsModel);
+    SequenceSearchModel(const LabelMapper* labelMapper);
 
     void setSession(rfcommon::Session* session);
     void clearSession(rfcommon::Session* session);
@@ -61,7 +63,7 @@ private:
     void onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) override;
 
 private:
-    const UserLabelsModel* userLabelsModel_;
+    const LabelMapper* const labelMapper_;
     rfcommon::Reference<rfcommon::Session> session_;
     rfcommon::SmallVector<Sequence, 2> sequences_;
     std::unique_ptr<Query> query_;

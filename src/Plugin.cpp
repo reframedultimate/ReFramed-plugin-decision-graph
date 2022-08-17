@@ -3,9 +3,9 @@
 #include "rfcommon/PluginInterface.hpp"
 
 // Gets called when the main application wants to create your plugin
-static rfcommon::Plugin* createDecisionGraphPlugin(RFPluginFactory* factory)
+static rfcommon::Plugin* createDecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
 {
-    return new DecisionGraphPlugin(factory);
+    return new DecisionGraphPlugin(factory, userLabels, hash40Strings);
 }
 
 // Gets called when the main application removes your plugin from its
@@ -15,11 +15,24 @@ static void destroyDecisionGraphPlugin(rfcommon::Plugin* model)
     delete model;
 }
 
+// Here we declare the types of interfaces that our plugin supports. This
+// is mostly so the main application can sort our plugin into categories
+// and show it in views where it makes sense. In our case , we support:
+//  - UI: Simply means we have a graphical user interface for the user
+//  - REALTIME: Means we are interested in dealing with live sessions as they
+//              are played.
+//  - REPLAY: Means we also support processing sessions that were saved to
+//            disk (replay files)
+static const RFPluginType decisionGraphPluginTypes =
+        RFPluginType::UI |
+        RFPluginType::REALTIME |
+        RFPluginType::REPLAY;
+
 // This is a list of create/destroy functions which the main application uses
 // to instantiate your plugins. You can have multiple plugins in a single
 // shared libary, but in this case we only have one.
 static RFPluginFactory factories[] = {
-    {createDecisionGraphPlugin, destroyDecisionGraphPlugin, RFPluginType::REALTIME, {
+    {createDecisionGraphPlugin, destroyDecisionGraphPlugin, decisionGraphPluginTypes, {
          "Decision Graph",
          "misc > misc",  // category > sub-category
          "TheComet",  // your name

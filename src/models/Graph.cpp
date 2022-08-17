@@ -1,7 +1,9 @@
 #include "decision-graph/models/Graph.hpp"
-#include "decision-graph/models/UserLabelsModel.hpp"
+#include "decision-graph/models/LabelMapper.hpp"
+
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/MappingInfo.hpp"
+
 #include <cstdio>
 #include <cinttypes>
 
@@ -52,7 +54,7 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* userLabels) const
+void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -83,8 +85,6 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
 
     for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
     {
-        const char* motionLabel = userLabels->motionToLabel(nodes[nodeIdx].state.motion());
-
         rfcommon::String flags;
         if (nodes[nodeIdx].state.inHitlag())
             flags += rfcommon::String("| hitlag");
@@ -103,7 +103,7 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
             nodeIdx,
             hue(accIncomingWeights(nodeIdx)),
             map->status.toName(fighterID, nodes[nodeIdx].state.status()),
-            motionLabel ? motionLabel : "",
+            labels->bestEffortString(fighterID, nodes[nodeIdx].state.motion()).cStr(),
             nodes[nodeIdx].state.motion().value(),
             flags.cStr());
     }
@@ -122,7 +122,7 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const UserLabelsModel* userLabels) const
+void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
