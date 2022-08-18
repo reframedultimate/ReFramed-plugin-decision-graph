@@ -13,7 +13,7 @@ namespace rfcommon {
     class Hash40Strings;
 }
 
-class DecisionGraphPlugin 
+class DecisionGraphPlugin
         : public rfcommon::Plugin
         , public rfcommon::Plugin::UIInterface
         , public rfcommon::Plugin::RealtimeInterface

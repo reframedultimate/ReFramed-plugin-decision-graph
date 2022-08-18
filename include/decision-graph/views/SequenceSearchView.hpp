@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decision-graph/listeners/SequenceSearchListener.hpp"
+#include "rfcommon/Vector.hpp"
 #include <QWidget>
 #include <memory>
 
@@ -8,6 +9,10 @@
 namespace Ui {
     class SequenceSearchView;
 }
+
+class QLabel;
+class QLineEdit;
+class QToolButton;
 
 class GraphModel;
 class SequenceSearchModel;
@@ -26,8 +31,10 @@ public:
     ~SequenceSearchView();
 
 private slots:
-    void onLineEditQueryTextChanged(const QString& text);
+    void onLineEditQueryTextChanged(int index, const QString& text);
     void onComboBoxPlayerChanged(int index);
+    void addQueryBox();
+    void removeQueryBox(int index);
 
 private:
     void applyCurrentQuery();
@@ -39,7 +46,16 @@ private:
     void onQueryChanged() override;
 
 private:
+    struct QueryBox
+    {
+        QLabel* name;
+        QLabel* parseError;
+        QLineEdit* query;
+        QToolButton* remove;
+    };
+
     SequenceSearchModel* model_;
     GraphModel* graphModel_;
     Ui::SequenceSearchView* ui_;
+    rfcommon::Vector<QueryBox> queryBoxes_;
 };

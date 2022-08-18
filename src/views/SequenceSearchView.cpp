@@ -4,6 +4,25 @@
 #include "decision-graph/views/GraphView.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
 
+#include <QLineEdit>
+#include <QLabel>
+#include <QToolButton>
+#include <QGridLayout>
+
+// ----------------------------------------------------------------------------
+static void clearLayout(QLayout* layout)
+{
+    QLayoutItem* item;
+    while ((item = layout->takeAt(0)) != nullptr)
+    {
+        if (item->layout())
+            delete item->layout();
+        if (item->widget())
+            delete item->widget();
+        delete item;
+    }
+}
+
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
@@ -16,8 +35,8 @@ SequenceSearchView::SequenceSearchView(
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
-    ui_->label_parseError->setText("Query string empty.");
-    ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+
+    addQueryBox();
 
     graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
@@ -25,10 +44,10 @@ SequenceSearchView::SequenceSearchView(
 
     SequenceSearchView::onSessionChanged();
 
-    connect(ui_->lineEdit_query, &QLineEdit::textChanged,
-            this, &SequenceSearchView::onLineEditQueryTextChanged);
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
+    connect(ui_->toolButton_addQuery, &QToolButton::released, 
+            this, &SequenceSearchView::addQueryBox);
 
     model_->dispatcher.addListener(this);
 }
@@ -42,25 +61,24 @@ SequenceSearchView::~SequenceSearchView()
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
+void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& text)
 {
     if (text.length() == 0)
     {
-        ui_->label_parseError->setText("Query string empty.");
-        ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+        queryBoxes_[index].parseError->setText("Query string empty.");
+        queryBoxes_[index].parseError->setVisible(true);
         return;
     }
 
     QByteArray ba = text.toLocal8Bit();
     if (model_->setQuery(ba.data(), model_->currentFighter()))
     {
-        ui_->label_parseError->setText("Query string Valid.");
-        ui_->label_parseError->setStyleSheet("QLabel {color: #20C020}");
+        queryBoxes_[index].parseError->setVisible(false);
     }
     else
     {
-        ui_->label_parseError->setText(model_->queryError());
-        ui_->label_parseError->setStyleSheet("QLabel {color: #FF2020}");
+        queryBoxes_[index].parseError->setText(model_->queryError());
+        queryBoxes_[index].parseError->setVisible(true);
     }
 }
 
@@ -68,6 +86,63 @@ void SequenceSearchView::onLineEditQueryTextChanged(const QString& text)
 void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
     model_->setCurrentFighter(index);
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::addQueryBox()
+{
+    ui_->toolButton_addQuery->setParent(nullptr);
+
+    QueryBox& box = queryBoxes_.emplace();
+    box.name = new QLabel("#" + QString::number(queryBoxes_.count()) + ":");
+    box.parseError = new QLabel("Query text empty.");
+    box.parseError->setStyleSheet("QLabel {color: #FF2020}");
+    box.query = new QLineEdit;
+    box.remove = new QToolButton;
+    box.remove->setText("X");
+
+    QGridLayout* boxLayout = new QGridLayout;
+    boxLayout->addWidget(box.name, 0, 0);
+    boxLayout->addWidget(box.query, 0, 1);
+    boxLayout->addWidget(box.remove, 0, 2);
+    boxLayout->addWidget(box.parseError, 1, 1, 1, 3, Qt::AlignLeft);
+
+    QVBoxLayout* groupLayout = static_cast<QVBoxLayout*>(ui_->groupBox_query->layout());
+    groupLayout->addLayout(boxLayout);
+    groupLayout->addWidget(ui_->toolButton_addQuery, 0, Qt::AlignLeft);
+
+    QToolButton* removeButton = box.remove;
+    connect(box.remove, &QToolButton::released, [this, removeButton] {
+        for (int i = 0; i != queryBoxes_.count(); ++i)
+            if (queryBoxes_[i].remove == removeButton)
+            {
+                removeQueryBox(i);
+                break;
+            }
+    });
+
+    QLineEdit* queryEdit = box.query;
+    connect(box.query, &QLineEdit::textChanged, [this, queryEdit](const QString& text) {
+        for (int i = 0; i != queryBoxes_.count(); ++i)
+            if (queryBoxes_[i].query == queryEdit)
+            {
+                onLineEditQueryTextChanged(i, text);
+                break;
+            }
+    });
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::removeQueryBox(int index)
+{
+    auto boxLayout = ui_->groupBox_query->layout()->takeAt(index);
+    clearLayout(boxLayout->layout());
+    delete boxLayout;
+
+    queryBoxes_.erase(index);
+
+    for (; index != queryBoxes_.count(); ++index)
+        queryBoxes_[index].name->setText("#" + QString::number(index + 1) + ":");
 }
 
 // ----------------------------------------------------------------------------

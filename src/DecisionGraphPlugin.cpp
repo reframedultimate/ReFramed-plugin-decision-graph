@@ -22,9 +22,9 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 
 // ----------------------------------------------------------------------------
 rfcommon::Plugin::UIInterface* DecisionGraphPlugin::uiInterface() { return this; }
+rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
 rfcommon::Plugin::ReplayInterface* DecisionGraphPlugin::replayInterface() { return this; }
 rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return nullptr; }
-rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
 rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterface() { return nullptr; }
 
 // ----------------------------------------------------------------------------
