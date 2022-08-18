@@ -58,6 +58,23 @@ if (${REFRAMED_plugin-${PLUGIN_NAME}})
     option (${PLUGIN_NAME}_COUNTER_EXAMPLES "Have bison generate counter examples" OFF)
 
     ###########################################################################
+    # Qt Charts library
+    ###########################################################################
+	
+	find_package (Qt5 COMPONENTS Charts REQUIRED)
+    target_link_libraries (plugin-${PLUGIN_NAME}
+        PRIVATE Qt::Charts)
+		
+	add_custom_command (TARGET plugin-${PLUGIN_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${REFRAMED_BUILD_PLUGINDEPSDIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll ${REFRAMED_BUILD_PLUGINDEPSDIR}
+        COMMENT "Copying Qt binaries from '${Qt5_DIR}/../../bin/' to '${REFRAMED_BUILD_PLUGINDIR}'"
+        VERBATIM)
+    install (
+        FILES ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll
+        DESTINATION ${REFRAMED_INSTALL_PLUGINDEPSDIR})
+
+    ###########################################################################
     # Parsers
     ###########################################################################
 
