@@ -3,6 +3,7 @@
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/views/GraphView.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/views/PieChartView.hpp"
 
 #include <QLineEdit>
 #include <QLabel>
@@ -10,13 +11,6 @@
 #include <QGridLayout>
 
 #include <QtCharts/QChartView>
-#include <QtCharts/QPieSeries>
-#include <QtCharts/QPieSlice>
-
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QMainWindow>
-#include <QtCharts/QChartView>
-#include <QtCharts/QStackedBarSeries>
 #include <QtCharts/QBarSet>
 #include <QtCharts/QLegend>
 #include <QtCharts/QBarCategoryAxis>
@@ -34,7 +28,6 @@ static void clearLayout(QLayout* layout)
             delete item->layout();
         if (item->widget())
             delete item->widget();
-        delete item;
     }
 }
 
@@ -50,82 +43,14 @@ SequenceSearchView::SequenceSearchView(
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
+    ui_->tab_pieChart->setLayout(new QVBoxLayout);
+    ui_->tab_pieChart->layout()->addWidget(new PieChartView(model));
 
     addQueryBox();
 
     graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
     ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_));
-
-    {
-        QPieSeries* series = new QPieSeries();
-        series->append("Jane", 1);
-        series->append("Joe", 2);
-        series->append("Andy", 3);
-        series->append("Barbara", 4);
-        series->append("Axel", 5);
-
-        QPieSlice* slice = series->slices().at(1);
-        slice->setExploded();
-        slice->setLabelVisible();
-        slice->setPen(QPen(Qt::darkGreen, 2));
-        slice->setBrush(Qt::green);
-
-        QChart* chart = new QChart();
-        chart->addSeries(series);
-        chart->setTitle("Simple piechart example");
-        chart->legend()->hide();
-
-        QChartView* chartView = new QChartView(chart);
-        chartView->setRenderHint(QPainter::Antialiasing);
-
-        ui_->tab_pieChart->setLayout(new QVBoxLayout);
-        ui_->tab_pieChart->layout()->addWidget(chartView);
-    }
-
-    {
-        QBarSet* set0 = new QBarSet("Jane");
-        QBarSet* set1 = new QBarSet("John");
-        QBarSet* set2 = new QBarSet("Axel");
-        QBarSet* set3 = new QBarSet("Mary");
-        QBarSet* set4 = new QBarSet("Samantha");
-
-        *set0 << 1 << 2 << 3 << 4 << 5 << 6;
-        *set1 << 5 << 0 << 0 << 4 << 0 << 7;
-        *set2 << 3 << 5 << 8 << 13 << 8 << 5;
-        *set3 << 5 << 6 << 7 << 3 << 4 << 5;
-        *set4 << 9 << 7 << 5 << 3 << 1 << 2;
-
-        QStackedBarSeries* series = new QStackedBarSeries();
-        series->append(set0);
-        series->append(set1);
-        series->append(set2);
-        series->append(set3);
-        series->append(set4);
-
-        QChart* chart = new QChart();
-        chart->addSeries(series);
-        chart->setTitle("Simple stackedbarchart example");
-
-        QStringList categories;
-        categories << "Jan" << "Feb" << "Mar" << "Apr" << "May" << "Jun";
-        QBarCategoryAxis* axisX = new QBarCategoryAxis();
-        axisX->append(categories);
-        chart->addAxis(axisX, Qt::AlignBottom);
-        series->attachAxis(axisX);
-        QValueAxis* axisY = new QValueAxis();
-        chart->addAxis(axisY, Qt::AlignLeft);
-        series->attachAxis(axisY);
-
-        chart->legend()->setVisible(true);
-        chart->legend()->setAlignment(Qt::AlignBottom);
-
-        QChartView* chartView = new QChartView(chart);
-        chartView->setRenderHint(QPainter::Antialiasing);
-
-        ui_->tab_stateList->setLayout(new QVBoxLayout);
-        ui_->tab_stateList->layout()->addWidget(chartView);
-    }
 
     SequenceSearchView::onSessionChanged();
 
@@ -250,7 +175,7 @@ void SequenceSearchView::onSessionChanged()
     ui_->label_frames->setText("Total Frames: " + QString::number(model_->frameCount()));
     ui_->label_sequenceLength->setText(
                 "Total Sequence Length: " +
-                QString::number(model_->sequenceLength(model_->currentFighter())));
+                QString::number(model_->sequenceLength()));
 
     int numMatches, numMatchedStates;
     Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
@@ -283,7 +208,7 @@ void SequenceSearchView::onSequenceChanged()
 {
     ui_->label_sequenceLength->setText(
                 "Total Sequence Length: " +
-                QString::number(model_->sequenceLength(model_->currentFighter())));
+                QString::number(model_->sequenceLength()));
 
     int numMatches, numMatchedStates;
     Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);

@@ -25,6 +25,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/parsers/QueryScanner.lex"
         "src/parsers/QueryASTNode.cpp"
         "src/views/GraphView.cpp"
+        "src/views/PieChartView.cpp"
         "src/views/SequenceSearchView.cpp"
         "src/util/Str.cpp"
         "src/DecisionGraphPlugin.cpp"
@@ -42,6 +43,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include/${PLUGIN_NAME}/models/SequenceSearchModel.hpp"
         "include/${PLUGIN_NAME}/models/State.hpp"
         "include/${PLUGIN_NAME}/views/GraphView.hpp"
+        "include/${PLUGIN_NAME}/views/PieChartView.hpp"
         "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
         "include/${PLUGIN_NAME}/parsers/QueryASTNode.hpp"
         "include/${PLUGIN_NAME}/util/Str.hpp"
@@ -50,6 +52,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include"
     MOC_HEADERS
         "include/${PLUGIN_NAME}/views/GraphView.hpp"
+        "include/${PLUGIN_NAME}/views/PieChartView.hpp"
         "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
     DATA
         "data/ParamLabels.csv")
@@ -60,26 +63,28 @@ if (${REFRAMED_plugin-${PLUGIN_NAME}})
     ###########################################################################
     # Qt Charts library
     ###########################################################################
-	
-	find_package (Qt5 COMPONENTS Charts REQUIRED)
+
+    find_package (Qt5 COMPONENTS Charts REQUIRED)
     target_link_libraries (plugin-${PLUGIN_NAME}
-        PRIVATE Qt::Charts)
-		
-	add_custom_command (TARGET plugin-${PLUGIN_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${REFRAMED_BUILD_PLUGINDEPSDIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll ${REFRAMED_BUILD_PLUGINDEPSDIR}
-        COMMENT "Copying Qt binaries from '${Qt5_DIR}/../../bin/' to '${REFRAMED_BUILD_PLUGINDIR}'"
-        VERBATIM)
-    install (
-        FILES ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll
-        DESTINATION ${REFRAMED_INSTALL_PLUGINDEPSDIR})
+        PRIVATE Qt5::Charts)
+
+    if (WIN32 OR CYGWIN)
+        add_custom_command (TARGET plugin-${PLUGIN_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${REFRAMED_BUILD_PLUGINDEPSDIR}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll ${REFRAMED_BUILD_PLUGINDEPSDIR}
+            COMMENT "Copying Qt binaries from '${Qt5_DIR}/../../bin/' to '${REFRAMED_BUILD_PLUGINDIR}'"
+            VERBATIM)
+        install (
+            FILES ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll
+            DESTINATION ${REFRAMED_INSTALL_PLUGINDEPSDIR})
+    endif ()
 
     ###########################################################################
     # Parsers
     ###########################################################################
 
-    find_package (FLEX REQUIRED 2.6)
-    find_package (BISON REQUIRED 3.8)
+    find_package (FLEX 2.6 REQUIRED)
+    find_package (BISON 3.8 REQUIRED)
 
     # These may not exist
     file (MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/src/parsers")

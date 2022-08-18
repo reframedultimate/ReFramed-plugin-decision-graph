@@ -35,7 +35,7 @@ public:
     int currentFighter() const { return currentFighter_; }
 
     int frameCount() const;
-    int sequenceLength(int fighterIdx) const;
+    int sequenceLength() const;
 
     bool setQuery(const char* queryStr, int fighterIdx);
     const char* queryError() const { return queryError_.cStr(); }

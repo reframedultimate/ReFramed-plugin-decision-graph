@@ -1,4 +1,4 @@
-#include "decision-graph/models/labelMapper.hpp"
+#include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/parsers/QueryParser.y.hpp"
 #include "decision-graph/parsers/QueryScanner.lex.hpp"

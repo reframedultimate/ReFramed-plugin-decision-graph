@@ -101,9 +101,9 @@ int SequenceSearchModel::frameCount() const
 }
 
 // ----------------------------------------------------------------------------
-int SequenceSearchModel::sequenceLength(int fighterIdx) const
+int SequenceSearchModel::sequenceLength() const
 {
-    return fighterIdx < sequences_.count() ? sequences_[fighterIdx].states.count() : 0;
+    return sequences_[currentFighter_].states.count();
 }
 
 // ----------------------------------------------------------------------------
