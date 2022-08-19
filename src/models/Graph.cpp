@@ -56,7 +56,70 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 // ----------------------------------------------------------------------------
 Graph Graph::cutLoopsIncoming() const
 {
+    rfcommon::SmallVector<int, 256> stack;
+    rfcommon::SmallVector<int, 256> parents;
+    rfcommon::SmallVector<int, 256> children;
+    rfcommon::SmallVector<int, 64> sourceNodes;
+    auto visited = rfcommon::SmallVector<char, 256>::makeResized(nodes.count());
+
     return Graph();
+
+    stack.push(0);
+    while (stack.count())
+    {
+        int node = stack.popValue();
+
+        // If node has no incoming children, it is a source leaf node
+        if (nodes[node].incomingEdges.count() == 0)
+            sourceNodes.push(node);
+        else
+        {
+            for (int edge : nodes[node].incomingEdges)
+                if (visited[edges[edge].from()]++ == 0)
+                    stack.push(edges[edge].from());
+            for (int edge : nodes[node].outgoingEdges)
+                if (visited[edges[edge].to()]++ == 0)
+                    stack.push(edges[edge].to());
+        }
+    }
+
+    Graph result;
+    for (int source : sourceNodes)
+    {
+        result.nodes.push(Node(nodes[source]));
+        parents.push(source);
+        stack.push(source);
+
+        for (int edge : nodes[source].outgoingEdges)
+            if (visited[edges[edge].to()]++ == 0)
+                children.push(edges[edge].to());
+
+        memset(visited.data(), 0, visited.count());
+        while (children.count())
+        {
+            int child = children.popValue();
+            int parent = parents.popValue();
+
+            result.nodes.emplace(nodes[child].state);
+            result.edges.emplace(result.nodes.count() - 2, result.nodes.count() - 1);
+            result.nodes.back(2).outgoingEdges.push(result.edges.count() - 1);
+            result.nodes.back(1).incomingEdges.push(result.edges.count() - 1);
+
+            stack.push(child);
+
+            for (int edge : nodes[child].outgoingEdges)
+                if (visited[edges[edge].to()]++ == 0)
+                {
+                    parents.push(child);
+                    children.push(edges[edge].to());
+                }
+                else
+                {
+                    int subWeight = edges[edge].weight();
+                    // TODO
+                }
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------

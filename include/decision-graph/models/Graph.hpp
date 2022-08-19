@@ -25,12 +25,14 @@ public:
     /*!
      * \brief Tries to eliminate all edge connections that loop back into the 
      * graph. The result is a graph with no cycles and mostly sink leaf nodes.
+     * \note Assumes every node in the graph is connected
      */
     Graph cutLoopsIncoming() const;
 
     /*!
      * \brief Tries to eliminate all edge connections that loop out of the
      * graph. The result is a graph with no cycles and mostly source leaf nodes.
+     * \note Assumes every node in the graph is connected
      */
     Graph cutLoopsOutgoing() const;
 
