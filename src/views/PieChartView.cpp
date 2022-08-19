@@ -12,28 +12,33 @@
 // ----------------------------------------------------------------------------
 PieChartView::PieChartView(SequenceSearchModel* model, QWidget* parent)
     : model_(model)
+    , pieBreakdownSeries_(new QtCharts::QPieSeries)
+    , pieIncomingSeries_(new QtCharts::QPieSeries)
+    , pieOutgoingSeries_(new QtCharts::QPieSeries)
 {
-    QtCharts::QPieSeries* series = new QtCharts::QPieSeries();
-    series->append("Jane", 1);
-    series->append("Joe", 2);
-    series->append("Andy", 3);
-    series->append("Barbara", 4);
-    series->append("Axel", 5);
-    series->setLabelsVisible(true);
+    QtCharts::QChart* breakdownPieChart = new QtCharts::QChart();
+    breakdownPieChart->addSeries(pieBreakdownSeries_);
+    breakdownPieChart->setTitle("Option Breakdown");
+    breakdownPieChart->legend()->hide();
 
-    QtCharts::QPieSlice* slice = series->slices().at(1);
-    slice->setExploded();
-    slice->setLabelVisible();
-    slice->setPen(QPen(Qt::darkGreen, 2));
-    slice->setBrush(Qt::green);
+    pieBreakdownView_ = new QtCharts::QChartView(breakdownPieChart);
+    pieBreakdownView_->setRenderHint(QPainter::Antialiasing);
 
-    QtCharts::QChart* chart = new QtCharts::QChart();
-    chart->addSeries(series);
-    chart->setTitle("Option Breakdown");
-    chart->legend()->hide();
+    QtCharts::QChart* incomingPieChart = new QtCharts::QChart();
+    incomingPieChart->addSeries(pieIncomingSeries_);
+    incomingPieChart->setTitle("Incoming Options");
+    incomingPieChart->legend()->hide();
 
-    QtCharts::QChartView* chartView = new QtCharts::QChartView(chart);
-    chartView->setRenderHint(QPainter::Antialiasing);
+    pieIncomingView_ = new QtCharts::QChartView(incomingPieChart);
+    pieIncomingView_->setRenderHint(QPainter::Antialiasing);
+
+    QtCharts::QChart* outgoingPieChart = new QtCharts::QChart();
+    outgoingPieChart->addSeries(pieOutgoingSeries_);
+    outgoingPieChart->setTitle("Outgoing Options");
+    outgoingPieChart->legend()->hide();
+
+    pieOutgoingView_ = new QtCharts::QChartView(outgoingPieChart);
+    pieOutgoingView_->setRenderHint(QPainter::Antialiasing);
 
     /*
     QBarSet* set0 = new QBarSet("Jane");
@@ -79,17 +84,23 @@ PieChartView::PieChartView(SequenceSearchModel* model, QWidget* parent)
     ui_->tab_stateList->layout()->addWidget(chartView);*/
 
     QGridLayout* chartsLayout = new QGridLayout;
-    chartsLayout->addWidget(chartView);
+    chartsLayout->addWidget(pieBreakdownView_, 0, 0, 2, 1);
+    chartsLayout->addWidget(pieIncomingView_, 1, 0, 1, 1);
+    chartsLayout->addWidget(pieOutgoingView_, 1, 1, 1, 1);
 
     setLayout(chartsLayout);
+
+    model_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 PieChartView::~PieChartView()
-{}
+{
+    model_->dispatcher.removeListener(this);
+}
 
 // ----------------------------------------------------------------------------
-void PieChartView::updatePieCharts()
+void PieChartView::updateBreakdownPieChart()
 {
     // We have two modes of operation. If the user only ran one query, we try
     // to guess all of the different options based on incoming and outgoing
@@ -97,6 +108,69 @@ void PieChartView::updatePieCharts()
     //
     // If the user ran multiple queries, then we simply use the number of
     // matches for each query
+
+    pieBreakdownSeries_->clear();
+
+    if (model_->queryCount() > 1)
+    {
+        for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
+            pieBreakdownSeries_->append(model_->queryStr(queryIdx), model_->matches(queryIdx).count());
+
+        pieBreakdownSeries_->setLabelsVisible(true);
+        pieBreakdownView_->setVisible(true);
+    }
+
+    if (model_->queryCount() == 1)
+    {
+        pieBreakdownView_->setVisible(false);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void PieChartView::updateIOPieCharts()
+{
+    // We have two modes of operation. If the user only ran one query, we try
+    // to guess all of the different options based on incoming and outgoing
+    // connections in the decision graph
+    //
+    // If the user ran multiple queries, then we simply use the number of
+    // matches for each query
+
+    pieOutgoingSeries_->clear();
+    pieIncomingSeries_->clear();
+
+    if (model_->queryCount() == 1)
+    {
+        // Find largest island
+        const auto islands = model_->graph(0).islands();
+        int largest = 0;
+        int nodes = 0;
+        for (int i = 0; i != islands.count(); ++i)
+            if (nodes < islands[i].nodes.count())
+            {
+                nodes = islands[i].nodes.count();
+                largest = i;
+            }
+
+        const Graph& graph = islands[largest];
+
+        for (const auto& unique : graph.cutLoopsIncoming().uniqueSinks())
+            pieOutgoingSeries_->append(unique.sequence.toString().cStr(), unique.weight);
+        pieOutgoingSeries_->setLabelsVisible(true);
+
+        for (const auto& unique : graph.cutLoopsOutgoing().uniqueSources())
+            pieIncomingSeries_->append(unique.sequence.toString().cStr(), unique.weight);
+        pieIncomingSeries_->setLabelsVisible(true);
+
+        pieIncomingView_->setVisible(true);
+        pieOutgoingView_->setVisible(true);
+    }
+
+    if (model_->queryCount() > 1)
+    {
+        pieIncomingView_->setVisible(false);
+        pieOutgoingView_->setVisible(false);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -110,3 +184,31 @@ void PieChartView::updateStackedBarChart()
 {
 
 }
+
+// ----------------------------------------------------------------------------
+void PieChartView::onCurrentFighterChanged()
+{
+}
+
+// ----------------------------------------------------------------------------
+void PieChartView::onNewSession()
+{
+}
+
+// ----------------------------------------------------------------------------
+void PieChartView::onDataAdded()
+{
+}
+
+// ----------------------------------------------------------------------------
+void PieChartView::onDataCleared()
+{
+}
+
+// ----------------------------------------------------------------------------
+void PieChartView::onQueryApplied()
+{
+    updateBreakdownPieChart();
+    updateIOPieCharts();
+}
+

@@ -4,7 +4,8 @@ class SequenceSearchListener
 {
 public:
     virtual void onCurrentFighterChanged() = 0;
-    virtual void onSessionChanged() = 0;
-    virtual void onSequenceChanged() = 0;
-    virtual void onQueryChanged() = 0;
+    virtual void onNewSession() = 0;
+    virtual void onDataAdded() = 0;
+    virtual void onDataCleared() = 0;
+    virtual void onQueryApplied() = 0;
 };

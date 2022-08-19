@@ -37,13 +37,14 @@ private slots:
     void removeQueryBox(int index);
 
 private:
-    void applyCurrentQuery();
+    void updateQueryStats();
 
 private:
-    void onSessionChanged() override;
     void onCurrentFighterChanged() override;
-    void onSequenceChanged() override;
-    void onQueryChanged() override;
+    void onNewSession() override;
+    void onDataAdded() override;
+    void onDataCleared() override;
+    void onQueryApplied() override;
 
 private:
     struct QueryBox

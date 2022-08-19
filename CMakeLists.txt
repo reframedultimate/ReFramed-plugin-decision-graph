@@ -53,9 +53,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     MOC_HEADERS
         "include/${PLUGIN_NAME}/views/GraphView.hpp"
         "include/${PLUGIN_NAME}/views/PieChartView.hpp"
-        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
-    DATA
-        "data/ParamLabels.csv")
+        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp")
 
 if (${REFRAMED_plugin-${PLUGIN_NAME}})
     option (${PLUGIN_NAME}_COUNTER_EXAMPLES "Have bison generate counter examples" OFF)

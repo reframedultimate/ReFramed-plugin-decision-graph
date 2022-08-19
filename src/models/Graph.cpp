@@ -54,7 +54,43 @@ Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const
+Graph Graph::cutLoopsIncoming() const
+{
+    return Graph();
+}
+
+// ----------------------------------------------------------------------------
+Graph Graph::cutLoopsOutgoing() const
+{
+    return Graph();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Graph> Graph::islands() const
+{
+    return rfcommon::Vector<Graph>();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Graph> Graph::treeIslands() const
+{
+    return rfcommon::Vector<Graph>();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Graph::UniqueSequence> Graph::uniqueSinks() const
+{
+    return rfcommon::Vector<Graph::UniqueSequence>();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Graph::UniqueSequence> Graph::uniqueSources() const
+{
+    return rfcommon::Vector<Graph::UniqueSequence>();
+}
+
+// ----------------------------------------------------------------------------
+void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -99,12 +135,10 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
         if (nodes[nodeIdx].state.opponentInShieldlag())
             flags += rfcommon::String(flags.count() ? ", op shieldlag" : "| op shieldlag");
 
-        fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s | %s (%" PRIu64 ") %s }\"];\n",
+        fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s %s }\"];\n",
             nodeIdx,
             hue(accIncomingWeights(nodeIdx)),
-            map->status.toName(fighterID, nodes[nodeIdx].state.status()),
             labels->bestEffortString(fighterID, nodes[nodeIdx].state.motion()).cStr(),
-            nodes[nodeIdx].state.motion().value(),
             flags.cStr());
     }
 
@@ -122,7 +156,7 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const rfcommon::MappingInfo* map, const LabelMapper* labels) const
+void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -138,7 +172,7 @@ void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, c
     for (const auto& node : nodes)
     {
         ogdf::node N = G.newNode();
-        GA.label(N) = map->status.toName(fighterID, node.state.status());
+        GA.label(N) = labels->bestEffortString(fighterID, node.state.motion()).cStr();
         GA.width(N) = 250;
         GA.height(N) = 20;
         ogdfNodes.push(N);

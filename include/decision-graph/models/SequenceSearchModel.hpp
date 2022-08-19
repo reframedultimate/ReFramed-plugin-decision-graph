@@ -13,61 +13,93 @@ class Query;
 class SequenceSearchListener;
 
 namespace rfcommon {
-    class Hash40Strings;
-    class Session;
-    class UserMotionLabels;
+    class FrameData;
+    class MappingInfo;
+    class MetaData;
 }
 
-class SequenceSearchModel 
-        : public rfcommon::MetaDataListener
-        , public rfcommon::FrameDataListener
+class SequenceSearchModel
 {
 public:
     SequenceSearchModel(const LabelMapper* labelMapper);
 
-    void setSession(rfcommon::Session* session);
-    void clearSession(rfcommon::Session* session);
+    int sessionCount() const;
+    void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::MetaData* mdata);
+    void addFrame(int frameIdx, const rfcommon::FrameData* fdata);
+    void addAllFrames(const rfcommon::FrameData* fdata);
+    void clearAll();
 
     int fighterCount() const;
-    const char* fighterName(int fighterIdx) const;
-    const char* fighterCharacter(int fighterIdx) const;
+    int currentFighter() const;
     void setCurrentFighter(int fighterIdx);
-    int currentFighter() const { return currentFighter_; }
+    const char* playerName(int fighterIdx) const;
+    const char* fighterName(int fighterIdx) const;
+    rfcommon::FighterID fighterID(int fighterIdx) const;
 
-    int frameCount() const;
-    int sequenceLength() const;
+    int queryCount() const;
+    void addQuery();
+    void removeQuery(int queryIdx);
+    bool setQuery(int queryIdx, const char* queryStr);
+    const char* queryStr(int queryIdx) const;
+    bool applyQuery(int queryIdx);
+    bool applyAllQueries();
+    const char* lastQueryError() const;
 
-    bool setQuery(const char* queryStr, int fighterIdx);
-    const char* queryError() const { return queryError_.cStr(); }
-    Graph applyQuery(int* numMatches, int* numMatchedStates);
+    int totalFrameCount() const;
+    int totalSequenceLength() const;
+    int totalMatchedSequences() const;
+    int totalMatchedStates() const;
+    int totalMatchedUniqueStates() const;
+
+    const Graph& graph(int queryIdx) const;
+    const rfcommon::Vector<SequenceRange>& matches(int queryIdx) const;
+    const Graph& sessionGraph(int queryIdx, int sessionIdx) const;
+    const rfcommon::Vector<SequenceRange>& sessionMatches(int queryIdx, int sessionIdx) const;
 
     rfcommon::ListenerDispatcher<SequenceSearchListener> dispatcher;
 
 private:
-    void addFrame(int frameIdx);
-
-private:
-    void onMetaDataTimeStartedChanged(rfcommon::TimeStamp timeStarted) override;
-    void onMetaDataTimeEndedChanged(rfcommon::TimeStamp timeEnded) override;
-
-    void onMetaDataPlayerNameChanged(int fighterIdx, const rfcommon::String& name) override;
-    void onMetaDataSetNumberChanged(rfcommon::SetNumber number) override;
-    void onMetaDataGameNumberChanged(rfcommon::GameNumber number) override;
-    void onMetaDataSetFormatChanged(const rfcommon::SetFormat& format) override;
-    void onMetaDataWinnerChanged(int winnerPlayerIdx) override;
-
-    void onMetaDataTrainingSessionNumberChanged(rfcommon::GameNumber number) override;
-
-private:
-    void onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame) override;
-    void onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) override;
+    void addFrameNoNotify(int frameIdx, const rfcommon::FrameData* fdata);
+    bool applyQueryNoNotify(int queryIdx);
 
 private:
     const LabelMapper* const labelMapper_;
-    rfcommon::Reference<rfcommon::Session> session_;
-    rfcommon::SmallVector<Sequence, 2> sequences_;
-    std::unique_ptr<Query> query_;
+
+    struct Session
+    {
+        // Time stamp started
+        rfcommon::TimeStamp timeStarted;
+        // Session specific ranges mapping into fighters_[x].sequence.
+        // Vector is always the same size as fighters_.count(), but if
+        // the fighter does not exist in this session then the range will
+        // be empty
+        rfcommon::Vector<SequenceRange> fighters;
+    };
+    rfcommon::Vector<Session> sessions_;
+
+    struct Fighter
+    {
+        rfcommon::FighterID id;
+        rfcommon::String playerName;
+        rfcommon::String fighterName;
+        rfcommon::Vector<SequenceRange> sessions;
+        Sequence sequence;
+    };
+    rfcommon::Vector<Fighter> fighters_;
+    rfcommon::SmallVector<int, 8> fighterIdxMapFromSession_;
+    int currentFighterIdx_ = -1;
+
+    struct QueryResult
+    {
+        Graph graph;
+        rfcommon::Vector<SequenceRange> matches;
+        rfcommon::Vector<Graph> sessionGraph;
+        rfcommon::Vector<rfcommon::Vector<SequenceRange>> sessionMatches;
+    };
+    rfcommon::Vector<QueryResult> queryResults_;
+    rfcommon::Vector<std::unique_ptr<Query>> queries_;
+    rfcommon::Vector<rfcommon::String> queryStrings_;
     rfcommon::String queryError_;
-    rfcommon::String currentFighterCharacter_;
-    int currentFighter_ = 0;
+
+    int frameCount_;
 };

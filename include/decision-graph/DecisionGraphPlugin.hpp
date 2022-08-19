@@ -73,4 +73,12 @@ private:
     std::unique_ptr<LabelMapper> labelMapper_;
     std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
+
+    enum State
+    {
+        NONE,
+        GAME,
+        TRAINING,
+        REPLAY
+    } state_ = NONE;
 };

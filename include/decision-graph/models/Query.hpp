@@ -6,6 +6,7 @@
 
 class LabelMapper;
 class Query;
+class SequenceRange;
 struct QueryASTNode;
 
 class Matcher
@@ -64,7 +65,7 @@ class Query
 public:
     static QueryASTNode* parse(const char* text);
     static Query* compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfcommon::FighterID fighterID);
-    rfcommon::Vector<SequenceRange> apply(const Sequence& sequence);
+    rfcommon::Vector<SequenceRange> apply(const Sequence& seq, const SequenceRange& range);
     void exportDOT(const char* filename, const LabelMapper* labels, rfcommon::FighterID fighterID);
 
 private:

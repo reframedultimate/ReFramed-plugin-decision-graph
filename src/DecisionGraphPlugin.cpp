@@ -46,26 +46,107 @@ void DecisionGraphPlugin::onProtocolAttemptConnectToServer(const char* ipAddress
 void DecisionGraphPlugin::onProtocolFailedToConnectToServer(const char* errormsg, const char* ipAddress, uint16_t port) {}
 void DecisionGraphPlugin::onProtocolConnectedToServer(const char* ipAddress, uint16_t port) {}
 void DecisionGraphPlugin::onProtocolDisconnectedFromServer() {}
-void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training) {}
-void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training) {}
-void DecisionGraphPlugin::onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining) {}
+
+// ----------------------------------------------------------------------------
+void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
+{ 
+    if (state_ != TRAINING)
+        seqSearchModel_->clearAll();
+    state_ = TRAINING;
+
+    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
+}
+void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training) 
+{
+    if (state_ != TRAINING)
+        seqSearchModel_->clearAll();
+    state_ = TRAINING;
+
+    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
+    seqSearchModel_->addAllFrames(training->tryGetFrameData());
+    seqSearchModel_->applyAllQueries();
+}
+void DecisionGraphPlugin::onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining)
+{
+    seqSearchModel_->startNewSession(newTraining->tryGetMappingInfo(), newTraining->tryGetMetaData());
+}
 void DecisionGraphPlugin::onProtocolTrainingEnded(rfcommon::Session* training) {}
-void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game) {}
-void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game) {}
+void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
+{
+    if (state_ != GAME)
+        seqSearchModel_->clearAll();
+    state_ = GAME;
+
+    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
+}
+void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game) 
+{
+    if (state_ != GAME)
+        seqSearchModel_->clearAll();
+    state_ = GAME;
+
+    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
+    seqSearchModel_->addAllFrames(game->tryGetFrameData());
+    seqSearchModel_->applyAllQueries();
+}
 void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game) {}
 
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onGameSessionLoaded(rfcommon::Session* game)
 {
-    seqSearchModel_->setSession(game);
-}
+    seqSearchModel_->clearAll();
+    if (auto map = game->tryGetMappingInfo())
+        if (auto mdata = game->tryGetMetaData())
+            if (auto fdata = game->tryGetFrameData())
+            {
+                seqSearchModel_->startNewSession(map, mdata);
+                seqSearchModel_->addAllFrames(fdata);
+                seqSearchModel_->applyAllQueries();
+            }
 
-// ----------------------------------------------------------------------------
+    state_ = REPLAY;
+}
 void DecisionGraphPlugin::onGameSessionUnloaded(rfcommon::Session* game)
 {
-    seqSearchModel_->clearSession(game);
+    seqSearchModel_->clearAll();
+    state_ = NONE;
 }
-void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training) {}
-void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training) {}
-void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int numGames) {}
-void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) {}
+void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training) 
+{
+    seqSearchModel_->clearAll();
+    if (auto map = training->tryGetMappingInfo())
+        if (auto mdata = training->tryGetMetaData())
+            if (auto fdata = training->tryGetFrameData())
+            {
+                seqSearchModel_->startNewSession(map, mdata);
+                seqSearchModel_->addAllFrames(fdata);
+                seqSearchModel_->applyAllQueries();
+            }
+
+    state_ = REPLAY;
+}
+void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training) 
+{
+    seqSearchModel_->clearAll();
+    state_ = NONE;
+}
+void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int numGames) 
+{
+    seqSearchModel_->clearAll();
+    for (int i = 0; i != numGames; ++i)
+        if (auto map = games[i]->tryGetMappingInfo())
+            if (auto mdata = games[i]->tryGetMetaData())
+                if (auto fdata = games[i]->tryGetFrameData())
+                {
+                    seqSearchModel_->startNewSession(map, mdata);
+                    seqSearchModel_->addAllFrames(fdata);
+                    seqSearchModel_->applyAllQueries();
+                }
+
+    state_ = REPLAY;
+}
+void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) 
+{
+    seqSearchModel_->clearAll();
+    state_ = NONE;
+}

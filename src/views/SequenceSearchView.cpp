@@ -52,8 +52,6 @@ SequenceSearchView::SequenceSearchView(
     ui_->tab_graph->setLayout(new QVBoxLayout);
     ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_));
 
-    SequenceSearchView::onSessionChanged();
-
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
     connect(ui_->toolButton_addQuery, &QToolButton::released, 
@@ -80,14 +78,15 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
         return;
     }
 
-    QByteArray ba = text.toLocal8Bit();
-    if (model_->setQuery(ba.data(), model_->currentFighter()))
+    QByteArray ba = text.toUtf8();
+    if (model_->setQuery(index, ba.constData()))
     {
         queryBoxes_[index].parseError->setVisible(false);
+        model_->applyQuery(index);
     }
     else
     {
-        queryBoxes_[index].parseError->setText(model_->queryError());
+        queryBoxes_[index].parseError->setText(model_->lastQueryError());
         queryBoxes_[index].parseError->setVisible(true);
     }
 }
@@ -115,7 +114,7 @@ void SequenceSearchView::addQueryBox()
     boxLayout->addWidget(box.name, 0, 0);
     boxLayout->addWidget(box.query, 0, 1);
     boxLayout->addWidget(box.remove, 0, 2);
-    boxLayout->addWidget(box.parseError, 1, 1, 1, 3, Qt::AlignLeft);
+    boxLayout->addWidget(box.parseError, 1, 1, 1, 3, Qt::AlignRight);
 
     QVBoxLayout* groupLayout = static_cast<QVBoxLayout*>(ui_->groupBox_query->layout());
     groupLayout->addLayout(boxLayout);
@@ -140,6 +139,8 @@ void SequenceSearchView::addQueryBox()
                 break;
             }
     });
+
+    model_->addQuery();
 }
 
 // ----------------------------------------------------------------------------
@@ -153,76 +154,54 @@ void SequenceSearchView::removeQueryBox(int index)
 
     for (; index != queryBoxes_.count(); ++index)
         queryBoxes_[index].name->setText("#" + QString::number(index + 1) + ":");
+
+    model_->removeQuery(index);
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onSessionChanged()
+void SequenceSearchView::updateQueryStats()
 {
-    bool blocked = ui_->comboBox_player->blockSignals(true);
-
-    ui_->comboBox_player->clear();
-    for (int i = 0; i != model_->fighterCount(); ++i)
-        ui_->comboBox_player->addItem(QString(model_->fighterName(i)) + " (" + model_->fighterCharacter(i) + ")");
-    if (model_->fighterCount() > 0)
-        ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
-    ui_->comboBox_player->blockSignals(blocked);
-
-    /*
-    ui_->listWidget_labels->clear();
-    for (const auto& label : model_->availableLabels(model_->currentFighter()))
-        ui_->listWidget_labels->addItem(label.cStr());*/
-
-    ui_->label_frames->setText("Total Frames: " + QString::number(model_->frameCount()));
-    ui_->label_sequenceLength->setText(
-                "Total Sequence Length: " +
-                QString::number(model_->sequenceLength()));
-
-    int numMatches, numMatchedStates;
-    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
-    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
-    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
-    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+    ui_->label_frames->setText("Frames loaded: " + QString::number(model_->totalFrameCount()));
+    ui_->label_sequenceLength->setText("States loaded: " + QString::number(model_->totalSequenceLength()));
+    ui_->label_matches->setText("Matched sequences: " + QString::number(model_->totalMatchedSequences()));
+    ui_->label_matchedStates->setText("Matched states: " + QString::number(model_->totalMatchedStates()));
+    ui_->label_matchedUniqueStates->setText("Matched unique states: " + QString::number(model_->totalMatchedUniqueStates()));
 }
 
 // ----------------------------------------------------------------------------
 void SequenceSearchView::onCurrentFighterChanged()
 {
     bool blocked = ui_->comboBox_player->blockSignals(true);
-    ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+        ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
     ui_->comboBox_player->blockSignals(blocked);
-
-    /*
-    ui_->listWidget_labels->clear();
-    for (const auto& label : model_->availableLabels(model_->currentFighter()))
-        ui_->listWidget_labels->addItem(label.cStr());*/
-
-    int numMatches, numMatchedStates;
-    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
-    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
-    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
-    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onSequenceChanged()
+void SequenceSearchView::onNewSession()
 {
-    ui_->label_sequenceLength->setText(
-                "Total Sequence Length: " +
-                QString::number(model_->sequenceLength()));
-
-    int numMatches, numMatchedStates;
-    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
-    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
-    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
-    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+    bool blocked = ui_->comboBox_player->blockSignals(true);
+        ui_->comboBox_player->clear();
+        for (int i = 0; i != model_->fighterCount(); ++i)
+            ui_->comboBox_player->addItem(QString(model_->playerName(i)) + " (" + model_->fighterName(i) + ")");
+        if (model_->fighterCount() > 0)
+            ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+    ui_->comboBox_player->blockSignals(blocked);
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onQueryChanged()
+void SequenceSearchView::onDataAdded()
 {
-    int numMatches, numMatchedStates;
-    Graph graph = model_->applyQuery(&numMatches, &numMatchedStates);
-    ui_->label_matches->setText("Matches: " + QString::number(numMatches));
-    ui_->label_matchedStates->setText("Matched States: " + QString::number(numMatchedStates));
-    ui_->label_matchedUniqueStates->setText("Matched Unique States: " + QString::number(graph.nodes.count()));
+    updateQueryStats();
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onDataCleared()
+{
+    updateQueryStats();
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onQueryApplied()
+{
+    updateQueryStats();
 }

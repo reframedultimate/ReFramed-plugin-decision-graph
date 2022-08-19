@@ -424,7 +424,7 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
+rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const SequenceRange& range)
 {
     struct MatchInfo
     {
@@ -494,7 +494,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq)
 
     // We search the sequence of states rather than the graph, because we are
     // interested in matching sequences of decisions
-    for (int stateIdx = 0; stateIdx != seq.states.count(); ++stateIdx)
+    for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
     {
         const int stateEndIdx = doSequenceMatch(stateIdx);
         if (stateEndIdx > stateIdx)
