@@ -19,7 +19,8 @@ public:
 
     rfcommon::SmallVector<rfcommon::FighterMotion, 4> matchUserLabels(rfcommon::FighterID fighterID, const char* label) const;
     rfcommon::FighterMotion matchKnownHash40(const char* label) const;
-    rfcommon::String bestEffortString(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const;
+    rfcommon::String bestEffortStringAllLayers(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const;
+    rfcommon::String bestEffortStringHighestLayer(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const;
 
 private:
     rfcommon::Reference<rfcommon::UserMotionLabels> userLabels_;

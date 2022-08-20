@@ -2,15 +2,17 @@
 
 #include "decision-graph/models/State.hpp"
 #include "rfcommon/Vector.hpp"
+#include "rfcommon/FighterID.hpp"
 
 class SequenceRange;
+class LabelMapper;
 
 class Sequence
 {
 public:
     rfcommon::Vector<State> states;
 
-    rfcommon::String toString() const;
+    rfcommon::String toString(rfcommon::FighterID fighterID, LabelMapper* labels) const;
 };
 
 class SequenceRange

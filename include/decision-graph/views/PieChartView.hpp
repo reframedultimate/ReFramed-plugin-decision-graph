@@ -4,10 +4,20 @@
 #include <QWidget>
 
 class SequenceSearchModel;
+class LabelMapper;
+
+class QStackedWidget;
+
+class QwtPlot;
+class QwtPlotMultiBarChart;
 
 namespace QtCharts {
-    class QChartView;
     class QPieSeries;
+    class QBarSeries;
+    class QBarSet;
+    class QStackedBarSeries;
+    class QBarCategoryAxis;
+    class QValueAxis;
 }
 
 class PieChartView 
@@ -15,14 +25,12 @@ class PieChartView
         , public SequenceSearchListener
 {
 public:
-    explicit PieChartView(SequenceSearchModel* model, QWidget* parent=nullptr);
+    explicit PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent=nullptr);
     ~PieChartView();
 
 private:
-    void updateBreakdownPieChart();
-    void updateIOPieCharts();
-    void updateBarChart();
-    void updateStackedBarChart();
+    void updateIOCharts();
+    void updateBreakdownCharts();
 
 private:
     void onCurrentFighterChanged() override;
@@ -33,10 +41,20 @@ private:
 
 private:
     SequenceSearchModel* model_;
-    QtCharts::QChartView* pieBreakdownView_;
-    QtCharts::QPieSeries* pieBreakdownSeries_;
-    QtCharts::QChartView* pieIncomingView_;
+    LabelMapper* labels_;
+    QStackedWidget* pieStack_;
+    QStackedWidget* barStack_;
+
     QtCharts::QPieSeries* pieIncomingSeries_;
-    QtCharts::QChartView* pieOutgoingView_;
     QtCharts::QPieSeries* pieOutgoingSeries_;
+
+    QwtPlot* barIncomingPlot_;
+    QwtPlot* barOutgoingPlot_;
+    QwtPlotMultiBarChart* barIncomingData_;
+    QwtPlotMultiBarChart* barOutgoingData_;
+
+    QtCharts::QPieSeries* pieBreakdownSeries_;
+
+    QwtPlot* barBreakdownPlot_;
+    QwtPlotMultiBarChart* barBreakdownData_;
 };

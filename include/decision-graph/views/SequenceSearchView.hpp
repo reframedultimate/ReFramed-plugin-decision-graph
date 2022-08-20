@@ -15,6 +15,7 @@ class QLineEdit;
 class QToolButton;
 
 class GraphModel;
+class LabelMapper;
 class SequenceSearchModel;
 
 class SequenceSearchView 
@@ -27,6 +28,7 @@ public:
     explicit SequenceSearchView(
             SequenceSearchModel* model,
             GraphModel* graphModel,
+            LabelMapper* labels,
             QWidget* parent=nullptr);
     ~SequenceSearchView();
 

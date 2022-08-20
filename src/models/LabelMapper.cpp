@@ -27,16 +27,17 @@ rfcommon::FighterMotion LabelMapper::matchKnownHash40(const char* label) const
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::String LabelMapper::bestEffortString(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const
+rfcommon::String LabelMapper::bestEffortStringAllLayers(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const
 {
-    if (const char* label = userLabels_->toUserLabel(fighterID, motion, nullptr))
+    const rfcommon::String label = userLabels_->toStringAllLayers(fighterID, motion, "");
+    if (label.length())
         return label;
     
-    if (const char* str = hash40Strings_->toString(motion, nullptr))
-        return str;
+    if (const char* h40 = hash40Strings_->toString(motion, nullptr))
+        return h40;
 
     char buf[13];
-    static const char* digits = "0123456789ABCDEF";
+    static const char* digits = "0123456789abcdef";
     rfcommon::FighterMotion::Type value = motion.value();
     for (int i = 11; i >= 2; i--)  // hash40 value is 40 bits, or 5 bytes, or 10 nibbles
     {
@@ -45,6 +46,30 @@ rfcommon::String LabelMapper::bestEffortString(rfcommon::FighterID fighterID, rf
     }
     buf[0] = '0';
     buf[1] = 'x';
-    buf[7] = '\0';
+    buf[12] = '\0';
+    return buf;
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::String LabelMapper::bestEffortStringHighestLayer(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const
+{
+    const rfcommon::String label = userLabels_->toStringHighestLayer(fighterID, motion, "");
+    if (label.length())
+        return label;
+
+    if (const char* h40 = hash40Strings_->toString(motion, nullptr))
+        return h40;
+
+    char buf[13];
+    static const char* digits = "0123456789abcdef";
+    rfcommon::FighterMotion::Type value = motion.value();
+    for (int i = 11; i >= 2; i--)  // hash40 value is 40 bits, or 5 bytes, or 10 nibbles
+    {
+        buf[i] = digits[(value & 0x0F)];
+        value >>= 4;
+    }
+    buf[0] = '0';
+    buf[1] = 'x';
+    buf[12] = '\0';
     return buf;
 }

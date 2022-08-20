@@ -31,7 +31,7 @@ rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterfac
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get());
+    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get(), labelMapper_.get());
 }
 
 // ----------------------------------------------------------------------------
@@ -119,8 +119,8 @@ void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training)
             if (auto fdata = training->tryGetFrameData())
             {
                 seqSearchModel_->startNewSession(map, mdata);
-                seqSearchModel_->addAllFrames(fdata);
                 seqSearchModel_->applyAllQueries();
+                seqSearchModel_->addAllFrames(fdata);
             }
 
     state_ = REPLAY;
@@ -140,8 +140,8 @@ void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int 
                 {
                     seqSearchModel_->startNewSession(map, mdata);
                     seqSearchModel_->addAllFrames(fdata);
-                    seqSearchModel_->applyAllQueries();
                 }
+    seqSearchModel_->applyAllQueries();
 
     state_ = REPLAY;
 }

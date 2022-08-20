@@ -515,7 +515,7 @@ void Query::exportDOT(const char* filename, const LabelMapper* labels, rfcommon:
         rfcommon::String label =
                 i == 0 ? "start" :
                 matchers_[i].isWildcard() ? "." :
-                labels->bestEffortString(fighterID, matchers_[i].motion_);
+                labels->bestEffortStringAllLayers(fighterID, matchers_[i].motion_);
         const char* color = matchers_[i].isStop() ? "red" : "black";
         fprintf(fp, "m%d [shape=\"record\",color=\"%s\",label=\"%s", i, color, label.cStr());
 

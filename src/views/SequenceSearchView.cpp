@@ -35,6 +35,7 @@ static void clearLayout(QLayout* layout)
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
         GraphModel* graphModel,
+        LabelMapper* labels,
         QWidget* parent)
     : QWidget(parent)
     , model_(model)
@@ -44,7 +45,7 @@ SequenceSearchView::SequenceSearchView(
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
     ui_->tab_pieChart->setLayout(new QVBoxLayout);
-    ui_->tab_pieChart->layout()->addWidget(new PieChartView(model));
+    ui_->tab_pieChart->layout()->addWidget(new PieChartView(model, labels));
 
     addQueryBox();
 
