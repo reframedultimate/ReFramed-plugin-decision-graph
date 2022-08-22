@@ -43,15 +43,9 @@ private:
     SequenceSearchModel* model_;
     LabelMapper* labels_;
     QStackedWidget* pieStack_;
-    QStackedWidget* barStack_;
 
     QtCharts::QPieSeries* pieIncomingSeries_;
     QtCharts::QPieSeries* pieOutgoingSeries_;
-
-    QwtPlot* barIncomingPlot_;
-    QwtPlot* barOutgoingPlot_;
-    QwtPlotMultiBarChart* barIncomingData_;
-    QwtPlotMultiBarChart* barOutgoingData_;
 
     QtCharts::QPieSeries* pieBreakdownSeries_;
 

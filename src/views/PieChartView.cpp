@@ -22,13 +22,8 @@ PieChartView::PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWid
     : model_(model)
     , labels_(labels)
     , pieStack_(new QStackedWidget)
-    , barStack_(new QStackedWidget)
     , pieIncomingSeries_(new QtCharts::QPieSeries)
     , pieOutgoingSeries_(new QtCharts::QPieSeries)
-    , barIncomingPlot_(new QwtPlot)
-    , barOutgoingPlot_(new QwtPlot)
-    , barIncomingData_(new QwtPlotMultiBarChart)
-    , barOutgoingData_(new QwtPlotMultiBarChart)
     , pieBreakdownSeries_(new QtCharts::QPieSeries)
     , barBreakdownPlot_(new QwtPlot)
     , barBreakdownData_(new QwtPlotMultiBarChart)
@@ -63,35 +58,6 @@ PieChartView::PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWid
     }
 
     {
-        QWidget* ioBarCharts = new QWidget;
-        ioBarCharts->setLayout(new QHBoxLayout);
-        {
-            barIncomingPlot_->setPalette(Qt::white);
-            barIncomingPlot_->setTitle("Incoming Options");
-            barIncomingPlot_->setAxisVisible(QwtPlot::xBottom, false);
-
-            barIncomingData_->setLayoutPolicy(QwtPlotMultiBarChart::AutoAdjustSamples);
-            barIncomingData_->setSpacing(3);
-            barIncomingData_->setMargin(3);
-            barIncomingData_->attach(barIncomingPlot_);
-            ioBarCharts->layout()->addWidget(barIncomingPlot_);
-        }
-        {
-            barOutgoingPlot_->setPalette(Qt::white);
-            barOutgoingPlot_->setTitle("Outgoing Options");
-            barOutgoingPlot_->setAxisVisible(QwtPlot::xBottom, false);
-
-            barOutgoingData_->setLayoutPolicy(QwtPlotMultiBarChart::AutoAdjustSamples);
-            barOutgoingData_->setSpacing(3);
-            barOutgoingData_->setMargin(3);
-            barOutgoingData_->attach(barOutgoingPlot_);
-            ioBarCharts->layout()->addWidget(barOutgoingPlot_);
-        }
-
-        barStack_->addWidget(ioBarCharts);
-    }
-
-    {
         QtCharts::QChart* chart = new QtCharts::QChart();
         chart->addSeries(pieBreakdownSeries_);
         chart->setTitle("Option Breakdown");
@@ -103,22 +69,23 @@ PieChartView::PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWid
         pieStack_->addWidget(view);
     }
 
-    {
-        barBreakdownPlot_->setPalette(Qt::white);
-        barBreakdownPlot_->setTitle("Option Breakdown");
-        barBreakdownPlot_->setAxisVisible(QwtPlot::xBottom, false);
+    barBreakdownPlot_->setPalette(Qt::white);
+    barBreakdownPlot_->setTitle("Option Breakdown");
+    barBreakdownPlot_->setAxisVisible(QwtPlot::xBottom, false);
 
-        barBreakdownData_->setLayoutPolicy(QwtPlotMultiBarChart::AutoAdjustSamples);
-        barBreakdownData_->setSpacing(3);
-        barBreakdownData_->setMargin(3);
-        barBreakdownData_->attach(barBreakdownPlot_);
+    barBreakdownData_->setLayoutPolicy(QwtPlotMultiBarChart::AutoAdjustSamples);
+    barBreakdownData_->setSpacing(3);
+    barBreakdownData_->setMargin(3);
+    barBreakdownData_->attach(barBreakdownPlot_);
 
-        barStack_->addWidget(barBreakdownPlot_);
-    }
+    barBreakdownPlot_->setVisible(false);
 
-    setLayout(new QVBoxLayout);
-    layout()->addWidget(pieStack_);
-    layout()->addWidget(barStack_);
+    QVBoxLayout* l = new QVBoxLayout;
+    l->addWidget(pieStack_);
+    l->addWidget(barBreakdownPlot_);
+    l->setStretch(0, 3);
+    l->setStretch(1, 2);
+    setLayout(l);
 
     model_->dispatcher.addListener(this);
 }
@@ -141,8 +108,6 @@ void PieChartView::updateIOCharts()
 
     pieOutgoingSeries_->clear();
     pieIncomingSeries_->clear();
-    barOutgoingData_->setSamples({});
-    barIncomingData_->setSamples({});
 
     if (model_->queryCount() == 1)
     {
@@ -172,85 +137,25 @@ void PieChartView::updateIOCharts()
         outgoingTree.exportDOT("outgoing_tree.dot", fighterID, labels_);
         incomingTree.exportDOT("incoming_tree.dot", fighterID, labels_);
 
+        for (int i = 0; i != outgoingSequences.count(); ++i)
         {
-            int highestWeight = 0;
-            QVector<QVector<double>> barValues(1);
-            QList<QwtText> barTitles;
-            for (int i = 0; i != outgoingSequences.count(); ++i)
-            {
-                const auto& unique = outgoingSequences[i];
-                const auto label = unique.sequence.toString(fighterID, labels_);
-                pieOutgoingSeries_->append(label.cStr(), unique.weight);
-
-                barValues[0] += (double)unique.weight;
-                barTitles += QwtText(label.cStr());
-
-                QColor color = outgoingSequences.count() == 1 ?
-                    QColor::fromHsv(200, 219, 64) : i * 2 < outgoingSequences.count() ?
-                    QColor::fromHsv(200, i * (219 - 30) * 2 / outgoingSequences.count() + 30, 255) :
-                    QColor::fromHsv(200, 219, (outgoingSequences.count() - i - 1) * 2 * (255 - 64) / outgoingSequences.count() + 64);
-
-                auto symbol = new QwtColumnSymbol(QwtColumnSymbol::Box);
-                symbol->setLineWidth(2);
-                symbol->setFrameStyle(QwtColumnSymbol::Raised);
-                symbol->setPalette(color);
-                barOutgoingData_->setSymbol(i, symbol);
-
-                if (highestWeight < unique.weight)
-                    highestWeight = unique.weight;
-            }
-            pieOutgoingSeries_->setLabelsVisible(true);
-
-            barOutgoingData_->setStyle(QwtPlotMultiBarChart::Grouped);
-            barOutgoingData_->setBarTitles(barTitles);
-            barOutgoingData_->setSamples(barValues);
-            barOutgoingData_->setLegendIconSize(QSize(10, 14));
-
-            barOutgoingPlot_->setAxisScale(QwtPlot::yLeft, 0, highestWeight * 1.05);
-            barOutgoingPlot_->setAxisScale(QwtPlot::xBottom, -0.55, 0.55);
+            const auto& unique = outgoingSequences[i];
+            const auto label = unique.sequence.toString(fighterID, labels_);
+            pieOutgoingSeries_->append(label.cStr(), unique.weight);
         }
+        pieOutgoingSeries_->setLabelsVisible(true);
 
+        int highestWeight = 0;
+        QVector<QVector<double>> barValues(1);
+        QList<QwtText> barTitles;
+        for (int i = 0; i != incomingSequences.count(); ++i)
         {
-            int highestWeight = 0;
-            QVector<QVector<double>> barValues(1);
-            QList<QwtText> barTitles;
-            for (int i = 0; i != incomingSequences.count(); ++i)
-            {
-                const auto& unique = incomingSequences[i];
-                const auto label = unique.sequence.toString(fighterID, labels_);
-                pieIncomingSeries_->append(label.cStr(), unique.weight);
-
-                barValues[0] += (double)unique.weight;
-                barTitles += QwtText(label.cStr());
-
-                QColor color = incomingSequences.count() == 1 ?
-                    QColor::fromHsv(200, 219, 64) : i * 2 < incomingSequences.count() ?
-                    QColor::fromHsv(200, i * (219 - 30) * 2 / incomingSequences.count() + 30, 255) :
-                    QColor::fromHsv(200, 219, (incomingSequences.count() - i - 1) * 2 * (255 - 64) / incomingSequences.count() + 64);
-
-                auto symbol = new QwtColumnSymbol(QwtColumnSymbol::Box);
-                symbol->setLineWidth(2);
-                symbol->setFrameStyle(QwtColumnSymbol::Raised);
-                symbol->setPalette(color);
-                barIncomingData_->setSymbol(i, symbol);
-
-                if (highestWeight < unique.weight)
-                    highestWeight = unique.weight;
-            }
-            pieIncomingSeries_->setLabelsVisible(true);
-
-            barIncomingData_->setStyle(QwtPlotMultiBarChart::Grouped);
-            barIncomingData_->setBarTitles(barTitles);
-            barIncomingData_->setSamples(barValues);
-            barIncomingData_->setLegendIconSize(QSize(10, 14));
-
-            barIncomingPlot_->setAxisScale(QwtPlot::yLeft, 0, highestWeight * 1.05);
-            barIncomingPlot_->setAxisScale(QwtPlot::xBottom, -0.55, 0.55);
+            const auto& unique = incomingSequences[i];
+            const auto label = unique.sequence.toString(fighterID, labels_);
+            pieIncomingSeries_->append(label.cStr(), unique.weight);
         }
+        pieIncomingSeries_->setLabelsVisible(true);
     }
-
-    barOutgoingPlot_->replot();
-    barIncomingPlot_->replot();
 }
 
 // ----------------------------------------------------------------------------
@@ -356,18 +261,16 @@ void PieChartView::onDataCleared()
 // ----------------------------------------------------------------------------
 void PieChartView::onQueryApplied()
 {
+    if (model_->queryCount() > 1)
+        pieStack_->setCurrentIndex(1);
+    else
+        pieStack_->setCurrentIndex(0);
+
+    if (model_->sessionCount() > 1 && model_->queryCount() > 1)
+        barBreakdownPlot_->setVisible(true);
+    else
+        barBreakdownPlot_->setVisible(false);
+
     updateIOCharts();
     updateBreakdownCharts();
-
-    if (model_->queryCount() <= 1)
-    {
-        pieStack_->setCurrentIndex(0);
-        barStack_->setCurrentIndex(0);
-    }
-    else
-    {
-        pieStack_->setCurrentIndex(1);
-        barStack_->setCurrentIndex(1);
-    }
 }
-

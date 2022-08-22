@@ -481,15 +481,15 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
         if (nodes[nodeIdx].state.inHitlag())
             flags += rfcommon::String("| hitlag");
         if (nodes[nodeIdx].state.inHitstun())
-            flags += rfcommon::String(flags.count() ? ", hitstun" : "| hitstun");
+            flags += rfcommon::String(flags.length() ? ", hitstun" : "| hitstun");
         if (nodes[nodeIdx].state.inShieldlag())
-            flags += rfcommon::String(flags.count() ? ", shieldlag" : "| shieldlag");
+            flags += rfcommon::String(flags.length() ? ", shieldlag" : "| shieldlag");
         if (nodes[nodeIdx].state.opponentInHitlag())
-            flags += rfcommon::String(flags.count() ? ", op hitlag" : "| op hitlag");
+            flags += rfcommon::String(flags.length() ? ", op hitlag" : "| op hitlag");
         if (nodes[nodeIdx].state.opponentInHitstun())
-            flags += rfcommon::String(flags.count() ? ", op hitstun" : "| op hitstun");
+            flags += rfcommon::String(flags.length() ? ", op hitstun" : "| op hitstun");
         if (nodes[nodeIdx].state.opponentInShieldlag())
-            flags += rfcommon::String(flags.count() ? ", op shieldlag" : "| op shieldlag");
+            flags += rfcommon::String(flags.length() ? ", op shieldlag" : "| op shieldlag");
 
         fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s %s }\"];\n",
             nodeIdx,

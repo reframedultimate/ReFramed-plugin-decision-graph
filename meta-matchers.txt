@@ -1,0 +1,2 @@
+tech_jump: wall_damage -> wj
+iwj: ledge -> fall -> wj

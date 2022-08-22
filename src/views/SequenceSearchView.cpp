@@ -1,9 +1,14 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
+#include "decision-graph/views/DamageView.hpp"
 #include "decision-graph/views/GraphView.hpp"
-#include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/views/HeatMapView.hpp"
 #include "decision-graph/views/PieChartView.hpp"
+#include "decision-graph/views/SequenceSearchView.hpp"
+#include "decision-graph/views/ShieldHealthView.hpp"
+#include "decision-graph/views/StateListView.hpp"
+#include "decision-graph/views/TimingsView.hpp"
 
 #include <QLineEdit>
 #include <QLabel>
@@ -44,14 +49,30 @@ SequenceSearchView::SequenceSearchView(
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
+    ui_->tab_stateList->setLayout(new QVBoxLayout);
+    ui_->tab_stateList->layout()->addWidget(new StateListView(model, labels));
+
     ui_->tab_pieChart->setLayout(new QVBoxLayout);
     ui_->tab_pieChart->layout()->addWidget(new PieChartView(model, labels));
-
-    addQueryBox();
 
     graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
     ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_));
+
+    ui_->tab_timings->setLayout(new QVBoxLayout);
+    ui_->tab_timings->layout()->addWidget(new TimingsView(model, labels));
+
+    ui_->tab_damage->setLayout(new QVBoxLayout);
+    ui_->tab_damage->layout()->addWidget(new DamageView(model, labels));
+
+    ui_->tab_shield->setLayout(new QVBoxLayout);
+    ui_->tab_shield->layout()->addWidget(new ShieldHealthView(model, labels));
+
+    ui_->tab_heatmap->setLayout(new QVBoxLayout);
+    ui_->tab_heatmap->layout()->addWidget(new HeatMapView(model, labels));
+
+    addQueryBox();
+
 
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
