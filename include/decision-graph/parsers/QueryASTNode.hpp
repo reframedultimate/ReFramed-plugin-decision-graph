@@ -13,18 +13,18 @@ struct QueryASTNode
         INVERSION,
         WILDCARD,
         LABEL,
-        QUALIFIER
+        CONTEXT_QUALIFIER
     } type;
 
-    enum QualifierFlags {
-        QUAL_OS    = 0x01,
-        QUAL_OOS   = 0x02,
-        QUAL_HIT   = 0x04,
-        QUAL_WHIFF = 0x08,
-        QUAL_FH    = 0x10,
-        QUAL_SH    = 0x20,
-        QUAL_DJ    = 0x04,
-        QUAL_IDJ   = 0x80
+    enum ContextQualifierFlags {
+        OS    = 0x01,
+        OOS   = 0x02,
+        HIT   = 0x04,
+        WHIFF = 0x08,
+        FH    = 0x10,
+        SH    = 0x20,
+        DJ    = 0x40,
+        IDJ   = 0x80
     };
 
     struct Statement {
@@ -50,27 +50,20 @@ struct QueryASTNode
         QueryASTNode* child;
     };
 
-    struct Qualifier {
-        Qualifier(QueryASTNode* child, uint8_t flags) : child(child), flags(flags) {}
+    struct ContextQualifier {
+        ContextQualifier(QueryASTNode* child, uint8_t flags) : child(child), flags(flags) {}
         QueryASTNode* child;
         uint8_t flags;
     };
 
 private:
-    QueryASTNode(Statement statement) : type(STATEMENT), statement(statement)
-        {}
-    QueryASTNode(Repitition repitition) : type(REPITITION), repitition(repitition)
-        {}
-    QueryASTNode(Union union_) : type(UNION), union_(union_)
-        {}
-    QueryASTNode(Inversion inversion) : type(INVERSION), inversion(inversion)
-        {}
-    QueryASTNode(Type type) : type(type)
-        {}
-    QueryASTNode(const char* label) : type(LABEL), label(label)
-        {}
-    QueryASTNode(Qualifier qualifier) : type(QUALIFIER), qualifier(qualifier)
-        {}
+    QueryASTNode(Statement statement) : type(STATEMENT), statement(statement) {}
+    QueryASTNode(Repitition repitition) : type(REPITITION), repitition(repitition) {}
+    QueryASTNode(Union union_) : type(UNION), union_(union_) {}
+    QueryASTNode(Inversion inversion) : type(INVERSION), inversion(inversion) {}
+    QueryASTNode(Type type) : type(type) {}
+    QueryASTNode(const char* label) : type(LABEL), label(label) {}
+    QueryASTNode(ContextQualifier contextQualifier) : type(CONTEXT_QUALIFIER), contextQualifier(contextQualifier) {}
     ~QueryASTNode() {}
 
 public:
@@ -80,7 +73,7 @@ public:
     static QueryASTNode* newInversion(QueryASTNode* child);
     static QueryASTNode* newWildcard();
     static QueryASTNode* newLabel(const char* label);
-    static QueryASTNode* newQualifier(QueryASTNode* child, uint8_t flags);
+    static QueryASTNode* newContextQualifier(QueryASTNode* child, uint8_t contextQualifierFlags);
 
     static void destroySingle(QueryASTNode* node);
     static void destroyRecurse(QueryASTNode* node);
@@ -93,6 +86,6 @@ public:
         Union union_;
         Inversion inversion;
         rfcommon::SmallString<7> label;
-        Qualifier qualifier;
+        ContextQualifier contextQualifier;
     };
 };

@@ -10,17 +10,22 @@ class LabelMapper;
 
 class Graph
 {
+    Graph(const States& states);
 public:
-    rfcommon::Vector<Node> nodes;
-    rfcommon::Vector<Edge> edges;
+    ~Graph();
 
     struct UniqueSequence
     {
+        UniqueSequence(Sequence&& seq, int weight)
+            : sequence(std::move(seq))
+            , weight(weight)
+        {}
+
         Sequence sequence;
         int weight;
     };
 
-    static Graph fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector<SequenceRange>& ranges);
+    static Graph fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
 
     int findHighestThroughputNode() const;
 
@@ -50,6 +55,10 @@ public:
 
     rfcommon::Vector<UniqueSequence> treeToUniqueIncomingSequences() const;
 
-    void exportDOT(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const;
-    void exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const;
+    void exportDOT(const char* fileName, const LabelMapper* labels) const;
+    void exportOGDFSVG(const char* fileName, const LabelMapper* labels) const;
+
+    rfcommon::Vector<Node> nodes;
+    rfcommon::Vector<Edge> edges;
+    const States& states;
 };

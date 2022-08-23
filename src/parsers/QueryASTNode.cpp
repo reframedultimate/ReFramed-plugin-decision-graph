@@ -39,9 +39,9 @@ QueryASTNode* QueryASTNode::newLabel(const char* label)
 }
 
 // ----------------------------------------------------------------------------
-QueryASTNode* QueryASTNode::newQualifier(QueryASTNode* child, uint8_t flags)
+QueryASTNode* QueryASTNode::newContextQualifier(QueryASTNode* child, uint8_t contextQualifierFlags)
 {
-    return new QueryASTNode(Qualifier(child, flags));
+    return new QueryASTNode(ContextQualifier(child, contextQualifierFlags));
 }
 
 // ----------------------------------------------------------------------------
@@ -73,8 +73,8 @@ void QueryASTNode::destroyRecurse(QueryASTNode* node)
         break;
     case LABEL:
         break;
-    case QUALIFIER:
-        destroyRecurse(node->qualifier.child);
+    case CONTEXT_QUALIFIER:
+        destroyRecurse(node->contextQualifier.child);
         break;
     }
 
@@ -107,8 +107,8 @@ static void calculateNodeIDs(const QueryASTNode* node, rfcommon::HashMap<const Q
         break;
     case QueryASTNode::LABEL:
         break;
-    case QueryASTNode::QUALIFIER:
-        calculateNodeIDs(node->qualifier.child, nodeIDs, counter);
+    case QueryASTNode::CONTEXT_QUALIFIER:
+        calculateNodeIDs(node->contextQualifier.child, nodeIDs, counter);
         break;
     }
 }
@@ -144,15 +144,13 @@ static void writeNodes(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
         fprintf(fp, "  n%d [shape=\"rectangle\",label=\"%s\"];\n",
                 nodeID, node->label.cStr());
         break;
-    case QueryASTNode::QUALIFIER: {
+    case QueryASTNode::CONTEXT_QUALIFIER: {
         rfcommon::SmallVector<rfcommon::SmallString<5>, 5> flags;
-        if (!!(node->qualifier.flags & QueryASTNode::QUAL_OS))
+        if (!!(node->contextQualifier.flags & QueryASTNode::OS))
             flags.emplace("OS");
-        if (!!(node->qualifier.flags & QueryASTNode::QUAL_OOS))
-            flags.emplace("OOS");
-        if (!!(node->qualifier.flags & QueryASTNode::QUAL_HIT))
+        if (!!(node->contextQualifier.flags & QueryASTNode::HIT))
             flags.emplace("HIT");
-        if (!!(node->qualifier.flags & QueryASTNode::QUAL_WHIFF))
+        if (!!(node->contextQualifier.flags & QueryASTNode::WHIFF))
             flags.emplace("WHIFF");
 
         fprintf(fp, "  n%d [shape=\"record\",label=\"", nodeID);
@@ -164,7 +162,7 @@ static void writeNodes(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
                 fprintf(fp, " | %s", flags[i].cStr());
         }
         fprintf(fp, "\"];\n");
-        writeNodes(node->qualifier.child, fp, nodeIDs);
+        writeNodes(node->contextQualifier.child, fp, nodeIDs);
     } break;
     }
 }
@@ -203,10 +201,10 @@ static void writeEdges(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
         break;
     case QueryASTNode::LABEL:
         break;
-    case QueryASTNode::QUALIFIER:
+    case QueryASTNode::CONTEXT_QUALIFIER:
         fprintf(fp, "  n%d -> n%d;\n",
-            nodeIDs.find(node)->value(), nodeIDs.find(node->qualifier.child)->value());
-        writeEdges(node->qualifier.child, fp, nodeIDs);
+            nodeIDs.find(node)->value(), nodeIDs.find(node->contextQualifier.child)->value());
+        writeEdges(node->contextQualifier.child, fp, nodeIDs);
         break;
     }
 }

@@ -20,23 +20,23 @@ Matcher Matcher::start()
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::wildCard(uint8_t hitFlags)
+Matcher Matcher::wildCard(uint8_t contextQualifierFlags)
 {
     return Matcher(
         rfcommon::FighterMotion::makeInvalid(),
         rfcommon::FighterStatus::makeInvalid(),
-        hitFlags,
+        contextQualifierFlags,
         0
     );
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t hitFlags)
+Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t contextQualifierFlags)
 {
     return Matcher(
         motion,
         rfcommon::FighterStatus::makeInvalid(),
-        hitFlags,
+        contextQualifierFlags,
         MATCH_MOTION
     );
 }
@@ -46,11 +46,11 @@ Matcher::Matcher(
         rfcommon::FighterMotion motion,
         rfcommon::FighterStatus status,
         uint8_t hitType,
-        uint8_t matchFlags)
+        uint8_t contextQualifierFlags)
     : motion_(motion)
     , status_(status)
-    , hitFlags_(hitType)
-    , matchFlags_(matchFlags)
+    , ctxQualFlags_(hitType)
+    , matchFlags_(contextQualifierFlags)
 {}
 
 // ----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ bool Matcher::matches(const State& state) const
         if (state.motion() != motion_)
             return false;
 
-    if (hitFlags_)
+    if (ctxQualFlags_)
     {
         bool onHit = state.opponentInHitlag();
         bool onShield = state.opponentInShieldlag();
@@ -73,7 +73,7 @@ bool Matcher::matches(const State& state) const
                 (static_cast<uint8_t>(onHit) << 0)
               | (static_cast<uint8_t>(onWhiff) << 1)
               | (static_cast<uint8_t>(onShield) << 2);
-        if (!(hitFlags_ & compare))
+        if (!(ctxQualFlags_ & compare))
             return false;
     }
 
@@ -314,12 +314,12 @@ static bool compileASTRecurse(
         uint8_t hitFlags = 0;
         if (qstack->count() > 0)
         {
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_HIT))
+            if (!!(qstack->back() & QueryASTNode::HIT))
                 hitFlags |= Matcher::HIT;
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_WHIFF))
+            if (!!(qstack->back() & QueryASTNode::WHIFF))
                 hitFlags |= Matcher::WHIFF;
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_OS))
-                hitFlags |= Matcher::ON_SHIELD;
+            if (!!(qstack->back() & QueryASTNode::OS))
+                hitFlags |= Matcher::SHIELD;
         }
 
         fstack->push({{matchers->count()}, {matchers->count()}});
@@ -330,12 +330,12 @@ static bool compileASTRecurse(
         uint8_t hitFlags = 0;
         if (qstack->count() > 0)
         {
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_HIT))
+            if (!!(qstack->back() & QueryASTNode::HIT))
                 hitFlags |= Matcher::HIT;
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_WHIFF))
+            if (!!(qstack->back() & QueryASTNode::WHIFF))
                 hitFlags |= Matcher::WHIFF;
-            if (!!(qstack->back() & QueryASTNode::QualifierFlags::QUAL_OS))
-                hitFlags |= Matcher::ON_SHIELD;
+            if (!!(qstack->back() & QueryASTNode::OS))
+                hitFlags |= Matcher::SHIELD;
         }
 
         // Assume label is a user label and maps to one or more motion
@@ -375,9 +375,9 @@ static bool compileASTRecurse(
         return false;
     } break;
 
-    case QueryASTNode::QUALIFIER: {
-        qstack->push(node->qualifier.flags);
-        if (!compileASTRecurse(node->qualifier.child, labels, fighterID, matchers, fstack, qstack)) return false;
+    case QueryASTNode::CONTEXT_QUALIFIER: {
+        qstack->push(node->contextQualifier.flags);
+        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, fstack, qstack)) return false;
         qstack->pop();
         if (fstack->count() < 1) return false;
     } break;
@@ -403,9 +403,9 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
     for (int i : fstack[0].in)
         query->matchers_[0].next.push(i);
 
-    // Mark all matchers with dangling outgoing transitions with stop condition
+    // Mark all matchers with dangling outgoing transitions with the accept condition
     for (int i : fstack[0].out)
-        query->matchers_[i].setStop();
+        query->matchers_[i].setAcceptCondition();
 
     // Removes duplicate state transitions
     for (Matcher& matcher : query->matchers_)
@@ -468,7 +468,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const Sequence
                     if (stateIdx + 1 >= seq.states.count())
                         return stateIdx + 1;
 
-                    if (matchers_[matcherIdx].isStop())
+                    if (matchers_[matcherIdx].isAcceptCondition())
                     {
                         for (int nextMatcherIdx : matchers_[matcherIdx].next)
                             if (matchers_[nextMatcherIdx].matches(seq.states[stateIdx + 1]))
@@ -516,14 +516,14 @@ void Query::exportDOT(const char* filename, const LabelMapper* labels, rfcommon:
                 i == 0 ? "start" :
                 matchers_[i].isWildcard() ? "." :
                 labels->bestEffortStringAllLayers(fighterID, matchers_[i].motion_);
-        const char* color = matchers_[i].isStop() ? "red" : "black";
+        const char* color = matchers_[i].isAcceptCondition() ? "red" : "black";
         fprintf(fp, "m%d [shape=\"record\",color=\"%s\",label=\"%s", i, color, label.cStr());
 
-        if (matchers_[i].hitFlagSet(Matcher::HIT))
+        if (matchers_[i].inContext(Matcher::HIT))
             fprintf(fp, " | HIT");
-        if (matchers_[i].hitFlagSet(Matcher::WHIFF))
+        if (matchers_[i].inContext(Matcher::WHIFF))
             fprintf(fp, " | WHIFF");
-        if (matchers_[i].hitFlagSet(Matcher::ON_SHIELD))
+        if (matchers_[i].inContext(Matcher::SHIELD))
             fprintf(fp, " | OS");
         fprintf(fp, "\"];\n");
     }

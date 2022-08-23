@@ -47,22 +47,31 @@ private:
 }
 
 // ----------------------------------------------------------------------------
-Graph Graph::fromSequenceRanges(const Sequence& sequence, const rfcommon::Vector<SequenceRange>& ranges)
+Graph::Graph(const States& states)
+    : states(states)
+{}
+
+// ----------------------------------------------------------------------------
+Graph::~Graph()
+{}
+
+// ----------------------------------------------------------------------------
+Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences)
 {
-    Graph graph;
+    Graph graph(states);
     rfcommon::HashMap<State, int, State::Hasher> stateLookup;
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 
-    for (const auto& range : ranges)
+    for (const auto& seq : sequences)
     {
         int prevNodeIdx = -1;
-        for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
+        for (int stateIdx : seq)
         {
-            const State& state = sequence.states[stateIdx];
+            const State& state = states[stateIdx];
             auto nodeLookupResult = stateLookup.insertOrGet(state, -1);
             if (nodeLookupResult->value() == -1)
             {
-                graph.nodes.emplace(state);
+                graph.nodes.emplace(stateIdx);
                 nodeLookupResult->value() = graph.nodes.count() - 1;
             }
             const int currentNodeIdx = nodeLookupResult->value();
@@ -129,8 +138,8 @@ rfcommon::Vector<Graph> Graph::islands() const
         if (visited.visited(root))
             continue;
 
-        Graph graph;
-        graph.nodes.emplace(nodes[root].state);
+        Graph graph(states);
+        graph.nodes.emplace(nodes[root].stateIdx);
         map.insertNew(root, 0);
         visited.visit(root);
 
@@ -157,7 +166,7 @@ rfcommon::Vector<Graph> Graph::islands() const
 
             // Insert new node (we call it the "pushed child")
             int pushedChild = graph.nodes.count();
-            graph.nodes.emplace(nodes[child].state);
+            graph.nodes.emplace(nodes[child].stateIdx);
             map.insertNew(child, pushedChild);
 
             // Connect new node to parent. Can be incoming or outgoing connection
@@ -241,23 +250,27 @@ Graph Graph::outgoingTree() const
     rfcommon::SmallVector<int, 256> pushedParents;
     auto visited = VisitedBitmap<256>::make(nodes.count());
 
-    Graph result;
+    Graph result(states);
 
     int root = findHighestThroughputNode();
     {
         int idx = -1;
         int highestSeen = 0;
+        const State& rootState = states[nodes[root].stateIdx];
         for (int edge : nodes[root].incomingEdges)
-            if (highestSeen < edges[edge].weight() && nodes[root].state.status() == nodes[edges[edge].from()].state.status())
+        {
+            const State& fromState = states[nodes[edges[edge].from()].stateIdx];
+            if (highestSeen < edges[edge].weight() && rootState.status() == fromState.status())
             {
                 highestSeen = edges[edge].weight();
                 idx = edge;
             }
+        }
         if (idx != -1)
             root = edges[idx].from();
     }
 
-    result.nodes.emplace(nodes[root].state);
+    result.nodes.emplace(nodes[root].stateIdx);
     visited.visit(root);
 
     for (int edge : nodes[root].outgoingEdges)
@@ -275,7 +288,7 @@ Graph Graph::outgoingTree() const
         int pushedParent = pushedParents.popValue();
 
         int pushedChild = result.nodes.count();
-        result.nodes.emplace(nodes[child].state);
+        result.nodes.emplace(nodes[child].stateIdx);
         for (int edge : nodes[child].incomingEdges)
             if (edges[edge].from() == parent)
             {
@@ -307,23 +320,27 @@ Graph Graph::incomingTree() const
     rfcommon::SmallVector<int, 256> pushedParents;
     auto visited = VisitedBitmap<256>::make(nodes.count());
 
-    Graph result;
+    Graph result(states);
 
     int root = findHighestThroughputNode();
     {
         int idx = -1;
         int highestSeen = 0;
+        const State& rootState = states[nodes[root].stateIdx];
         for (int edge : nodes[root].outgoingEdges)
-            if (highestSeen < edges[edge].weight() && nodes[root].state.status() == nodes[edges[edge].to()].state.status())
+        {
+            const State& toState = states[nodes[edges[edge].from()].stateIdx];
+            if (highestSeen < edges[edge].weight() && rootState.status() == toState.status())
             {
                 highestSeen = edges[edge].weight();
                 idx = edge;
             }
+        }
         if (idx != -1)
             root = edges[idx].to();
     }
 
-    result.nodes.emplace(nodes[root].state);
+    result.nodes.emplace(nodes[root].stateIdx);
     visited.visit(root);
 
     for (int edge : nodes[root].incomingEdges)
@@ -341,7 +358,7 @@ Graph Graph::incomingTree() const
         int pushedParent = pushedParents.popValue();
 
         int pushedChild = result.nodes.count();
-        result.nodes.emplace(nodes[child].state);
+        result.nodes.emplace(nodes[child].stateIdx);
         for (int edge : nodes[child].outgoingEdges)
             if (edges[edge].to() == parent)
             {
@@ -389,17 +406,17 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].incomingEdges.count() ? edges[nodes[node].incomingEdges[0]].weight() : 1;
 
-        Sequence seq;
+        rfcommon::Vector<int> stateIdxs;
         while (1)
         {
-            seq.states.insert(0, nodes[node].state);
+            stateIdxs.insert(0, nodes[node].stateIdx);
             assert(nodes[node].incomingEdges.count() <= 1);
             if (nodes[node].incomingEdges.count() == 0)
                 break;
             node = edges[nodes[node].incomingEdges[0]].from();
         }
 
-        result.push({ seq, weight });
+        result.push({ Sequence::fromIndexList(std::move(stateIdxs)), weight });
     }
 
     return result;
@@ -429,24 +446,24 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].outgoingEdges.count() ? edges[nodes[node].outgoingEdges[0]].weight() : 1;
 
-        Sequence seq;
+        rfcommon::Vector<int> stateIdxs;
         while (1)
         {
-            seq.states.push(nodes[node].state);
+            stateIdxs.push(nodes[node].stateIdx);
             assert(nodes[node].outgoingEdges.count() <= 1);
             if (nodes[node].outgoingEdges.count() == 0)
                 break;
             node = edges[nodes[node].outgoingEdges[0]].to();
         }
 
-        result.push({ seq, weight });
+        result.push({ Sequence::fromIndexList(std::move(stateIdxs)), weight });
     }
 
     return result;
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const
+void Graph::exportDOT(const char* fileName, const LabelMapper* labels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -478,23 +495,24 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
     for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
     {
         rfcommon::String flags;
-        if (nodes[nodeIdx].state.inHitlag())
+        const State& state = states[nodes[nodeIdx].stateIdx];
+        if (state.inHitlag())
             flags += rfcommon::String("| hitlag");
-        if (nodes[nodeIdx].state.inHitstun())
+        if (state.inHitstun())
             flags += rfcommon::String(flags.length() ? ", hitstun" : "| hitstun");
-        if (nodes[nodeIdx].state.inShieldlag())
+        if (state.inShieldlag())
             flags += rfcommon::String(flags.length() ? ", shieldlag" : "| shieldlag");
-        if (nodes[nodeIdx].state.opponentInHitlag())
+        if (state.opponentInHitlag())
             flags += rfcommon::String(flags.length() ? ", op hitlag" : "| op hitlag");
-        if (nodes[nodeIdx].state.opponentInHitstun())
+        if (state.opponentInHitstun())
             flags += rfcommon::String(flags.length() ? ", op hitstun" : "| op hitstun");
-        if (nodes[nodeIdx].state.opponentInShieldlag())
+        if (state.opponentInShieldlag())
             flags += rfcommon::String(flags.length() ? ", op shieldlag" : "| op shieldlag");
 
         fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s %s }\"];\n",
             nodeIdx,
             hue(accIncomingWeights(nodeIdx)),
-            labels->bestEffortStringAllLayers(fighterID, nodes[nodeIdx].state.motion()).cStr(),
+            labels->bestEffortStringAllLayers(states.fighterID, state.motion()).cStr(),
             flags.cStr());
     }
 
@@ -512,7 +530,7 @@ void Graph::exportDOT(const char* fileName, rfcommon::FighterID fighterID, const
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, const LabelMapper* labels) const
+void Graph::exportOGDFSVG(const char* fileName, const LabelMapper* labels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -527,8 +545,9 @@ void Graph::exportOGDFSVG(const char* fileName, rfcommon::FighterID fighterID, c
 
     for (const auto& node : nodes)
     {
+        const State& state = states[node.stateIdx];
         ogdf::node N = G.newNode();
-        GA.label(N) = labels->bestEffortStringAllLayers(fighterID, node.state.motion()).cStr();
+        GA.label(N) = labels->bestEffortStringAllLayers(states.fighterID, state.motion()).cStr();
         GA.width(N) = 250;
         GA.height(N) = 20;
         ogdfNodes.push(N);

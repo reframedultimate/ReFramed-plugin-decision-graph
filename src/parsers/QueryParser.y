@@ -60,7 +60,7 @@
 %union {
     char* string_value;
     int integer_value;
-    uint8_t qual_flags;
+    uint8_t ctx_flags;
     struct QueryASTNode* node_value;
 }
 
@@ -81,7 +81,7 @@
 %token<string_value> LABEL
 
 %type<node_value> stmnts stmnt repitition union inversion label
-%type<qual_flags> pre_qual post_qual
+%type<ctx_flags> pre_qual post_qual
 
 %right '|'
 
@@ -96,9 +96,9 @@ stmnts
   | stmnt               { $$ = $1; }
   ;
 stmnt
-  : pre_qual union post_qual { $$ = QueryASTNode::newQualifier($2, $1 | $3); }
-  | union post_qual     { $$ = QueryASTNode::newQualifier($1, $2); }
-  | pre_qual union      { $$ = QueryASTNode::newQualifier($2, $1); }
+  : pre_qual union post_qual { $$ = QueryASTNode::newContextQualifier($2, $1 | $3); }
+  | union post_qual     { $$ = QueryASTNode::newContextQualifier($1, $2); }
+  | pre_qual union      { $$ = QueryASTNode::newContextQualifier($2, $1); }
   | union               { $$ = $1; }
   ;
 union
@@ -127,18 +127,18 @@ label
 pre_qual
   : pre_qual '|' pre_qual { $$ = $1; $$ |= $3; }
   | '(' pre_qual ')'    { $$ = $2; }
-  | FH                  { $$ = QueryASTNode::QUAL_FH; }
-  | SH                  { $$ = QueryASTNode::QUAL_SH; }
-  | DJ                  { $$ = QueryASTNode::QUAL_DJ; }
-  | IDJ                 { $$ = QueryASTNode::QUAL_IDJ; }
+  | FH                  { $$ = QueryASTNode::FH; }
+  | SH                  { $$ = QueryASTNode::SH; }
+  | DJ                  { $$ = QueryASTNode::DJ; }
+  | IDJ                 { $$ = QueryASTNode::IDJ; }
   ;
 post_qual
   : post_qual '|' post_qual { $$ = $1; $$ |= $3; }
   | '(' post_qual ')'   { $$ = $2; }
-  | OS                  { $$ = QueryASTNode::QUAL_OS; }
-  | OOS                 { $$ = QueryASTNode::QUAL_OOS; }
-  | HIT                 { $$ = QueryASTNode::QUAL_HIT; }
-  | WHIFF               { $$ = QueryASTNode::QUAL_WHIFF; }
+  | OS                  { $$ = QueryASTNode::OS; }
+  | OOS                 { $$ = QueryASTNode::OOS; }
+  | HIT                 { $$ = QueryASTNode::HIT; }
+  | WHIFF               { $$ = QueryASTNode::WHIFF; }
   ;
 %%
 
