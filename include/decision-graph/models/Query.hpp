@@ -84,7 +84,7 @@ class Query
 public:
     static QueryASTNode* parse(const char* text);
     static Query* compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfcommon::FighterID fighterID);
-    rfcommon::Vector<SequenceRange> apply(const Sequence& seq, const SequenceRange& range);
+    rfcommon::Vector<Sequence> apply(const States& states, const Sequence& seq);
     void exportDOT(const char* filename, const LabelMapper* labels, rfcommon::FighterID fighterID);
 
 private:

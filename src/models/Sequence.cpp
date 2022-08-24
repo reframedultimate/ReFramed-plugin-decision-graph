@@ -27,36 +27,18 @@ Sequence::~Sequence()
 {}
 
 // ----------------------------------------------------------------------------
-Sequence Sequence::fromRange(int startIdx, int endIdx)
-{
-    return Sequence(startIdx, endIdx);
-}
-
-// ----------------------------------------------------------------------------
-Sequence Sequence::fromIndexList(rfcommon::Vector<int>&& idxs)
-{
-    return Sequence(std::move(idxs));
-}
-
-// ----------------------------------------------------------------------------
-void Sequence::addIndex(int idx)
-{
-    assert(isRange_);
-    idxs_.push(idx);
-}
-
-// ----------------------------------------------------------------------------
-rfcommon::String Sequence::toString(rfcommon::FighterID fighterID, LabelMapper* labels) const
+rfcommon::String toString(const States& states, const Sequence& seq, LabelMapper* labels)
 {
     rfcommon::String result;
-    for (const auto& state : states)
+    for (int stateIdx : seq)
     {
         rfcommon::String label;
+        const State& state = states[stateIdx];
 
         if (state.inHitlag() || state.inHitstun())
             label = "disadv";
         else
-            label = labels->bestEffortStringHighestLayer(fighterID, state.motion());
+            label = labels->bestEffortStringHighestLayer(states.fighterID, state.motion);
 
         if (state.opponentInShieldlag())
             label += " os";

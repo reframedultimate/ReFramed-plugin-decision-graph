@@ -35,6 +35,7 @@ public:
     const char* playerName(int fighterIdx) const;
     const char* fighterName(int fighterIdx) const;
     rfcommon::FighterID fighterID(int fighterIdx) const;
+    const States& fighterStates(int fighterIdx) const;
 
     int queryCount() const;
     void addQuery();
@@ -52,9 +53,9 @@ public:
     int totalMatchedUniqueStates() const;
 
     const Graph& graph(int queryIdx) const;
-    const rfcommon::Vector<SequenceRange>& matches(int queryIdx) const;
+    const rfcommon::Vector<Sequence>& matches(int queryIdx) const;
     const Graph& sessionGraph(int queryIdx, int sessionIdx) const;
-    const rfcommon::Vector<SequenceRange>& sessionMatches(int queryIdx, int sessionIdx) const;
+    const rfcommon::Vector<Sequence>& sessionMatches(int queryIdx, int sessionIdx) const;
 
     rfcommon::ListenerDispatcher<SequenceSearchListener> dispatcher;
 
@@ -73,7 +74,7 @@ private:
         // Vector is always the same size as fighters_.count(), but if
         // the fighter does not exist in this session then the range will
         // be empty
-        rfcommon::Vector<SequenceRange> fighters;
+        rfcommon::Vector<Sequence> fighters;
     };
     rfcommon::Vector<Session> sessions_;
 
@@ -82,8 +83,8 @@ private:
         rfcommon::FighterID id;
         rfcommon::String playerName;
         rfcommon::String fighterName;
-        rfcommon::Vector<SequenceRange> sessions;
-        Sequence sequence;
+        rfcommon::Vector<Sequence> sessions;
+        States states;
     };
     rfcommon::Vector<Fighter> fighters_;
     rfcommon::SmallVector<int, 8> fighterIdxMapFromSession_;
@@ -92,9 +93,9 @@ private:
     struct QueryResult
     {
         Graph graph;
-        rfcommon::Vector<SequenceRange> matches;
+        rfcommon::Vector<Sequence> matches;
         rfcommon::Vector<Graph> sessionGraph;
-        rfcommon::Vector<rfcommon::Vector<SequenceRange>> sessionMatches;
+        rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMatches;
     };
     rfcommon::Vector<QueryResult> queryResults_;
     rfcommon::Vector<std::unique_ptr<Query>> queries_;

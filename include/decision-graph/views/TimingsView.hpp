@@ -6,6 +6,9 @@
 class LabelMapper;
 class SequenceSearchModel;
 
+class QwtPlot;
+class QwtPlotHistogram;
+
 class TimingsView
         : public QWidget
         , public SequenceSearchListener
@@ -24,4 +27,6 @@ private:
 private:
     SequenceSearchModel* model_;
     LabelMapper* labels_;
+    QwtPlot* relativePlot_;
+    QwtPlotHistogram* relativeData_;
 };

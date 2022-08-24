@@ -10,9 +10,10 @@ class LabelMapper;
 
 class Graph
 {
-    Graph(const States& states);
+    Graph();
 public:
     ~Graph();
+
 
     struct UniqueSequence
     {
@@ -24,6 +25,8 @@ public:
         Sequence sequence;
         int weight;
     };
+
+    void clear();
 
     static Graph fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
 
@@ -41,7 +44,7 @@ public:
      * The first node in the graph is the root node of the tree.
      * \note Assumes every node in the graph is connected
      */
-    Graph outgoingTree() const;
+    Graph outgoingTree(const States& states) const;
 
     /*!
      * \brief Tries to eliminate all edge connections that loop out of the
@@ -49,16 +52,15 @@ public:
      * The first node in the graph is the root node of the tree.
      * \note Assumes every node in the graph is connected
      */
-    Graph incomingTree() const;
+    Graph incomingTree(const States& states) const;
 
     rfcommon::Vector<UniqueSequence> treeToUniuqeOutgoingSequences() const;
 
     rfcommon::Vector<UniqueSequence> treeToUniqueIncomingSequences() const;
 
-    void exportDOT(const char* fileName, const LabelMapper* labels) const;
-    void exportOGDFSVG(const char* fileName, const LabelMapper* labels) const;
+    void exportDOT(const char* fileName, const States& states, const LabelMapper* labels) const;
+    void exportOGDFSVG(const char* fileName, const States& states, const LabelMapper* labels) const;
 
     rfcommon::Vector<Node> nodes;
     rfcommon::Vector<Edge> edges;
-    const States& states;
 };

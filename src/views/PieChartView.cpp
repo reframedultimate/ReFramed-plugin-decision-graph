@@ -140,7 +140,7 @@ void PieChartView::updateIOCharts()
         for (int i = 0; i != outgoingSequences.count(); ++i)
         {
             const auto& unique = outgoingSequences[i];
-            const auto label = unique.sequence.toString(fighterID, labels_);
+            const auto label = toString(unique.sequence, SequenceRange(unique.sequence), fighterID, labels_);
             pieOutgoingSeries_->append(label.cStr(), unique.weight);
         }
         pieOutgoingSeries_->setLabelsVisible(true);
@@ -151,7 +151,7 @@ void PieChartView::updateIOCharts()
         for (int i = 0; i != incomingSequences.count(); ++i)
         {
             const auto& unique = incomingSequences[i];
-            const auto label = unique.sequence.toString(fighterID, labels_);
+            const auto label = toString(unique.sequence, SequenceRange(unique.sequence), fighterID, labels_);
             pieIncomingSeries_->append(label.cStr(), unique.weight);
         }
         pieIncomingSeries_->setLabelsVisible(true);

@@ -47,8 +47,7 @@ private:
 }
 
 // ----------------------------------------------------------------------------
-Graph::Graph(const States& states)
-    : states(states)
+Graph::Graph()
 {}
 
 // ----------------------------------------------------------------------------
@@ -56,10 +55,17 @@ Graph::~Graph()
 {}
 
 // ----------------------------------------------------------------------------
+void Graph::clear()
+{
+    nodes.clearCompact();
+    edges.clearCompact();
+}
+
+// ----------------------------------------------------------------------------
 Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences)
 {
-    Graph graph(states);
-    rfcommon::HashMap<State, int, State::Hasher> stateLookup;
+    Graph graph;
+    rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 
     for (const auto& seq : sequences)
@@ -138,7 +144,7 @@ rfcommon::Vector<Graph> Graph::islands() const
         if (visited.visited(root))
             continue;
 
-        Graph graph(states);
+        Graph graph;
         graph.nodes.emplace(nodes[root].stateIdx);
         map.insertNew(root, 0);
         visited.visit(root);
@@ -243,14 +249,14 @@ rfcommon::Vector<Graph> Graph::islands() const
 }
 
 // ----------------------------------------------------------------------------
-Graph Graph::outgoingTree() const
+Graph Graph::outgoingTree(const States& states) const
 {
     rfcommon::SmallVector<int, 256> children;
     rfcommon::SmallVector<int, 256> parents;
     rfcommon::SmallVector<int, 256> pushedParents;
     auto visited = VisitedBitmap<256>::make(nodes.count());
 
-    Graph result(states);
+    Graph result;
 
     int root = findHighestThroughputNode();
     {
@@ -260,7 +266,7 @@ Graph Graph::outgoingTree() const
         for (int edge : nodes[root].incomingEdges)
         {
             const State& fromState = states[nodes[edges[edge].from()].stateIdx];
-            if (highestSeen < edges[edge].weight() && rootState.status() == fromState.status())
+            if (highestSeen < edges[edge].weight() && rootState.status == fromState.status)
             {
                 highestSeen = edges[edge].weight();
                 idx = edge;
@@ -313,14 +319,14 @@ Graph Graph::outgoingTree() const
 }
 
 // ----------------------------------------------------------------------------
-Graph Graph::incomingTree() const
+Graph Graph::incomingTree(const States& states) const
 {
     rfcommon::SmallVector<int, 256> children;
     rfcommon::SmallVector<int, 256> parents;
     rfcommon::SmallVector<int, 256> pushedParents;
     auto visited = VisitedBitmap<256>::make(nodes.count());
 
-    Graph result(states);
+    Graph result;
 
     int root = findHighestThroughputNode();
     {
@@ -330,7 +336,7 @@ Graph Graph::incomingTree() const
         for (int edge : nodes[root].outgoingEdges)
         {
             const State& toState = states[nodes[edges[edge].from()].stateIdx];
-            if (highestSeen < edges[edge].weight() && rootState.status() == toState.status())
+            if (highestSeen < edges[edge].weight() && rootState.status == toState.status)
             {
                 highestSeen = edges[edge].weight();
                 idx = edge;
@@ -463,7 +469,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, const LabelMapper* labels) const
+void Graph::exportDOT(const char* fileName, const States& states, const LabelMapper* labels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -512,7 +518,7 @@ void Graph::exportDOT(const char* fileName, const LabelMapper* labels) const
         fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s %s }\"];\n",
             nodeIdx,
             hue(accIncomingWeights(nodeIdx)),
-            labels->bestEffortStringAllLayers(states.fighterID, state.motion()).cStr(),
+            labels->bestEffortStringAllLayers(states.fighterID, state.motion).cStr(),
             flags.cStr());
     }
 
@@ -530,7 +536,7 @@ void Graph::exportDOT(const char* fileName, const LabelMapper* labels) const
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, const LabelMapper* labels) const
+void Graph::exportOGDFSVG(const char* fileName, const States& states, const LabelMapper* labels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -547,7 +553,7 @@ void Graph::exportOGDFSVG(const char* fileName, const LabelMapper* labels) const
     {
         const State& state = states[node.stateIdx];
         ogdf::node N = G.newNode();
-        GA.label(N) = labels->bestEffortStringAllLayers(states.fighterID, state.motion()).cStr();
+        GA.label(N) = labels->bestEffortStringAllLayers(states.fighterID, state.motion).cStr();
         GA.width(N) = 250;
         GA.height(N) = 20;
         ogdfNodes.push(N);

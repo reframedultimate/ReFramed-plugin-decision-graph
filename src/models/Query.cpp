@@ -57,11 +57,11 @@ Matcher::Matcher(
 bool Matcher::matches(const State& state) const
 {
     if (!!(matchFlags_ & MATCH_STATUS))
-        if (state.status() != status_)
+        if (state.status != status_)
             return false;
 
     if (!!(matchFlags_ & MATCH_MOTION))
-        if (state.motion() != motion_)
+        if (state.motion != motion_)
             return false;
 
     if (ctxQualFlags_)
@@ -424,21 +424,21 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const SequenceRange& range)
+rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& seq)
 {
     struct MatchInfo
     {
         int lastList;
     };
 
-    rfcommon::Vector<SequenceRange> result;
+    rfcommon::Vector<Sequence> result;
     rfcommon::SmallVector<int, 16> l1, l2;
     auto info = rfcommon::SmallVector<MatchInfo, 16>::makeResized(matchers_.count());
 
     // Returns the ending index in the sequence (exclusive) for the
     // current search pattern. If no pattern was found then this returns
     // the starting index
-    auto doSequenceMatch = [this, &seq, &l1, &l2, &info](const int startIdx) -> int {
+    auto doSequenceMatch = [this, &states, &seq, &l1, &l2, &info](const int startIdx) -> int {
         int stateIdx = startIdx;
 
         // Prepare current and next state lists
@@ -456,7 +456,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const Sequence
             listid++;
             nlist->clear();
             for (int matcherIdx : *clist)
-                if (matchers_[matcherIdx].matches(seq.states[stateIdx]))
+                if (matchers_[matcherIdx].matches(states[stateIdx]))
                 {
                     for (int nextMatcherIdx : matchers_[matcherIdx].next)
                         if (info[nextMatcherIdx].lastList != listid)
@@ -465,13 +465,13 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const Sequence
                             nlist->push(nextMatcherIdx);
                         }
 
-                    if (stateIdx + 1 >= seq.states.count())
+                    if (stateIdx + 1 >= states.count())
                         return stateIdx + 1;
 
                     if (matchers_[matcherIdx].isAcceptCondition())
                     {
                         for (int nextMatcherIdx : matchers_[matcherIdx].next)
-                            if (matchers_[nextMatcherIdx].matches(seq.states[stateIdx + 1]))
+                            if (matchers_[nextMatcherIdx].matches(states[stateIdx + 1]))
                                 goto skip_return;
 
                         return stateIdx + 1;
@@ -479,7 +479,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const Sequence
                     }
                 }
 
-            if (nlist->count() == 0 || stateIdx + 1 >= seq.states.count())
+            if (nlist->count() == 0 || stateIdx + 1 >= states.count())
                 return startIdx;  // Failed to match anything
 
             // Advance
@@ -494,7 +494,7 @@ rfcommon::Vector<SequenceRange> Query::apply(const Sequence& seq, const Sequence
 
     // We search the sequence of states rather than the graph, because we are
     // interested in matching sequences of decisions
-    for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
+    for (int stateIdx : seq)
     {
         const int stateEndIdx = doSequenceMatch(stateIdx);
         if (stateEndIdx > stateIdx)
