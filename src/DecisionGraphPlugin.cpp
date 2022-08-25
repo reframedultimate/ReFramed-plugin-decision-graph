@@ -3,6 +3,7 @@
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
+#include "decision-graph/models/SessionSettingsModel.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/HighresTimer.hpp"
@@ -14,12 +15,15 @@ DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::Use
     , labelMapper_(new LabelMapper(userLabels, hash40Strings))
     , graphModel_(new GraphModel)
     , seqSearchModel_(new SequenceSearchModel(labelMapper_.get()))
+    , sessionSettings_(new SessionSettingsModel)
 {
+    sessionSettings_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::~DecisionGraphPlugin()
 {
+    sessionSettings_->dispatcher.removeListener(this);
 }
 
 // ----------------------------------------------------------------------------
@@ -33,7 +37,7 @@ rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterfac
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get(), labelMapper_.get());
+    return new SequenceSearchView(seqSearchModel_.get(), sessionSettings_.get(), graphModel_.get(), labelMapper_.get());
 }
 
 // ----------------------------------------------------------------------------
@@ -98,6 +102,8 @@ void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
         seqSearchModel_->clearAll();
     state_ = GAME;
 
+    if (sessionSettings_->accumulateLiveSessions() == false)
+        seqSearchModel_->clearAll();
     seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
 
     assert(activeSession_.isNull());
@@ -237,4 +243,30 @@ void DecisionGraphPlugin::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon
 
 void DecisionGraphPlugin::onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame)
 {
+}
+
+// ----------------------------------------------------------------------------
+void DecisionGraphPlugin::onSessionSettingsChanged()
+{
+    if (sessionSettings_->accumulateLiveSessions() == false && seqSearchModel_->sessionCount() > 1)
+        DecisionGraphPlugin::onClearPreviousSessions();
+}
+void DecisionGraphPlugin::onClearPreviousSessions()
+{
+    if (seqSearchModel_->sessionCount() <= 1)
+        return;
+
+    seqSearchModel_->clearAll();
+    if (activeSession_)
+    {
+        auto map = activeSession_->tryGetMappingInfo();
+        auto mdata = activeSession_->tryGetMetaData();
+        auto fdata = activeSession_->tryGetFrameData();
+        if (map && mdata && fdata)
+        {
+            seqSearchModel_->startNewSession(map, mdata);
+            seqSearchModel_->addAllFrames(fdata);
+            seqSearchModel_->applyAllQueries();
+        }
+    }
 }

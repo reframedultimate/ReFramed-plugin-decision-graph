@@ -100,5 +100,8 @@ private:
     rfcommon::Vector<rfcommon::String> queryStrings_;
     rfcommon::String queryError_;
 
+    rfcommon::FighterID previousFighterID_;
+    rfcommon::String previousPlayerName_;
+
     int frameCount_;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "decision-graph/listeners/SessionSettingsListener.hpp"
 #include "rfcommon/Plugin.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
 #include "rfcommon/FrameDataListener.hpp"
@@ -10,6 +11,7 @@
 class GraphModel;
 class LabelMapper;
 class SequenceSearchModel;
+class SessionSettingsModel;
 
 namespace rfcommon {
     class UserMotionLabels;
@@ -23,6 +25,7 @@ class DecisionGraphPlugin
         , public rfcommon::Plugin::ReplayInterface
         , public rfcommon::UserMotionLabelsListener
         , public rfcommon::FrameDataListener
+        , public SessionSettingsListener
 {
 public:
     DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings);
@@ -87,9 +90,14 @@ private:
     void onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) override final;
 
 private:
+    void onSessionSettingsChanged() override final;
+    void onClearPreviousSessions() override final;
+
+private:
     std::unique_ptr<LabelMapper> labelMapper_;
     std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
+    std::unique_ptr<SessionSettingsModel> sessionSettings_;
     rfcommon::Reference<rfcommon::Session> activeSession_;
     int noNotifyFrames_ = 1;
     int noNotifyFramesCounter_ = 0;

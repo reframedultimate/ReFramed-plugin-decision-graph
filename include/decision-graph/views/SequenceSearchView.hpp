@@ -17,6 +17,7 @@ class QToolButton;
 class GraphModel;
 class LabelMapper;
 class SequenceSearchModel;
+class SessionSettingsModel;
 
 class SequenceSearchView 
         : public QWidget
@@ -27,6 +28,7 @@ class SequenceSearchView
 public:
     explicit SequenceSearchView(
             SequenceSearchModel* model,
+            SessionSettingsModel* sessionSettings,
             GraphModel* graphModel,
             LabelMapper* labels,
             QWidget* parent=nullptr);
@@ -37,6 +39,8 @@ private slots:
     void onComboBoxPlayerChanged(int index);
     void addQueryBox();
     void removeQueryBox(int index);
+    void onAccumulateLiveSessionsToggled(bool enable);
+    void onClearPreviousSessionsReleased();
 
 private:
     void updateQueryStats();
@@ -58,6 +62,7 @@ private:
     };
 
     SequenceSearchModel* model_;
+    SessionSettingsModel* sessionSettings_;
     GraphModel* graphModel_;
     Ui::SequenceSearchView* ui_;
     rfcommon::Vector<QueryBox> queryBoxes_;

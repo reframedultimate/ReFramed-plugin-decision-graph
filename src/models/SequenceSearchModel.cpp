@@ -12,6 +12,7 @@
 // ----------------------------------------------------------------------------
 SequenceSearchModel::SequenceSearchModel(const LabelMapper* labelMapper)
     : labelMapper_(labelMapper)
+    , previousFighterID_(rfcommon::FighterID::makeInvalid())
 {}
 
 // ----------------------------------------------------------------------------
@@ -93,13 +94,25 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // matches the previous fighter, we will want to set that as the current
     // fighter. This is a small QoL that helps with scanning through replays.
     if (currentFighterIdx_ >= 0 && currentFighterIdx_ < fighters_.count())
+    {
         for (int s = 0; s != mdata->fighterCount(); ++s)
-            if (fighters_[currentFighterIdx_].states.fighterID == mdata->fighterID(s) && 
+            if (fighters_[currentFighterIdx_].states.fighterID == mdata->fighterID(s) &&
                 fighters_[currentFighterIdx_].playerName == mdata->name(s))
             {
                 currentFighterIdx_ = fighterIdxMapFromSession_[s];
-                    break;
+                break;
             }
+    }
+    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighters_.count())
+    {
+        for (int s = 0; s != mdata->fighterCount(); ++s)
+            if (previousFighterID_ == mdata->fighterID(s) &&
+                previousPlayerName_ == mdata->name(s))
+            {
+                currentFighterIdx_ = fighterIdxMapFromSession_[s];
+                break;
+            }
+    }
 
     // Make sure to never go out of bounds when switching between e.g. 1v1 and 2v2
     if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighters_.count())
@@ -245,6 +258,8 @@ int SequenceSearchModel::currentFighter() const
 void SequenceSearchModel::setCurrentFighter(int fighterIdx)
 {
     currentFighterIdx_ = fighterIdx;
+    previousFighterID_ = fighters_[fighterIdx].states.fighterID;
+    previousPlayerName_ = fighters_[fighterIdx].playerName;
     dispatcher.dispatch(&SequenceSearchListener::onCurrentFighterChanged);
 }
 

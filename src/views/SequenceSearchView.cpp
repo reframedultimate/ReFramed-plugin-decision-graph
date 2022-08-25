@@ -1,6 +1,7 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
+#include "decision-graph/models/SessionSettingsModel.hpp"
 #include "decision-graph/views/DamageView.hpp"
 #include "decision-graph/views/GraphView.hpp"
 #include "decision-graph/views/HeatMapView.hpp"
@@ -39,11 +40,13 @@ static void clearLayout(QLayout* layout)
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
+        SessionSettingsModel* sessionSettings,
         GraphModel* graphModel,
         LabelMapper* labels,
         QWidget* parent)
     : QWidget(parent)
     , model_(model)
+    , sessionSettings_(sessionSettings)
     , graphModel_(graphModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
@@ -77,6 +80,10 @@ SequenceSearchView::SequenceSearchView(
             this, &SequenceSearchView::onComboBoxPlayerChanged);
     connect(ui_->toolButton_addQuery, &QToolButton::released, 
             this, &SequenceSearchView::addQueryBox);
+    connect(ui_->checkBox_accumulateLiveSessions, &QCheckBox::toggled,
+            this, &SequenceSearchView::onAccumulateLiveSessionsToggled);
+    connect(ui_->pushButton_clearPreviousSessions, &QPushButton::released,
+            this, &SequenceSearchView::onClearPreviousSessionsReleased);
 
     model_->dispatcher.addListener(this);
 }
@@ -179,6 +186,18 @@ void SequenceSearchView::removeQueryBox(int index)
 
     model_->removeQuery(index);
     model_->applyAllQueries();
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onAccumulateLiveSessionsToggled(bool enable)
+{
+    sessionSettings_->setAccumulateLiveSessions(enable);
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onClearPreviousSessionsReleased()
+{
+    sessionSettings_->clearPreviousSessions();
 }
 
 // ----------------------------------------------------------------------------

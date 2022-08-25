@@ -21,6 +21,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/models/Query.cpp"
         "src/models/Sequence.cpp"
         "src/models/SequenceSearchModel.cpp"
+        "src/models/SessionSettingsModel.cpp"
         "src/parsers/QueryParser.y"
         "src/parsers/QueryScanner.lex"
         "src/parsers/QueryASTNode.cpp"
@@ -37,6 +38,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/Plugin.cpp"
     HEADERS
         "include/${PLUGIN_NAME}/listeners/SequenceSearchListener.hpp"
+        "include/${PLUGIN_NAME}/listeners/SessionSettingsListener.hpp"
         "include/${PLUGIN_NAME}/listeners/UserLabelsListener.hpp"
         "include/${PLUGIN_NAME}/models/Edge.hpp"
         "include/${PLUGIN_NAME}/models/Graph.hpp"
@@ -46,6 +48,7 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include/${PLUGIN_NAME}/models/Query.hpp"
         "include/${PLUGIN_NAME}/models/Sequence.hpp"
         "include/${PLUGIN_NAME}/models/SequenceSearchModel.hpp"
+        "include/${PLUGIN_NAME}/models/SessionSettingsModel.hpp"
         "include/${PLUGIN_NAME}/models/State.hpp"
         "include/${PLUGIN_NAME}/views/DamageView.hpp"
         "include/${PLUGIN_NAME}/views/GraphView.hpp"
