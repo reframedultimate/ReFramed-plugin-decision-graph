@@ -154,10 +154,8 @@ target_compile_definitions (COIN
         COMPILE_IN_TM
         HAVE_CONFIG_H
         _CRT_SECURE_NO_WARNINGS)
-if (COIN_PIC)
-    set_target_properties (COIN PROPERTIES
-        POSITION_INDEPENDENT_CODE ON)
-endif ()
+set_target_properties (COIN PROPERTIES
+    POSITION_INDEPENDENT_CODE ${COIN_PIC})
 
 # external LP solver
 if(COIN_EXTERNAL_SOLVER_LIBRARIES)

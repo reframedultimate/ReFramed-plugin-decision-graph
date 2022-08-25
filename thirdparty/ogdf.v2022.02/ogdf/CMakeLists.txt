@@ -538,10 +538,8 @@ target_compile_options (OGDF
         $<$<AND:$<OR:$<BOOL:${has_sse3_pmmintrin}>,$<BOOL:${has_sse3_intrin}>>,$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>>:-march=native>)
 set_target_properties (OGDF PROPERTIES 
     CXX_STANDARD 11)
-if (OGDF_PIC)
-    set_target_properties (OGDF PROPERTIES
-        POSITION_INDEPENDENT_CODE ON)
-endif ()
+set_target_properties (OGDF PROPERTIES
+    POSITION_INDEPENDENT_CODE ${OGDF_PIC})
 target_link_libraries (OGDF
     PUBLIC
         COIN
