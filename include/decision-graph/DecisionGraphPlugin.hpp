@@ -99,8 +99,7 @@ private:
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
     std::unique_ptr<SessionSettingsModel> sessionSettings_;
     rfcommon::Reference<rfcommon::Session> activeSession_;
-    int noNotifyFrames_ = 1;
-    int noNotifyFramesCounter_ = 0;
+    int noNotifyFrames_ = 0;
 
     enum State
     {

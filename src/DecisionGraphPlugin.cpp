@@ -219,25 +219,15 @@ void DecisionGraphPlugin::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon
 
     seqSearchModel_->addFrame(frameIdx, activeSession_->tryGetFrameData());
 
-    if (--noNotifyFramesCounter_ <= 0)
+    if (noNotifyFrames_-- <= 0)
     {
         rfcommon::HighresTimer timer;
         timer.start();
             seqSearchModel_->applyAllQueries();
         timer.stop();
 
-        int processTimeInFrames = timer.timePassedNS() * 60 / 1e9;
-        if (processTimeInFrames > noNotifyFrames_)
-            noNotifyFrames_ *= 2;
-        else
-            noNotifyFrames_ /= 2;
-
-        if (noNotifyFrames_ < 1)
-            noNotifyFrames_ = 1;
-        if (noNotifyFrames_ > 10000)
-            noNotifyFrames_ = 10000;
-
-        noNotifyFramesCounter_ = noNotifyFrames_;
+        noNotifyFrames_ = timer.timePassedNS() * 60 / 1e9;
+        noNotifyFrames_ *= 2;  // Give some leeway
     }
 }
 
