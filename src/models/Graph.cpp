@@ -422,7 +422,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
             node = edges[nodes[node].incomingEdges[0]].from();
         }
 
-        result.push({ Sequence::fromIndexList(std::move(stateIdxs)), weight });
+        result.push({ Sequence(std::move(stateIdxs)), weight });
     }
 
     return result;
@@ -462,7 +462,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
             node = edges[nodes[node].outgoingEdges[0]].to();
         }
 
-        result.push({ Sequence::fromIndexList(std::move(stateIdxs)), weight });
+        result.emplace(std::move(stateIdxs), weight);
     }
 
     return result;

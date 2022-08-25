@@ -43,72 +43,72 @@ void TimingsView::onDataCleared() {}
 // ----------------------------------------------------------------------------
 void TimingsView::onQueryApplied() 
 {
-    struct SeqRangeRef
+    struct SeqRef
     {
-        SeqRangeRef(const Sequence& seq, const SequenceRange& range)
-            : seq(seq), range(range)
+        SeqRef(const States& states, const Sequence& seq)
+            : states(states), seq(seq)
         {}
 
         struct Hasher {
             typedef uint32_t HashType;
-            HashType operator()(const SeqRangeRef& ref) const {
+            HashType operator()(const SeqRef& ref) const {
                 State::HasherNoSideData h;
-                const State& first = ref.seq.states[ref.range.startIdx];
-                const State& last = ref.seq.states[ref.range.endIdx - 1];
+                const State& first = ref.states[ref.seq.firstIdx()];
+                const State& last = ref.states[ref.seq.lastIdx()];
                 return rfcommon::hash32_combine(h(first), h(last));
             }
         };
 
         struct Compare {
-            bool operator()(const SeqRangeRef& a, const SeqRangeRef& b) {
+            bool operator()(const SeqRef& a, const SeqRef& b) {
                 State::CompareNoSideData c;
-                const State& aFirst = a.seq.states[a.range.startIdx];
-                const State& aLast = a.seq.states[a.range.endIdx - 1];
-                const State& bFirst = b.seq.states[b.range.startIdx];
-                const State& bLast = b.seq.states[b.range.endIdx - 1];
+                const State& aFirst = a.states[a.seq.firstIdx()];
+                const State& aLast = a.states[a.seq.lastIdx()];
+                const State& bFirst = b.states[b.seq.firstIdx()];
+                const State& bLast = b.states[b.seq.lastIdx()];
                 return c(aFirst, bFirst) && c(aLast, bLast);
             }
         };
 
+        const States& states;
         const Sequence& seq;
-        const SequenceRange& range;
     };
 
-    const Sequence& seq = model_->fighterSequence(model_->currentFighter());
+    const States& states = model_->fighterStates(model_->currentFighter());
 
-    rfcommon::HashMap<SeqRangeRef, int, SeqRangeRef::Hasher, SeqRangeRef::Compare> sequenceFrequencies;
+    rfcommon::HashMap<SeqRef, int, SeqRef::Hasher, SeqRef::Compare> sequenceFrequencies;
     for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
-        for (const auto& range : model_->matches(queryIdx))
-            sequenceFrequencies.insertOrGet(SeqRangeRef(seq, range), 0)->value()++;
+        for (const auto& seq : model_->matches(queryIdx))
+            sequenceFrequencies.insertOrGet(SeqRef(states, seq), 0)->value()++;
 
-    const SeqRangeRef* mostCommonSequence = nullptr;
+    const SeqRef* mostCommon = nullptr;
     int highestCount = 0;
     for (const auto it : sequenceFrequencies)
         if (highestCount < it->value())
         {
             highestCount = it->value();
-            mostCommonSequence = &it->key();
+            mostCommon = &it->key();
         }
 
     // Frames, Frequency
     rfcommon::HashMap<int, int> histogram;
-    if (mostCommonSequence)
+    if (mostCommon)
     {
-        const auto& mostCommonFirstState = seq.states[mostCommonSequence->range.startIdx];
-        const auto& mostCommonLastState = seq.states[mostCommonSequence->range.endIdx - 1];
+        const auto& mostCommonFirstState = states[mostCommon->seq.firstIdx()];
+        const auto& mostCommonLastState = states[mostCommon->seq.lastIdx()];
 
         for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
-            for (const auto& range : model_->matches(queryIdx))
-                if (seq.states[range.startIdx].compareWithoutSideData(mostCommonFirstState)
-                    && seq.states[range.endIdx - 1].compareWithoutSideData(mostCommonLastState))
+            for (const auto& seq : model_->matches(queryIdx))
+                if (states[seq.firstIdx()].compareWithoutSideData(mostCommonFirstState)
+                    && states[seq.lastIdx()].compareWithoutSideData(mostCommonLastState))
                 {
-                    const auto& first = seq.states[range.startIdx];
-                    const auto& last = seq.states[range.endIdx - 1];
+                    const auto& first = states[seq.firstIdx()];
+                    const auto& last = states[seq.lastIdx()];
                     int diffFrames = last.sideData.frameIndex.index() - first.sideData.frameIndex.index();
                     histogram.insertOrGet(diffFrames / 3, 0)->value()++;
                 }
 
-        auto seqName = toString(mostCommonSequence->seq, mostCommonSequence->range, model_->fighterID(model_->currentFighter()), labels_);
+        auto seqName = toString(states, mostCommon->seq, labels_);
         relativePlot_->setTitle(QString("Relative Timings for ") + seqName.cStr());
     }
 

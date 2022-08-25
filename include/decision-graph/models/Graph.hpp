@@ -10,8 +10,8 @@ class LabelMapper;
 
 class Graph
 {
-    Graph();
 public:
+    Graph();
     ~Graph();
 
 

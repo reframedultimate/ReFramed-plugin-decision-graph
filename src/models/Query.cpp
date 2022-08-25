@@ -465,8 +465,10 @@ rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& se
                             nlist->push(nextMatcherIdx);
                         }
 
+                    // We have run out of states to match, and the state machine is not
+                    // complete, which means we only have a partial match -> failure
                     if (stateIdx + 1 >= states.count())
-                        return stateIdx + 1;
+                        return startIdx;
 
                     if (matchers_[matcherIdx].isAcceptCondition())
                     {
@@ -474,6 +476,7 @@ rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& se
                             if (matchers_[nextMatcherIdx].matches(states[stateIdx + 1]))
                                 goto skip_return;
 
+                        // Success, return the "end" of the range which is the last index plus 1
                         return stateIdx + 1;
                         skip_return:;
                     }

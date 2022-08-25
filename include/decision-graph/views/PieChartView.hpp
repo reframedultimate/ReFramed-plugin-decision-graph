@@ -29,6 +29,7 @@ public:
     ~PieChartView();
 
 private:
+    void updateVisible();
     void updateIOCharts();
     void updateBreakdownCharts();
 

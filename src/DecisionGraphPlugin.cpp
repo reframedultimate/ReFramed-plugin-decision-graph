@@ -4,6 +4,8 @@
 #include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/Query.hpp"
+#include "rfcommon/FrameData.hpp"
+#include "rfcommon/HighresTimer.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
@@ -55,6 +57,10 @@ void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
     state_ = TRAINING;
 
     seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
+
+    assert(activeSession_.isNull());
+    activeSession_ = training;
+    activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
 void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training) 
 {
@@ -65,12 +71,27 @@ void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training)
     seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
     seqSearchModel_->addAllFrames(training->tryGetFrameData());
     seqSearchModel_->applyAllQueries();
+
+    assert(activeSession_.isNull());
+    activeSession_ = training;
+    activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
 void DecisionGraphPlugin::onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining)
 {
     seqSearchModel_->startNewSession(newTraining->tryGetMappingInfo(), newTraining->tryGetMetaData());
+
+    assert(activeSession_.notNull());
+    activeSession_->tryGetFrameData()->dispatcher.removeListener(this);
+    activeSession_ = newTraining;
+    activeSession_->tryGetFrameData()->dispatcher.addListener(this);
+
 }
-void DecisionGraphPlugin::onProtocolTrainingEnded(rfcommon::Session* training) {}
+void DecisionGraphPlugin::onProtocolTrainingEnded(rfcommon::Session* training)
+{
+    assert(activeSession_.notNull());
+    activeSession_->tryGetFrameData()->dispatcher.removeListener(this);
+    activeSession_.drop();
+}
 void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
 {
     if (state_ != GAME)
@@ -78,6 +99,10 @@ void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
     state_ = GAME;
 
     seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
+
+    assert(activeSession_.isNull());
+    activeSession_ = game;
+    activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
 void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game) 
 {
@@ -88,8 +113,17 @@ void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game)
     seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
     seqSearchModel_->addAllFrames(game->tryGetFrameData());
     seqSearchModel_->applyAllQueries();
+
+    assert(activeSession_.isNull());
+    activeSession_ = game;
+    activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
-void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game) {}
+void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game) 
+{
+    assert(activeSession_.notNull());
+    activeSession_->tryGetFrameData()->dispatcher.removeListener(this);
+    activeSession_.drop();
+}
 
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onGameSessionLoaded(rfcommon::Session* game)
@@ -149,4 +183,58 @@ void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, in
 {
     seqSearchModel_->clearAll();
     state_ = NONE;
+}
+
+// ----------------------------------------------------------------------------
+void DecisionGraphPlugin::onUserMotionLabelsLayerAdded(int layerIdx, const char* name)
+{
+    seqSearchModel_->applyAllQueries();
+}
+void DecisionGraphPlugin::onUserMotionLabelsLayerRemoved(int layerIdx, const char* name)
+{
+    seqSearchModel_->applyAllQueries();
+}
+void DecisionGraphPlugin::onUserMotionLabelsNewEntry(rfcommon::FighterID fighterID, int entryIdx)
+{
+    seqSearchModel_->applyAllQueries();
+}
+void DecisionGraphPlugin::onUserMotionLabelsUserLabelChanged(rfcommon::FighterID fighterID, int entryIdx, const char* oldLabel, const char* newLabel)
+{
+    seqSearchModel_->applyAllQueries();
+}
+void DecisionGraphPlugin::onUserMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int entryIdx, rfcommon::UserMotionLabelsCategory oldCategory, rfcommon::UserMotionLabelsCategory newCategory)
+{
+}
+
+// ----------------------------------------------------------------------------
+void DecisionGraphPlugin::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame)
+{
+    assert(activeSession_.notNull());
+
+    seqSearchModel_->addFrame(frameIdx, activeSession_->tryGetFrameData());
+
+    if (--noNotifyFramesCounter_ <= 0)
+    {
+        rfcommon::HighresTimer timer;
+        timer.start();
+            seqSearchModel_->applyAllQueries();
+        timer.stop();
+
+        int processTimeInFrames = timer.timePassedNS() * 60 / 1e9;
+        if (processTimeInFrames > noNotifyFrames_)
+            noNotifyFrames_ *= 2;
+        else
+            noNotifyFrames_ /= 2;
+
+        if (noNotifyFrames_ < 1)
+            noNotifyFrames_ = 1;
+        if (noNotifyFrames_ > 10000)
+            noNotifyFrames_ = 10000;
+
+        noNotifyFramesCounter_ = noNotifyFrames_;
+    }
+}
+
+void DecisionGraphPlugin::onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame)
+{
 }

@@ -70,7 +70,7 @@ private:
     {
         // Time stamp started
         rfcommon::TimeStamp timeStarted;
-        // Session specific ranges mapping into fighters_[x].sequence.
+        // Session specific ranges mapping into fighters_[x].states.
         // Vector is always the same size as fighters_.count(), but if
         // the fighter does not exist in this session then the range will
         // be empty
@@ -80,10 +80,8 @@ private:
 
     struct Fighter
     {
-        rfcommon::FighterID id;
         rfcommon::String playerName;
         rfcommon::String fighterName;
-        rfcommon::Vector<Sequence> sessions;
         States states;
     };
     rfcommon::Vector<Fighter> fighters_;

@@ -97,6 +97,20 @@ PieChartView::~PieChartView()
 }
 
 // ----------------------------------------------------------------------------
+void PieChartView::updateVisible()
+{
+    if (model_->queryCount() > 1)
+        pieStack_->setCurrentIndex(1);
+    else
+        pieStack_->setCurrentIndex(0);
+
+    if (model_->sessionCount() > 1 && model_->queryCount() > 1)
+        barBreakdownPlot_->setVisible(true);
+    else
+        barBreakdownPlot_->setVisible(false);
+}
+
+// ----------------------------------------------------------------------------
 void PieChartView::updateIOCharts()
 {
     // We have two modes of operation. If the user only ran one query, we try
@@ -125,22 +139,21 @@ void PieChartView::updateIOCharts()
                 largest = i;
             }
 
+        const States& states = model_->fighterStates(model_->currentFighter());
         const Graph& graph = islands[largest];
-        const Graph& outgoingTree = graph.outgoingTree();
-        const Graph& incomingTree = graph.incomingTree();
+        const Graph& outgoingTree = graph.outgoingTree(states);
+        const Graph& incomingTree = graph.incomingTree(states);
         const auto& incomingSequences = incomingTree.treeToUniqueIncomingSequences();
         const auto& outgoingSequences = outgoingTree.treeToUniuqeOutgoingSequences();
 
-        const auto fighterID = model_->fighterID(model_->currentFighter());
-
-        graph.exportDOT("largest_island.dot", model_->fighterID(model_->currentFighter()), labels_);
-        outgoingTree.exportDOT("outgoing_tree.dot", fighterID, labels_);
-        incomingTree.exportDOT("incoming_tree.dot", fighterID, labels_);
+        graph.exportDOT("largest_island.dot", states, labels_);
+        outgoingTree.exportDOT("outgoing_tree.dot", states, labels_);
+        incomingTree.exportDOT("incoming_tree.dot", states, labels_);
 
         for (int i = 0; i != outgoingSequences.count(); ++i)
         {
             const auto& unique = outgoingSequences[i];
-            const auto label = toString(unique.sequence, SequenceRange(unique.sequence), fighterID, labels_);
+            const auto label = toString(states, unique.sequence, labels_);
             pieOutgoingSeries_->append(label.cStr(), unique.weight);
         }
         pieOutgoingSeries_->setLabelsVisible(true);
@@ -151,7 +164,7 @@ void PieChartView::updateIOCharts()
         for (int i = 0; i != incomingSequences.count(); ++i)
         {
             const auto& unique = incomingSequences[i];
-            const auto label = toString(unique.sequence, SequenceRange(unique.sequence), fighterID, labels_);
+            const auto label = toString(states, unique.sequence, labels_);
             pieIncomingSeries_->append(label.cStr(), unique.weight);
         }
         pieIncomingSeries_->setLabelsVisible(true);
@@ -241,11 +254,17 @@ void PieChartView::updateBreakdownCharts()
 // ----------------------------------------------------------------------------
 void PieChartView::onCurrentFighterChanged()
 {
+    updateVisible();
+    updateIOCharts();
+    updateBreakdownCharts();
 }
 
 // ----------------------------------------------------------------------------
 void PieChartView::onNewSession()
 {
+    updateVisible();
+    updateIOCharts();
+    updateBreakdownCharts();
 }
 
 // ----------------------------------------------------------------------------
@@ -256,21 +275,15 @@ void PieChartView::onDataAdded()
 // ----------------------------------------------------------------------------
 void PieChartView::onDataCleared()
 {
+    updateVisible();
+    updateIOCharts();
+    updateBreakdownCharts();
 }
 
 // ----------------------------------------------------------------------------
 void PieChartView::onQueryApplied()
 {
-    if (model_->queryCount() > 1)
-        pieStack_->setCurrentIndex(1);
-    else
-        pieStack_->setCurrentIndex(0);
-
-    if (model_->sessionCount() > 1 && model_->queryCount() > 1)
-        barBreakdownPlot_->setVisible(true);
-    else
-        barBreakdownPlot_->setVisible(false);
-
+    updateVisible();
     updateIOCharts();
     updateBreakdownCharts();
 }

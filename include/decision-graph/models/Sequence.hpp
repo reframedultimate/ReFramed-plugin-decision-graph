@@ -53,37 +53,23 @@ public:
     Sequence();
     Sequence(int startIdx, int endIdx);
     Sequence(rfcommon::Vector<int>&& idxs);
-    Sequence(const Sequence& other) = delete;
-    Sequence& operator=(const Sequence& other) = delete;
-    Sequence(Sequence&& other) noexcept
-        : isRange_(other.isRange_)
-    {
-        if (other.isRange_)
-            range_ = other.range_;
-        else
-            idxs_ = std::move(other.idxs_);
-    }
-    Sequence& operator=(Sequence&& other) noexcept
-    {
-        isRange_ = other.isRange_;
-        if (other.isRange_)
-            range_ = other.range_;
-        else
-            idxs_ = std::move(other.idxs_);
-    }
+    Sequence(const Sequence& other);
+    Sequence(Sequence&& other) noexcept;
     ~Sequence();
+    Sequence& operator=(Sequence other);
+    friend void swap(Sequence& first, Sequence& second);
 
     const ConstIterator begin() const { return ConstIterator(*this, isRange_ ? range_.startIdx : 0); }
     const ConstIterator end()   const { return ConstIterator(*this, isRange_ ? range_.endIdx : idxs_.count()); }
-    int first() const { return isRange_ ? range_.startIdx : idxs_.front(); }
-    int last()  const { return isRange_ ? range_.endIdx : idxs_.back(); }
+    int firstIdx() const { return isRange_ ? range_.startIdx : idxs_.front(); }
+    int lastIdx()  const { return isRange_ ? range_.endIdx - 1 : idxs_.back(); }
     int count() const { return isRange_ ? 2 : idxs_.count(); }
     int idxAt(int i) { assert(i < count()); return isRange_ ? (i == 0 ? range_.startIdx : range_.endIdx) : idxs_[i]; }
 
 private:
     union {
         rfcommon::Vector<int> idxs_;  // Indices into the state vector
-        struct { int startIdx, endIdx; } range_;
+        struct Range { int startIdx, endIdx; } range_;
     };
     bool isRange_;
 };

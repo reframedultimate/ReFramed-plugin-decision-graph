@@ -73,7 +73,6 @@ SequenceSearchView::SequenceSearchView(
 
     addQueryBox();
 
-
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
     connect(ui_->toolButton_addQuery, &QToolButton::released, 
@@ -117,6 +116,7 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
 void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
     model_->setCurrentFighter(index);
+    model_->applyAllQueries();
 }
 
 // ----------------------------------------------------------------------------
@@ -178,6 +178,7 @@ void SequenceSearchView::removeQueryBox(int index)
         queryBoxes_[index].name->setText("#" + QString::number(index + 1) + ":");
 
     model_->removeQuery(index);
+    model_->applyAllQueries();
 }
 
 // ----------------------------------------------------------------------------

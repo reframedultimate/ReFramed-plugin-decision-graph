@@ -65,7 +65,7 @@
    <item row="2" column="0">
     <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
-      <string>Query Result Stats</string>
+      <string>Query Stats</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -109,13 +109,13 @@
    <item row="3" column="0">
     <widget class="QGroupBox" name="groupBox_graphSettings">
      <property name="title">
-      <string>Graph Settings</string>
+      <string>Session Settings</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QCheckBox" name="checkBox_mergeMotions">
+       <widget class="QCheckBox" name="checkBox_accumulateLiveSessions">
         <property name="text">
-         <string>Combine states in layer:</string>
+         <string>Accumulate data over multiple games</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -123,7 +123,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox"/>
+       <widget class="QPushButton" name="pushButton_clearPreviousSessions">
+        <property name="text">
+         <string>Clear results from previous games</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

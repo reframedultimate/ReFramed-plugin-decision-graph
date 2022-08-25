@@ -2,6 +2,9 @@
 
 #include "rfcommon/Plugin.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
+#include "rfcommon/FrameDataListener.hpp"
+#include "rfcommon/Reference.hpp"
+#include "rfcommon/UserMotionLabelsListener.hpp"
 #include <memory>
 
 class GraphModel;
@@ -18,6 +21,8 @@ class DecisionGraphPlugin
         , public rfcommon::Plugin::UIInterface
         , public rfcommon::Plugin::RealtimeInterface
         , public rfcommon::Plugin::ReplayInterface
+        , public rfcommon::UserMotionLabelsListener
+        , public rfcommon::FrameDataListener
 {
 public:
     DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings);
@@ -70,9 +75,24 @@ private:
     void onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) override final;
 
 private:
+    void onUserMotionLabelsLayerAdded(int layerIdx, const char* name) override final;
+    void onUserMotionLabelsLayerRemoved(int layerIdx, const char* name) override final;
+
+    void onUserMotionLabelsNewEntry(rfcommon::FighterID fighterID, int entryIdx) override final;
+    void onUserMotionLabelsUserLabelChanged(rfcommon::FighterID fighterID, int entryIdx, const char* oldLabel, const char* newLabel) override final;
+    void onUserMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int entryIdx, rfcommon::UserMotionLabelsCategory oldCategory, rfcommon::UserMotionLabelsCategory newCategory) override final;
+
+private:
+    void onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame) override final;
+    void onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) override final;
+
+private:
     std::unique_ptr<LabelMapper> labelMapper_;
     std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
+    rfcommon::Reference<rfcommon::Session> activeSession_;
+    int noNotifyFrames_ = 1;
+    int noNotifyFramesCounter_ = 0;
 
     enum State
     {
