@@ -98,4 +98,5 @@ public:
 private:
     friend class QueryBuilder;
     rfcommon::Vector<Matcher> matchers_;
+    rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>> mergeMotions_;
 };

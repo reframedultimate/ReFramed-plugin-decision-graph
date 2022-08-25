@@ -108,7 +108,7 @@ Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence
 int Graph::findHighestThroughputNode() const
 {
     int highestSeen = 0;
-    int idx = 0;
+    int idx = -1;
     for (int node = 0; node != nodes.count(); ++node)
     {
         int outgoing = 0;
@@ -126,6 +126,22 @@ int Graph::findHighestThroughputNode() const
         }
     }
 
+    return idx;
+}
+
+// ----------------------------------------------------------------------------
+int Graph::findHighestThroughputEdge() const
+{
+    int highestSeen = 0;
+    int idx = -1;
+    for (int edge = 0; edge != edges.count(); ++edge)
+    {
+        if (highestSeen < edges[edge].weight())
+        {
+            highestSeen = edges[edge].weight();
+            idx = edge;
+        }
+    }
     return idx;
 }
 
@@ -259,22 +275,8 @@ Graph Graph::outgoingTree(const States& states) const
     Graph result;
 
     int root = findHighestThroughputNode();
-    {
-        int idx = -1;
-        int highestSeen = 0;
-        const State& rootState = states[nodes[root].stateIdx];
-        for (int edge : nodes[root].incomingEdges)
-        {
-            const State& fromState = states[nodes[edges[edge].from()].stateIdx];
-            if (highestSeen < edges[edge].weight() && rootState.status == fromState.status)
-            {
-                highestSeen = edges[edge].weight();
-                idx = edge;
-            }
-        }
-        if (idx != -1)
-            root = edges[idx].from();
-    }
+    if (root == -1)
+        return result;
 
     result.nodes.emplace(nodes[root].stateIdx);
     visited.visit(root);
@@ -329,22 +331,8 @@ Graph Graph::incomingTree(const States& states) const
     Graph result;
 
     int root = findHighestThroughputNode();
-    {
-        int idx = -1;
-        int highestSeen = 0;
-        const State& rootState = states[nodes[root].stateIdx];
-        for (int edge : nodes[root].outgoingEdges)
-        {
-            const State& toState = states[nodes[edges[edge].from()].stateIdx];
-            if (highestSeen < edges[edge].weight() && rootState.status == toState.status)
-            {
-                highestSeen = edges[edge].weight();
-                idx = edge;
-            }
-        }
-        if (idx != -1)
-            root = edges[idx].to();
-    }
+    if (root == -1)
+        return result;
 
     result.nodes.emplace(nodes[root].stateIdx);
     visited.visit(root);
@@ -395,6 +383,9 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
     rfcommon::SmallVector<int, 256> leafNodes;
     rfcommon::Vector<UniqueSequence> result;
 
+    if (nodes.count() == 0)
+        return result;
+
     stack.push(0);
     while (stack.count())
     {
@@ -434,6 +425,9 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
     rfcommon::SmallVector<int, 256> stack;
     rfcommon::SmallVector<int, 256> leafNodes;
     rfcommon::Vector<UniqueSequence> result;
+
+    if (nodes.count() == 0)
+        return result;
 
     stack.push(0);
     while (stack.count())

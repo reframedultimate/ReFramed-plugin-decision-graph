@@ -31,6 +31,7 @@ public:
     static Graph fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
 
     int findHighestThroughputNode() const;
+    int findHighestThroughputEdge() const;
 
     /*!
      * \brief Returns a list of all unconnected sub-graphs. If the graph is

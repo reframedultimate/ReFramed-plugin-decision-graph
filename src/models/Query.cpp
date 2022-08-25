@@ -174,6 +174,7 @@ static bool compileASTRecurse(
         const LabelMapper* labels,
         rfcommon::FighterID fighterID,
         rfcommon::Vector<Matcher>* matchers,
+        rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>>* mergeMotions,
         rfcommon::SmallVector<Fragment, 16>* fstack,
         rfcommon::SmallVector<uint8_t, 16>* qstack,
         Matcher::DamageRanges* dstack)
@@ -196,8 +197,8 @@ static bool compileASTRecurse(
     switch (node->type)
     {
     case QueryASTNode::STATEMENT: {
-        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
-        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& right = fstack->back(1);
@@ -222,7 +223,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::REPITITION: {
-        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         if (fstack->count() < 1) return false;
 
         // Invalid values
@@ -313,8 +314,8 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::UNION: {
-        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
-        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& f1 = fstack->back(1);
@@ -328,7 +329,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::INVERSION:
-        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         break;
 
     case QueryASTNode::WILDCARD: {
@@ -360,6 +361,10 @@ static bool compileASTRecurse(
                     for (int b = 1; b <= motions.count(); ++b)
                         matchers->back(a).next.push(matchers->count() - b);
             }
+
+            // Store list of motions so they can be used to merge states in
+            // matched sequences
+            mergeMotions->push(std::move(motions));
             break;
         }
 
@@ -378,13 +383,13 @@ static bool compileASTRecurse(
 
     case QueryASTNode::CONTEXT_QUALIFIER: {
         qstack->push(node->contextQualifier.flags);
-        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         qstack->pop();
     } break;
 
     case QueryASTNode::DAMAGE_RANGE: {
         dstack->push({ node->damageRange.lower, node->damageRange.upper });
-        if (!compileASTRecurse(node->damageRange.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->damageRange.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
         dstack->pop();
     } break;
     }
@@ -402,7 +407,7 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
     rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
     Matcher::DamageRanges dstack;                // "damage stack"
 
-    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &fstack, &qstack, &dstack))
+    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &query->mergeMotions_, &fstack, &qstack, &dstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;
@@ -511,13 +516,71 @@ rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& se
     if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
         return result;
 
+    auto canMergeMotions = [this](rfcommon::FighterMotion m1, rfcommon::FighterMotion m2) -> int {
+        for (int group = 0; group != mergeMotions_.count(); ++group)
+            if (mergeMotions_[group].findFirst(m1) != mergeMotions_[group].end()
+                && mergeMotions_[group].findFirst(m2) != mergeMotions_[group].end())
+            {
+                return group;
+            }
+        return -1;
+    };
+
     // We search the sequence of states rather than the graph, because we are
     // interested in matching sequences of decisions
-    for (int stateIdx : seq)
+    if (mergeMotions_.count() > 0)
     {
-        const int stateEndIdx = doSequenceMatch(stateIdx);
-        if (stateEndIdx > stateIdx)
-            result.emplace(stateIdx, stateEndIdx);
+        rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> groupIdxMap;
+        rfcommon::Vector<rfcommon::SmallVector<int, 2>> mergedSequences;
+        for (int startIdx : seq)
+        {
+            const int endIdx = doSequenceMatch(startIdx);
+            if (endIdx > startIdx)
+            {
+                auto mergedSequence = rfcommon::SmallVector<int, 2>::makeReserved(endIdx - startIdx);
+                for (int idx = startIdx; idx != endIdx; ++idx)
+                {
+                    if (idx + 1 < endIdx)
+                    {
+                        int groupIdx = canMergeMotions(states[idx].motion, states[idx + 1].motion);
+                        if (groupIdx >= 0)
+                        {
+                            // This motion can be merged with any of the other motions in this group.
+                            // Add all motions in the group to a map so they map to the same index.
+                            // This is used in a second pass to normalize all motion values in the
+                            // same group.
+                            for (int g = 0; g != mergeMotions_[groupIdx].count(); ++g)
+                                groupIdxMap.insertIfNew(mergeMotions_[groupIdx][g], idx);
+                            continue;
+                        }
+                    }
+                    // Only add unique indices (can't be merged with next or previous motion value)
+                    mergedSequence.push(idx);
+                }
+                mergedSequences.emplace(std::move(mergedSequence));
+            }
+        }
+
+        for (auto& mergedSequence : mergedSequences)
+            for (int& idx : mergedSequence)
+            {
+                auto groupIdxIt = groupIdxMap.find(states[idx].motion);
+                if (groupIdxIt == groupIdxMap.end())
+                    continue;
+                idx = groupIdxIt->value();
+            }
+                
+        for (auto& mergedSequence : mergedSequences)
+            result.emplace(std::move(mergedSequence));
+    }
+    else
+    {
+        for (int startIdx : seq)
+        {
+            const int endIdx = doSequenceMatch(startIdx);
+            if (endIdx > startIdx)
+                result.emplace(startIdx, endIdx);
+        }
     }
 
     return result;

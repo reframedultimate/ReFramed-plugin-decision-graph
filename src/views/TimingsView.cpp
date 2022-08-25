@@ -61,7 +61,7 @@ void TimingsView::onQueryApplied()
         };
 
         struct Compare {
-            bool operator()(const SeqRef& a, const SeqRef& b) {
+            bool operator()(const SeqRef& a, const SeqRef& b) const {
                 State::CompareNoSideData c;
                 const State& aFirst = a.states[a.seq.firstIdx()];
                 const State& aLast = a.states[a.seq.lastIdx()];
@@ -95,13 +95,9 @@ void TimingsView::onQueryApplied()
     rfcommon::HashMap<int, int> histogram;
     if (mostCommon)
     {
-        const auto& mostCommonFirstState = states[mostCommon->seq.firstIdx()];
-        const auto& mostCommonLastState = states[mostCommon->seq.lastIdx()];
-
         for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
             for (const auto& seq : model_->matches(queryIdx))
-                if (states[seq.firstIdx()].compareWithoutSideData(mostCommonFirstState)
-                    && states[seq.lastIdx()].compareWithoutSideData(mostCommonLastState))
+                if (SeqRef::Compare()(SeqRef(states, seq), *mostCommon))
                 {
                     const auto& first = states[seq.firstIdx()];
                     const auto& last = states[seq.lastIdx()];

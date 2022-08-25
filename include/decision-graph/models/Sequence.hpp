@@ -17,6 +17,15 @@ public:
     const rfcommon::FighterID fighterID;
 };
 
+class Range
+{
+public:
+    Range(int startIdx, int endIdx) : startIdx(startIdx), endIdx(endIdx) {}
+    ~Range() {}
+
+    const int startIdx, endIdx;
+};
+
 class Sequence
 {
 public:
