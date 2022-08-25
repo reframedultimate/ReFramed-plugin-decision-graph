@@ -412,7 +412,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].incomingEdges.count() ? edges[nodes[node].incomingEdges[0]].weight() : 1;
 
-        rfcommon::Vector<int> stateIdxs;
+        rfcommon::SmallVector<int, 2> stateIdxs;
         while (1)
         {
             stateIdxs.insert(0, nodes[node].stateIdx);
@@ -452,7 +452,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].outgoingEdges.count() ? edges[nodes[node].outgoingEdges[0]].weight() : 1;
 
-        rfcommon::Vector<int> stateIdxs;
+        rfcommon::SmallVector<int, 2> stateIdxs;
         while (1)
         {
             stateIdxs.push(nodes[node].stateIdx);

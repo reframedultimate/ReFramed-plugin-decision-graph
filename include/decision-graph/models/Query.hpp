@@ -29,6 +29,12 @@ public:
         SHIELD    = 0x04,
     };
 
+    struct DamageRange
+    {
+        int lower, upper;
+    };
+    typedef rfcommon::SmallVector<DamageRange, 4> DamageRanges;
+
     /*!
      * \brief Creates the start state. This state does not match anything. This
      * is used as a "container" to store all of the initial matchers, since
@@ -40,13 +46,13 @@ public:
      * \brief Creates a wildcard which matches any hash40 (motion) or status value.
      * You can additionally specify the context in which these motion values occur.
      */
-    static Matcher wildCard(uint8_t contextFlags);
+    static Matcher wildCard(const DamageRanges& damageRanges, uint8_t ctxQualFlags);
 
     /*!
      * \brief Creates a state that only matches hash40 (motion) values. Hit
      * type, status, and fighter flags don't matter.
      */
-    static Matcher motion(rfcommon::FighterMotion motion, uint8_t contextQualifierFlags);
+    static Matcher motion(rfcommon::FighterMotion motion, const DamageRanges& damageRanges, uint8_t contextQualifierFlags);
 
     //! Set this matcher as the stop condition
     Matcher& setAcceptCondition()
@@ -69,10 +75,12 @@ private:
     Matcher(
             rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
-            uint8_t hitType,
-            uint8_t contextQualifierFlags);
+            const DamageRanges& damage,
+            uint8_t ctxQualFlags,
+            uint8_t matchFlags);
 
     rfcommon::FighterMotion motion_;
+    DamageRanges damage_;
     int motionLayerIdx_;
     rfcommon::FighterStatus status_;
     uint8_t ctxQualFlags_;

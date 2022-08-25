@@ -21,4 +21,5 @@ void HeatMapView::onCurrentFighterChanged() {}
 void HeatMapView::onNewSession() {}
 void HeatMapView::onDataAdded() {}
 void HeatMapView::onDataCleared() {}
+void HeatMapView::onQueryCompiled(int queryIdx) {}
 void HeatMapView::onQueryApplied() {}

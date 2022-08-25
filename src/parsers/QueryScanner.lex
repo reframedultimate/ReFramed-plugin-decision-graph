@@ -25,6 +25,15 @@
 "sh"                    { return TOK_SH; }
 "dj"                    { return TOK_DJ; }*/
 
+static int percent_to_value(char* str)
+{
+    int len = strlen(str);
+    str[len-1] = 0;
+    int value = atoi(str);
+    str[len-1] = '%';
+    return value;
+}
+
 %}
 
 %option nodefault
@@ -35,12 +44,16 @@
 
 %%
 [\.\(\)\|\?\+\*!\,]     { return yytext[0]; }
--?>                     { return '>'; }
+->                      { return TOK_INTO; }
+-                       { return '-'; }
+"<"                     { return '<'; }
+">"                     { return '>'; }
 "os"                    { return TOK_OS; }
 "oos"                   { return TOK_OOS; }
 "hit"                   { return TOK_HIT; }
 "whiff"                 { return TOK_WHIFF; }
 "idj"                   { return TOK_IDJ; }
+[0-9]+%                 { yylval->integer_value = percent_to_value(yytext); return TOK_PERCENT; }
 [0-9]+                  { yylval->integer_value = atoi(yytext); return TOK_NUM; }
 [a-zA-Z_][a-zA-Z0-9_]+? { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 [ \t\r\n]

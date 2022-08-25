@@ -40,7 +40,9 @@ public:
     int queryCount() const;
     void addQuery();
     void removeQuery(int queryIdx);
-    bool setQuery(int queryIdx, const char* queryStr);
+    void setQuery(int queryIdx, const char* queryStr);
+    void compileQuery(int queryIdx);
+    bool queryCompiled(int queryIdx) const;
     const char* queryStr(int queryIdx) const;
     bool applyQuery(int queryIdx);
     bool applyAllQueries();

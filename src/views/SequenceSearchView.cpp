@@ -107,16 +107,13 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
     }
 
     QByteArray ba = text.toUtf8();
-    if (model_->setQuery(index, ba.constData()))
-    {
-        queryBoxes_[index].parseError->setVisible(false);
+    model_->setQuery(index, ba.constData());
+    model_->compileQuery(index);
+
+    if (model_->queryCompiled(index))
         model_->applyQuery(index);
-    }
-    else
-    {
-        queryBoxes_[index].parseError->setText(model_->lastQueryError());
-        queryBoxes_[index].parseError->setVisible(true);
-    }
+
+    updateQueryCompileError(index);
 }
 
 // ----------------------------------------------------------------------------
@@ -201,6 +198,18 @@ void SequenceSearchView::onClearPreviousSessionsReleased()
 }
 
 // ----------------------------------------------------------------------------
+void SequenceSearchView::updateQueryCompileError(int queryIdx)
+{
+    if (model_->queryCompiled(queryIdx))
+        queryBoxes_[queryIdx].parseError->setVisible(false);
+    else
+    {
+        queryBoxes_[queryIdx].parseError->setText(model_->lastQueryError());
+        queryBoxes_[queryIdx].parseError->setVisible(true);
+    }
+}
+
+// ----------------------------------------------------------------------------
 void SequenceSearchView::updateQueryStats()
 {
     ui_->label_frames->setText("Frames loaded: " + QString::number(model_->totalFrameCount()));
@@ -240,6 +249,12 @@ void SequenceSearchView::onDataAdded()
 void SequenceSearchView::onDataCleared()
 {
     updateQueryStats();
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onQueryCompiled(int queryIdx)
+{
+    updateQueryCompileError(queryIdx);
 }
 
 // ----------------------------------------------------------------------------

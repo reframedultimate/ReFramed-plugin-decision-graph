@@ -39,6 +39,7 @@ void TimingsView::onCurrentFighterChanged() {}
 void TimingsView::onNewSession() {}
 void TimingsView::onDataAdded() {}
 void TimingsView::onDataCleared() {}
+void TimingsView::onQueryCompiled(int queryIdx) {}
 
 // ----------------------------------------------------------------------------
 void TimingsView::onQueryApplied() 

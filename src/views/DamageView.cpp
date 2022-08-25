@@ -21,4 +21,5 @@ void DamageView::onCurrentFighterChanged() {}
 void DamageView::onNewSession() {}
 void DamageView::onDataAdded() {}
 void DamageView::onDataCleared() {}
+void DamageView::onQueryCompiled(int queryIdx) {}
 void DamageView::onQueryApplied() {}

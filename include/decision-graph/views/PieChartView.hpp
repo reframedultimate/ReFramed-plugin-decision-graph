@@ -38,6 +38,7 @@ private:
     void onNewSession() override;
     void onDataAdded() override;
     void onDataCleared() override;
+    void onQueryCompiled(int queryIdx) override;
     void onQueryApplied() override;
 
 private:

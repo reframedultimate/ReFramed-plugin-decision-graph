@@ -281,6 +281,11 @@ void PieChartView::onDataCleared()
 }
 
 // ----------------------------------------------------------------------------
+void PieChartView::onQueryCompiled(int queryIdx)
+{
+}
+
+// ----------------------------------------------------------------------------
 void PieChartView::onQueryApplied()
 {
     updateVisible();

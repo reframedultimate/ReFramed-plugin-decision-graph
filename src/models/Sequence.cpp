@@ -12,88 +12,26 @@ States::~States()
 
 // ----------------------------------------------------------------------------
 Sequence::Sequence()
-    : range_({ 0, 0 })
+    : idxs_({ 0, 0 })
     , isRange_(true)
 {}
 
 // ----------------------------------------------------------------------------
 Sequence::Sequence(int startIdx, int endIdx)
-    : range_({startIdx, endIdx})
+    : idxs_({ startIdx, endIdx })
     , isRange_(true)
 {}
 
 // ----------------------------------------------------------------------------
-Sequence::Sequence(rfcommon::Vector<int>&& idxs)
+Sequence::Sequence(rfcommon::SmallVector<int, 2>&& idxs)
     : idxs_(std::move(idxs))
     , isRange_(false)
-{}
-
-// ----------------------------------------------------------------------------
-Sequence::Sequence(const Sequence& other)
-    : isRange_(other.isRange_)
 {
-    if (isRange_)
-        range_ = other.range_;
-    else
-        idxs_ = other.idxs_;
-}
-
-// ----------------------------------------------------------------------------
-Sequence::Sequence(Sequence&& other) noexcept
-    : Sequence()
-{
-    swap(*this, other);
 }
 
 // ----------------------------------------------------------------------------
 Sequence::~Sequence()
 {}
-
-// ----------------------------------------------------------------------------
-Sequence& Sequence::operator=(Sequence other)
-{
-    swap(*this, other);
-    return *this;
-}
-
-// ----------------------------------------------------------------------------
-void swap(Sequence& first, Sequence& second)
-{
-    using std::swap;
-
-    if (first.isRange_)
-    {
-        if (second.isRange_)
-            swap(first.range_, second.range_);
-        else
-        {
-            swap(first.isRange_, second.isRange_);
-
-            auto tmpRange = std::move(first.range_);
-            first.range_.~Range();
-
-            new (&first.idxs_) rfcommon::Vector<int>(std::move(second.idxs_));
-            second.idxs_.~Vector();
-            second.range_ = std::move(tmpRange);
-        }
-    }
-    else
-    {
-        if (second.isRange_)
-        {
-            swap(first.isRange_, second.isRange_);
-
-            auto tmpRange = std::move(second.range_);
-            second.range_.~Range();
-
-            new (&second.idxs_) rfcommon::Vector<int>(std::move(first.idxs_));
-            first.idxs_.~Vector();
-            first.range_ = std::move(tmpRange);
-        }
-        else
-            swap(first.idxs_, second.idxs_);
-    }
-}
 
 // ----------------------------------------------------------------------------
 rfcommon::String toString(const States& states, const Sequence& seq, LabelMapper* labels)

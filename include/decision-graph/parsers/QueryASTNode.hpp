@@ -13,7 +13,8 @@ struct QueryASTNode
         INVERSION,
         WILDCARD,
         LABEL,
-        CONTEXT_QUALIFIER
+        CONTEXT_QUALIFIER,
+        DAMAGE_RANGE
     } type;
 
     enum ContextQualifierFlags {
@@ -56,6 +57,12 @@ struct QueryASTNode
         uint8_t flags;
     };
 
+    struct DamageRange {
+        DamageRange(QueryASTNode* child, int lower, int upper) : child(child), lower(lower), upper(upper) {}
+        QueryASTNode* child;
+        int lower, upper;
+    };
+
 private:
     QueryASTNode(Statement statement) : type(STATEMENT), statement(statement) {}
     QueryASTNode(Repitition repitition) : type(REPITITION), repitition(repitition) {}
@@ -64,6 +71,7 @@ private:
     QueryASTNode(Type type) : type(type) {}
     QueryASTNode(const char* label) : type(LABEL), label(label) {}
     QueryASTNode(ContextQualifier contextQualifier) : type(CONTEXT_QUALIFIER), contextQualifier(contextQualifier) {}
+    QueryASTNode(DamageRange damageRange) : type(DAMAGE_RANGE), damageRange(damageRange) {}
     ~QueryASTNode() {}
 
 public:
@@ -74,6 +82,7 @@ public:
     static QueryASTNode* newWildcard();
     static QueryASTNode* newLabel(const char* label);
     static QueryASTNode* newContextQualifier(QueryASTNode* child, uint8_t contextQualifierFlags);
+    static QueryASTNode* newDamageRange(QueryASTNode* child, int lower, int upper);
 
     static void destroySingle(QueryASTNode* node);
     static void destroyRecurse(QueryASTNode* node);
@@ -87,5 +96,6 @@ public:
         Inversion inversion;
         rfcommon::SmallString<7> label;
         ContextQualifier contextQualifier;
+        DamageRange damageRange;
     };
 };

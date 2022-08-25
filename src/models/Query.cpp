@@ -14,29 +14,32 @@ Matcher Matcher::start()
     return Matcher(
         rfcommon::FighterMotion::makeInvalid(),
         rfcommon::FighterStatus::makeInvalid(),
+        {},
         0,
         0
     );
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::wildCard(uint8_t contextQualifierFlags)
+Matcher Matcher::wildCard(const DamageRanges& damageRanges, uint8_t ctxQualFlags)
 {
     return Matcher(
         rfcommon::FighterMotion::makeInvalid(),
         rfcommon::FighterStatus::makeInvalid(),
-        contextQualifierFlags,
+        damageRanges,
+        ctxQualFlags,
         0
     );
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t contextQualifierFlags)
+Matcher Matcher::motion(rfcommon::FighterMotion motion, const DamageRanges& damageRanges, uint8_t ctxQualFlags)
 {
     return Matcher(
         motion,
         rfcommon::FighterStatus::makeInvalid(),
-        contextQualifierFlags,
+        damageRanges,
+        ctxQualFlags,
         MATCH_MOTION
     );
 }
@@ -45,12 +48,14 @@ Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t contextQualifier
 Matcher::Matcher(
         rfcommon::FighterMotion motion,
         rfcommon::FighterStatus status,
-        uint8_t hitType,
-        uint8_t contextQualifierFlags)
+        const DamageRanges& damage,
+        uint8_t ctxQualFlags,
+        uint8_t matchFlags)
     : motion_(motion)
+    , damage_(damage)
     , status_(status)
-    , ctxQualFlags_(hitType)
-    , matchFlags_(contextQualifierFlags)
+    , ctxQualFlags_(ctxQualFlags)
+    , matchFlags_(matchFlags)
 {}
 
 // ----------------------------------------------------------------------------
@@ -170,13 +175,29 @@ static bool compileASTRecurse(
         rfcommon::FighterID fighterID,
         rfcommon::Vector<Matcher>* matchers,
         rfcommon::SmallVector<Fragment, 16>* fstack,
-        rfcommon::SmallVector<uint8_t, 16>* qstack)
+        rfcommon::SmallVector<uint8_t, 16>* qstack,
+        Matcher::DamageRanges* dstack)
 {
+    // OR all flags currently on the stack
+    auto calcContextQualifierFlags = [](rfcommon::SmallVector<uint8_t, 16>* qstack) -> uint8_t {
+        uint8_t contextQualifierFlags = 0;
+        for (uint8_t flag : *qstack)
+        {
+            if (!!(flag & QueryASTNode::HIT))
+                contextQualifierFlags |= Matcher::HIT;
+            if (!!(flag & QueryASTNode::WHIFF))
+                contextQualifierFlags |= Matcher::WHIFF;
+            if (!!(flag & QueryASTNode::OS))
+                contextQualifierFlags |= Matcher::SHIELD;
+        }
+        return contextQualifierFlags;
+    };
+
     switch (node->type)
     {
     case QueryASTNode::STATEMENT: {
-        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& right = fstack->back(1);
@@ -201,7 +222,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::REPITITION: {
-        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
         if (fstack->count() < 1) return false;
 
         // Invalid values
@@ -292,8 +313,8 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::UNION: {
-        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& f1 = fstack->back(1);
@@ -307,36 +328,16 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::INVERSION:
-        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
         break;
 
     case QueryASTNode::WILDCARD: {
-        uint8_t hitFlags = 0;
-        if (qstack->count() > 0)
-        {
-            if (!!(qstack->back() & QueryASTNode::HIT))
-                hitFlags |= Matcher::HIT;
-            if (!!(qstack->back() & QueryASTNode::WHIFF))
-                hitFlags |= Matcher::WHIFF;
-            if (!!(qstack->back() & QueryASTNode::OS))
-                hitFlags |= Matcher::SHIELD;
-        }
-
         fstack->push({{matchers->count()}, {matchers->count()}});
-        matchers->push(Matcher::wildCard(hitFlags));
+        matchers->push(Matcher::wildCard(*dstack, calcContextQualifierFlags(qstack)));
     } break;
 
     case QueryASTNode::LABEL: {
-        uint8_t hitFlags = 0;
-        if (qstack->count() > 0)
-        {
-            if (!!(qstack->back() & QueryASTNode::HIT))
-                hitFlags |= Matcher::HIT;
-            if (!!(qstack->back() & QueryASTNode::WHIFF))
-                hitFlags |= Matcher::WHIFF;
-            if (!!(qstack->back() & QueryASTNode::OS))
-                hitFlags |= Matcher::SHIELD;
-        }
+        uint8_t ctxtQualFlags = calcContextQualifierFlags(qstack);
 
         // Assume label is a user label and maps to one or more motion
         // values
@@ -348,7 +349,7 @@ static bool compileASTRecurse(
             {
                 fragment.in.push(matchers->count());
                 fragment.out.push(matchers->count());
-                matchers->push(Matcher::motion(motion, hitFlags));
+                matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
             }
 
             // If the user label maps to multiple motions a, b, c, then
@@ -368,7 +369,7 @@ static bool compileASTRecurse(
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
-            matchers->push(Matcher::motion(motion, hitFlags));
+            matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
             break;
         }
 
@@ -377,9 +378,14 @@ static bool compileASTRecurse(
 
     case QueryASTNode::CONTEXT_QUALIFIER: {
         qstack->push(node->contextQualifier.flags);
-        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
         qstack->pop();
-        if (fstack->count() < 1) return false;
+    } break;
+
+    case QueryASTNode::DAMAGE_RANGE: {
+        dstack->push({ node->damageRange.lower, node->damageRange.upper });
+        if (!compileASTRecurse(node->damageRange.child, labels, fighterID, matchers, fstack, qstack, dstack)) return false;
+        dstack->pop();
     } break;
     }
 
@@ -394,7 +400,9 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
 
     rfcommon::SmallVector<Fragment, 16> fstack;  // "fragment stack"
     rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
-    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &fstack, &qstack))
+    Matcher::DamageRanges dstack;                // "damage stack"
+
+    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &fstack, &qstack, &dstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;
@@ -456,31 +464,39 @@ rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& se
             listid++;
             nlist->clear();
             for (int matcherIdx : *clist)
-                if (matchers_[matcherIdx].matches(states[stateIdx]))
+            {
+                if (matchers_[matcherIdx].matches(states[stateIdx]) == false)
+                    continue;
+
+                for (int nextMatcherIdx : matchers_[matcherIdx].next)
+                    if (info[nextMatcherIdx].lastList != listid)
+                    {
+                        info[nextMatcherIdx].lastList = listid;
+                        nlist->push(nextMatcherIdx);
+                    }
+
+                // We have run out of states to match
+                if (stateIdx + 1 >= states.count())
+                {
+                    if (matchers_[matcherIdx].isAcceptCondition())
+                        return stateIdx + 1;  // Success, return the "end" of the range which is the last index plus 1
+
+                    // the state machine is not complete, which means
+                    // we only have a partial match -> failure
+                    return startIdx;
+                }
+
+                if (matchers_[matcherIdx].isAcceptCondition())
                 {
                     for (int nextMatcherIdx : matchers_[matcherIdx].next)
-                        if (info[nextMatcherIdx].lastList != listid)
-                        {
-                            info[nextMatcherIdx].lastList = listid;
-                            nlist->push(nextMatcherIdx);
-                        }
+                        if (matchers_[nextMatcherIdx].matches(states[stateIdx + 1]))
+                            goto skip_return;
 
-                    // We have run out of states to match, and the state machine is not
-                    // complete, which means we only have a partial match -> failure
-                    if (stateIdx + 1 >= states.count())
-                        return startIdx;
-
-                    if (matchers_[matcherIdx].isAcceptCondition())
-                    {
-                        for (int nextMatcherIdx : matchers_[matcherIdx].next)
-                            if (matchers_[nextMatcherIdx].matches(states[stateIdx + 1]))
-                                goto skip_return;
-
-                        // Success, return the "end" of the range which is the last index plus 1
-                        return stateIdx + 1;
-                        skip_return:;
-                    }
+                    // Success, return the "end" of the range which is the last index plus 1
+                    return stateIdx + 1;
+                    skip_return:;
                 }
+            }
 
             if (nlist->count() == 0 || stateIdx + 1 >= states.count())
                 return startIdx;  // Failed to match anything
@@ -518,7 +534,7 @@ void Query::exportDOT(const char* filename, const LabelMapper* labels, rfcommon:
         rfcommon::String label =
                 i == 0 ? "start" :
                 matchers_[i].isWildcard() ? "." :
-                labels->bestEffortStringAllLayers(fighterID, matchers_[i].motion_);
+                labels->hash40StringOrHex(matchers_[i].motion_);
         const char* color = matchers_[i].isAcceptCondition() ? "red" : "black";
         fprintf(fp, "m%d [shape=\"record\",color=\"%s\",label=\"%s", i, color, label.cStr());
 

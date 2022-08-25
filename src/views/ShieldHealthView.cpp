@@ -21,4 +21,5 @@ void ShieldHealthView::onCurrentFighterChanged() {}
 void ShieldHealthView::onNewSession() {}
 void ShieldHealthView::onDataAdded() {}
 void ShieldHealthView::onDataCleared() {}
+void ShieldHealthView::onQueryCompiled(int queryIdx) {}
 void ShieldHealthView::onQueryApplied() {}

@@ -21,6 +21,7 @@ public:
     rfcommon::FighterMotion matchKnownHash40(const char* label) const;
     rfcommon::String bestEffortStringAllLayers(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const;
     rfcommon::String bestEffortStringHighestLayer(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion) const;
+    rfcommon::String hash40StringOrHex(rfcommon::FighterMotion motion) const;
 
 private:
     rfcommon::Reference<rfcommon::UserMotionLabels> userLabels_;

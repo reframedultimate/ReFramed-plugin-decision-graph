@@ -45,6 +45,12 @@ QueryASTNode* QueryASTNode::newContextQualifier(QueryASTNode* child, uint8_t con
 }
 
 // ----------------------------------------------------------------------------
+QueryASTNode* QueryASTNode::newDamageRange(QueryASTNode* child, int lower, int upper)
+{
+    return new QueryASTNode(DamageRange(child, lower, upper));
+}
+
+// ----------------------------------------------------------------------------
 void QueryASTNode::destroySingle(QueryASTNode* node)
 {
     delete node;
@@ -75,6 +81,9 @@ void QueryASTNode::destroyRecurse(QueryASTNode* node)
         break;
     case CONTEXT_QUALIFIER:
         destroyRecurse(node->contextQualifier.child);
+        break;
+    case DAMAGE_RANGE:
+        destroyRecurse(node->damageRange.child);
         break;
     }
 
@@ -109,6 +118,9 @@ static void calculateNodeIDs(const QueryASTNode* node, rfcommon::HashMap<const Q
         break;
     case QueryASTNode::CONTEXT_QUALIFIER:
         calculateNodeIDs(node->contextQualifier.child, nodeIDs, counter);
+        break;
+    case QueryASTNode::DAMAGE_RANGE:
+        calculateNodeIDs(node->damageRange.child, nodeIDs, counter);
         break;
     }
 }
@@ -164,6 +176,11 @@ static void writeNodes(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
         fprintf(fp, "\"];\n");
         writeNodes(node->contextQualifier.child, fp, nodeIDs);
     } break;
+    case QueryASTNode::DAMAGE_RANGE:
+        fprintf(fp, "  n%d [shape=\"record\",label=\"%d%%-%d%%\"];\n",
+                nodeID, node->damageRange.lower, node->damageRange.upper);
+        writeNodes(node->contextQualifier.child, fp, nodeIDs);
+        break;
     }
 }
 
@@ -205,6 +222,11 @@ static void writeEdges(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
         fprintf(fp, "  n%d -> n%d;\n",
             nodeIDs.find(node)->value(), nodeIDs.find(node->contextQualifier.child)->value());
         writeEdges(node->contextQualifier.child, fp, nodeIDs);
+        break;
+    case QueryASTNode::DAMAGE_RANGE:
+        fprintf(fp, "  n%d -> n%d;\n",
+            nodeIDs.find(node)->value(), nodeIDs.find(node->damageRange.child)->value());
+        writeEdges(node->damageRange.child, fp, nodeIDs);
         break;
     }
 }

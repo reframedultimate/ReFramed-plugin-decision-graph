@@ -313,14 +313,49 @@ void SequenceSearchModel::removeQuery(int queryIdx)
 }
 
 // ----------------------------------------------------------------------------
-bool SequenceSearchModel::setQuery(int queryIdx, const char* queryStr)
+void SequenceSearchModel::setQuery(int queryIdx, const char* queryStr)
 {
     queries_[queryIdx].reset();
     queryStrings_[queryIdx] = queryStr;
     queryResults_[queryIdx].graph.clear();
     queryResults_[queryIdx].matches.clearCompact();
+}
 
-    return true;
+// ----------------------------------------------------------------------------
+void SequenceSearchModel::compileQuery(int queryIdx)
+{
+    if (fighterCount() == 0 || queryStrings_[queryIdx].length() == 0)
+    {
+        queryError_ = "No replay data loaded";
+        return;
+    }
+
+    auto ast = Query::parse(queryStrings_[queryIdx].cStr());
+    if (ast == nullptr)
+    {
+        queryError_ = "Parse error";
+        return;
+    }
+    ast->exportDOT("query-ast.dot");
+
+    const auto fighterID = fighters_[currentFighterIdx_].states.fighterID;
+    auto query = Query::compileAST(ast, labelMapper_, fighterID);
+    QueryASTNode::destroyRecurse(ast);
+    if (query == nullptr)
+    {
+        queryError_ = "Compile error";
+        return;
+    }
+    query->exportDOT("query.dot", labelMapper_, fighterID);
+
+    queries_[queryIdx].reset(query);
+    dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled, queryIdx);
+}
+
+// ----------------------------------------------------------------------------
+bool SequenceSearchModel::queryCompiled(int queryIdx) const
+{
+    return queries_[queryIdx].get() != nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -334,30 +369,8 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
 {
     // May have to compile
     if (queries_[queryIdx].get() == nullptr)
-    {
-        if (fighterCount() == 0 || queryStrings_[queryIdx].length() == 0)
+        if (queryCompiled(queryIdx) == false)
             return false;
-
-        auto ast = Query::parse(queryStrings_[queryIdx].cStr());
-        if (ast == nullptr)
-        {
-            queryError_ = "Parse error";
-            return false;
-        }
-        ast->exportDOT("query-ast.dot");
-
-        const auto fighterID = fighters_[currentFighterIdx_].states.fighterID;
-        auto query = Query::compileAST(ast, labelMapper_, fighterID);
-        QueryASTNode::destroyRecurse(ast);
-        if (query == nullptr)
-        {
-            queryError_ = "Compile error";
-            return false;
-        }
-        query->exportDOT("query.dot", labelMapper_, fighterID);
-
-        queries_[queryIdx].reset(query);
-    }
 
     auto& results = queryResults_[queryIdx];
     auto& query = *queries_[queryIdx];

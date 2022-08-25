@@ -43,6 +43,7 @@ private slots:
     void onClearPreviousSessionsReleased();
 
 private:
+    void updateQueryCompileError(int queryIdx);
     void updateQueryStats();
 
 private:
@@ -50,6 +51,7 @@ private:
     void onNewSession() override;
     void onDataAdded() override;
     void onDataCleared() override;
+    void onQueryCompiled(int queryIdx) override;
     void onQueryApplied() override;
 
 private:

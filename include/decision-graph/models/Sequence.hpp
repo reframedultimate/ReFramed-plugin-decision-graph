@@ -3,6 +3,7 @@
 #include "decision-graph/models/State.hpp"
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/FighterID.hpp"
+#include <variant>
 
 class SequenceRange;
 class LabelMapper;
@@ -40,7 +41,7 @@ public:
         }
 
         const int operator*() const { return seq_.isRange_ ? idx_ : seq_.idxs_[idx_]; }
-        const int operator->() const { return seq_.isRange_ ? idx_ : seq_.idxs_[idx_]; }
+        const int operator->() const  { return seq_.isRange_ ? idx_ : seq_.idxs_[idx_]; }
 
         inline bool operator==(const ConstIterator& rhs) { return idx_ == rhs.idx_; }
         inline bool operator!=(const ConstIterator& rhs) { return idx_ != rhs.idx_; }
@@ -52,25 +53,18 @@ public:
 
     Sequence();
     Sequence(int startIdx, int endIdx);
-    Sequence(rfcommon::Vector<int>&& idxs);
-    Sequence(const Sequence& other);
-    Sequence(Sequence&& other) noexcept;
+    Sequence(rfcommon::SmallVector<int, 2>&& idxs);
     ~Sequence();
-    Sequence& operator=(Sequence other);
-    friend void swap(Sequence& first, Sequence& second);
 
-    const ConstIterator begin() const { return ConstIterator(*this, isRange_ ? range_.startIdx : 0); }
-    const ConstIterator end()   const { return ConstIterator(*this, isRange_ ? range_.endIdx : idxs_.count()); }
-    int firstIdx() const { return isRange_ ? range_.startIdx : idxs_.front(); }
-    int lastIdx()  const { return isRange_ ? range_.endIdx - 1 : idxs_.back(); }
+    const ConstIterator begin() const { return ConstIterator(*this, isRange_ ? idxs_[0] : 0); }
+    const ConstIterator end()   const { return ConstIterator(*this, isRange_ ? idxs_[1] : idxs_.count()); }
+    int firstIdx() const { return isRange_ ? idxs_[0] : idxs_.front(); }
+    int lastIdx()  const { return isRange_ ? idxs_[1] - 1 : idxs_.back(); }
     int count() const { return isRange_ ? 2 : idxs_.count(); }
-    int idxAt(int i) { assert(i < count()); return isRange_ ? (i == 0 ? range_.startIdx : range_.endIdx) : idxs_[i]; }
+    int idxAt(int i) { assert(i < count()); return isRange_ ? (i == 0 ? idxs_[0] : idxs_[1]) : idxs_[i]; }
 
 private:
-    union {
-        rfcommon::Vector<int> idxs_;  // Indices into the state vector
-        struct Range { int startIdx, endIdx; } range_;
-    };
+    rfcommon::SmallVector<int, 2> idxs_;
     bool isRange_;
 };
 
