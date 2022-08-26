@@ -437,21 +437,21 @@ Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfc
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& seq)
+rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) const
 {
     struct MatchInfo
     {
         int lastList;
     };
 
-    rfcommon::Vector<Sequence> result;
+    rfcommon::Vector<Range> result;
     rfcommon::SmallVector<int, 16> l1, l2;
     auto info = rfcommon::SmallVector<MatchInfo, 16>::makeResized(matchers_.count());
 
     // Returns the ending index in the sequence (exclusive) for the
     // current search pattern. If no pattern was found then this returns
     // the starting index
-    auto doSequenceMatch = [this, &states, &seq, &l1, &l2, &info](const int startIdx) -> int {
+    auto doSequenceMatch = [this, &states, &l1, &l2, &info](const int startIdx) -> int {
         int stateIdx = startIdx;
 
         // Prepare current and next state lists
@@ -516,72 +516,102 @@ rfcommon::Vector<Sequence> Query::apply(const States& states, const Sequence& se
     if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
         return result;
 
-    auto canMergeMotions = [this](rfcommon::FighterMotion m1, rfcommon::FighterMotion m2) -> int {
+    // We search the sequence of states rather than the graph, because we are
+    // interested in matching sequences of decisions
+    for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
+    {
+        const int endIdx = doSequenceMatch(startIdx);
+        if (endIdx > startIdx)
+        {
+            result.emplace(startIdx, endIdx);
+            startIdx = endIdx - 1;
+        }
+    }
+
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Sequence> Query::mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const
+{
+    rfcommon::Vector<Sequence> result;
+
+    if (mergeMotions_.count() == 0)
+    {
+        for (const auto& range : matches)
+        {
+            Sequence& seq = result.emplace();
+            for (int idx = range.startIdx; idx != range.endIdx; ++idx)
+                seq.idxs.push(idx);
+        }
+        return result;
+    }
+
+    auto canMergeMotions = [this](rfcommon::FighterMotion m1, rfcommon::FighterMotion m2) -> bool {
         for (int group = 0; group != mergeMotions_.count(); ++group)
             if (mergeMotions_[group].findFirst(m1) != mergeMotions_[group].end()
                 && mergeMotions_[group].findFirst(m2) != mergeMotions_[group].end())
             {
-                return group;
+                return true;
             }
-        return -1;
+        return false;
     };
 
-    // We search the sequence of states rather than the graph, because we are
-    // interested in matching sequences of decisions
-    if (mergeMotions_.count() > 0)
+    for (const auto& range : matches)
     {
-        rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> groupIdxMap;
-        rfcommon::Vector<rfcommon::SmallVector<int, 2>> mergedSequences;
-        for (int startIdx : seq)
-        {
-            const int endIdx = doSequenceMatch(startIdx);
-            if (endIdx > startIdx)
-            {
-                auto mergedSequence = rfcommon::SmallVector<int, 2>::makeReserved(endIdx - startIdx);
-                for (int idx = startIdx; idx != endIdx; ++idx)
-                {
-                    if (idx + 1 < endIdx)
-                    {
-                        int groupIdx = canMergeMotions(states[idx].motion, states[idx + 1].motion);
-                        if (groupIdx >= 0)
-                        {
-                            // This motion can be merged with any of the other motions in this group.
-                            // Add all motions in the group to a map so they map to the same index.
-                            // This is used in a second pass to normalize all motion values in the
-                            // same group.
-                            for (int g = 0; g != mergeMotions_[groupIdx].count(); ++g)
-                                groupIdxMap.insertIfNew(mergeMotions_[groupIdx][g], idx);
-                            continue;
-                        }
-                    }
-                    // Only add unique indices (can't be merged with next or previous motion value)
-                    mergedSequence.push(idx);
-                }
-                mergedSequences.emplace(std::move(mergedSequence));
-            }
-        }
+        auto& seq = result.emplace();
+        seq.idxs.reserve(range.endIdx - range.startIdx);
 
-        for (auto& mergedSequence : mergedSequences)
-            for (int& idx : mergedSequence)
-            {
-                auto groupIdxIt = groupIdxMap.find(states[idx].motion);
-                if (groupIdxIt == groupIdxMap.end())
-                    continue;
-                idx = groupIdxIt->value();
-            }
-                
-        for (auto& mergedSequence : mergedSequences)
-            result.emplace(std::move(mergedSequence));
-    }
-    else
-    {
-        for (int startIdx : seq)
+        seq.idxs.push(range.startIdx);
+        for (int idx = range.startIdx + 1; idx < range.endIdx; ++idx)
         {
-            const int endIdx = doSequenceMatch(startIdx);
-            if (endIdx > startIdx)
-                result.emplace(startIdx, endIdx);
+            if (canMergeMotions(states[idx-1].motion, states[idx].motion))
+                continue;
+            seq.idxs.push(idx);
         }
     }
+
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Sequence> Query::normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const
+{
+    if (mergeMotions_.count() == 0)
+        return matches;
+
+    rfcommon::Vector<Sequence> result;
+    rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> groupIdxMap;
+    for (const auto& seq : matches)
+    {
+        auto& resultSeq = result.emplace();
+        resultSeq.idxs.reserve(matches.count());
+
+        for (int idx : seq.idxs)
+        {
+            for (int groupIdx = 0; groupIdx != mergeMotions_.count(); ++groupIdx)
+                if (mergeMotions_[groupIdx].findFirst(states[idx].motion) != mergeMotions_[groupIdx].end())
+                {
+                    // This motion can be merged with any of the other motions in this group.
+                    // Add all motions in the group to a map so they map to the same index.
+                    // This is used in a second pass to normalize all motion values in the
+                    // same group.
+                    for (int g = 0; g != mergeMotions_[groupIdx].count(); ++g)
+                        groupIdxMap.insertIfNew(mergeMotions_[groupIdx][g], idx);
+                    break;
+                }
+            resultSeq.idxs.push(idx);
+        }
+    }
+
+    for (auto& seq : result)
+        for (int& idx : seq.idxs)
+        {
+            auto groupIdxIt = groupIdxMap.find(states[idx].motion);
+            if (groupIdxIt == groupIdxMap.end())
+                continue;
+            idx = groupIdxIt->value();
+        }
 
     return result;
 }

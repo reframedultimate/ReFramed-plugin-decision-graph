@@ -55,9 +55,11 @@ public:
     int totalMatchedUniqueStates() const;
 
     const Graph& graph(int queryIdx) const;
-    const rfcommon::Vector<Sequence>& matches(int queryIdx) const;
+    const rfcommon::Vector<Range>& matches(int queryIdx) const;
+    const rfcommon::Vector<Sequence>& mergedMatches(int queryIdx) const;
     const Graph& sessionGraph(int queryIdx, int sessionIdx) const;
-    const rfcommon::Vector<Sequence>& sessionMatches(int queryIdx, int sessionIdx) const;
+    const rfcommon::Vector<Range>& sessionMatches(int queryIdx, int sessionIdx) const;
+    const rfcommon::Vector<Sequence>& sessionMergedMatches(int queryIdx, int sessionIdx) const;
 
     rfcommon::ListenerDispatcher<SequenceSearchListener> dispatcher;
 
@@ -76,7 +78,7 @@ private:
         // Vector is always the same size as fighters_.count(), but if
         // the fighter does not exist in this session then the range will
         // be empty
-        rfcommon::Vector<Sequence> fighters;
+        rfcommon::Vector<Range> fighters;
     };
     rfcommon::Vector<Session> sessions_;
 
@@ -93,9 +95,13 @@ private:
     struct QueryResult
     {
         Graph graph;
-        rfcommon::Vector<Sequence> matches;
+        rfcommon::Vector<Range> matches;
+        rfcommon::Vector<Sequence> mergedMatches;
+        rfcommon::Vector<Sequence> mergedAndNormalizedMatches;
         rfcommon::Vector<Graph> sessionGraph;
-        rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMatches;
+        rfcommon::Vector<rfcommon::Vector<Range>> sessionMatches;
+        rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedMatches;
+        rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedAndNormalizedMatches;
     };
     rfcommon::Vector<QueryResult> queryResults_;
     rfcommon::Vector<std::unique_ptr<Query>> queries_;

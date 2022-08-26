@@ -5,39 +5,49 @@
 States::States(rfcommon::FighterID fighterID)
     : fighterID(fighterID)
 {}
+States::~States() {}
 
 // ----------------------------------------------------------------------------
-States::~States()
+Range::Range(int startIdx, int endIdx) 
+    : startIdx(startIdx), endIdx(endIdx) 
 {}
+Range::~Range() {}
 
 // ----------------------------------------------------------------------------
-Sequence::Sequence()
-    : idxs_({ 0, 0 })
-    , isRange_(true)
-{}
+Sequence::Sequence() {}
+Sequence::~Sequence() {}
 
 // ----------------------------------------------------------------------------
-Sequence::Sequence(int startIdx, int endIdx)
-    : idxs_({ startIdx, endIdx })
-    , isRange_(true)
-{}
-
-// ----------------------------------------------------------------------------
-Sequence::Sequence(rfcommon::SmallVector<int, 2>&& idxs)
-    : idxs_(std::move(idxs))
-    , isRange_(false)
+rfcommon::String toString(const States& states, const Range& range, LabelMapper* labels)
 {
-}
+    rfcommon::String result;
+    for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
+    {
+        rfcommon::String label;
+        const State& state = states[stateIdx];
 
-// ----------------------------------------------------------------------------
-Sequence::~Sequence()
-{}
+        if (state.inHitlag() || state.inHitstun())
+            label = "disadv";
+        else
+            label = labels->bestEffortStringHighestLayer(states.fighterID, state.motion);
+
+        if (state.opponentInShieldlag())
+            label += " os";
+        else if (state.opponentInHitlag() || state.opponentInHitstun())
+            label += " adv";
+
+        if (result.length())
+            result += " -> ";
+        result += label;
+    }
+    return result;
+}
 
 // ----------------------------------------------------------------------------
 rfcommon::String toString(const States& states, const Sequence& seq, LabelMapper* labels)
 {
     rfcommon::String result;
-    for (int stateIdx : seq)
+    for (int stateIdx : seq.idxs)
     {
         rfcommon::String label;
         const State& state = states[stateIdx];

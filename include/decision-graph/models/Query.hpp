@@ -6,7 +6,7 @@
 
 class LabelMapper;
 class Query;
-class SequenceRange;
+class Range;
 struct QueryASTNode;
 
 /*!
@@ -92,7 +92,9 @@ class Query
 public:
     static QueryASTNode* parse(const char* text);
     static Query* compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfcommon::FighterID fighterID);
-    rfcommon::Vector<Sequence> apply(const States& states, const Sequence& seq);
+    rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
+    rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
+    rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;
     void exportDOT(const char* filename, const LabelMapper* labels, rfcommon::FighterID fighterID);
 
 private:

@@ -54,8 +54,8 @@ void TimingsView::onQueryApplied()
             typedef uint32_t HashType;
             HashType operator()(const SeqRef& ref) const {
                 State::HasherNoSideData h;
-                const State& first = ref.states[ref.seq.firstIdx()];
-                const State& last = ref.states[ref.seq.lastIdx()];
+                const State& first = ref.states[ref.seq.idxs.front()];
+                const State& last = ref.states[ref.seq.idxs.back()];
                 return rfcommon::hash32_combine(h(first), h(last));
             }
         };
@@ -63,10 +63,10 @@ void TimingsView::onQueryApplied()
         struct Compare {
             bool operator()(const SeqRef& a, const SeqRef& b) const {
                 State::CompareNoSideData c;
-                const State& aFirst = a.states[a.seq.firstIdx()];
-                const State& aLast = a.states[a.seq.lastIdx()];
-                const State& bFirst = b.states[b.seq.firstIdx()];
-                const State& bLast = b.states[b.seq.lastIdx()];
+                const State& aFirst = a.states[a.seq.idxs.front()];
+                const State& aLast = a.states[a.seq.idxs.back()];
+                const State& bFirst = b.states[b.seq.idxs.front()];
+                const State& bLast = b.states[b.seq.idxs.back()];
                 return c(aFirst, bFirst) && c(aLast, bLast);
             }
         };
@@ -79,7 +79,7 @@ void TimingsView::onQueryApplied()
 
     rfcommon::HashMap<SeqRef, int, SeqRef::Hasher, SeqRef::Compare> sequenceFrequencies;
     for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
-        for (const auto& seq : model_->matches(queryIdx))
+        for (const auto& seq : model_->mergedMatches(queryIdx))
             sequenceFrequencies.insertOrGet(SeqRef(states, seq), 0)->value()++;
 
     const SeqRef* mostCommon = nullptr;
@@ -96,11 +96,11 @@ void TimingsView::onQueryApplied()
     if (mostCommon)
     {
         for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
-            for (const auto& seq : model_->matches(queryIdx))
+            for (const auto& seq : model_->mergedMatches(queryIdx))
                 if (SeqRef::Compare()(SeqRef(states, seq), *mostCommon))
                 {
-                    const auto& first = states[seq.firstIdx()];
-                    const auto& last = states[seq.lastIdx()];
+                    const auto& first = states[seq.idxs.front()];
+                    const auto& last = states[seq.idxs.back()];
                     int diffFrames = last.sideData.frameIndex.index() - first.sideData.frameIndex.index();
                     histogram.insertOrGet(diffFrames / 3, 0)->value()++;
                 }

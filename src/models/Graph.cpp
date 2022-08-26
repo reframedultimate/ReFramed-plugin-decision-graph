@@ -71,7 +71,7 @@ Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence
     for (const auto& seq : sequences)
     {
         int prevNodeIdx = -1;
-        for (int stateIdx : seq)
+        for (int stateIdx : seq.idxs)
         {
             const State& state = states[stateIdx];
             auto nodeLookupResult = stateLookup.insertOrGet(state, -1);
@@ -403,17 +403,17 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].incomingEdges.count() ? edges[nodes[node].incomingEdges[0]].weight() : 1;
 
-        rfcommon::SmallVector<int, 2> stateIdxs;
+        Sequence seq;
         while (1)
         {
-            stateIdxs.insert(0, nodes[node].stateIdx);
+            seq.idxs.insert(0, nodes[node].stateIdx);
             assert(nodes[node].incomingEdges.count() <= 1);
             if (nodes[node].incomingEdges.count() == 0)
                 break;
             node = edges[nodes[node].incomingEdges[0]].from();
         }
 
-        result.push({ Sequence(std::move(stateIdxs)), weight });
+        result.emplace(std::move(seq), weight);
     }
 
     return result;
@@ -446,17 +446,17 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
         int node = leafNodes.popValue();
         int weight = nodes[node].outgoingEdges.count() ? edges[nodes[node].outgoingEdges[0]].weight() : 1;
 
-        rfcommon::SmallVector<int, 2> stateIdxs;
+        Sequence seq;
         while (1)
         {
-            stateIdxs.push(nodes[node].stateIdx);
+            seq.idxs.push(nodes[node].stateIdx);
             assert(nodes[node].outgoingEdges.count() <= 1);
             if (nodes[node].outgoingEdges.count() == 0)
                 break;
             node = edges[nodes[node].outgoingEdges[0]].to();
         }
 
-        result.emplace(std::move(stateIdxs), weight);
+        result.emplace(std::move(seq), weight);
     }
 
     return result;

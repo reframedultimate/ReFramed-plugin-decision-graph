@@ -9,6 +9,9 @@
 #include "rfcommon/MetaData.hpp"
 #include "rfcommon/Session.hpp"
 
+#include "decision-graph/models/LabelMapper.hpp"
+#include <cstdio>
+
 // ----------------------------------------------------------------------------
 SequenceSearchModel::SequenceSearchModel(const LabelMapper* labelMapper)
     : labelMapper_(labelMapper)
@@ -72,7 +75,7 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // Create session
     auto sessionData = sessions_.push({
         mdata->timeStarted(),
-        rfcommon::Vector<Sequence>::makeReserved(fighters_.count())
+        rfcommon::Vector<Range>::makeReserved(fighters_.count())
     });
 
     // For new sessions, point the session ranges to the end of each
@@ -88,6 +91,8 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     {
         queryResults_[i].sessionGraph.emplace();
         queryResults_[i].sessionMatches.emplace();
+        queryResults_[i].sessionMergedMatches.emplace();
+        queryResults_[i].sessionMergedAndNormalizedMatches.emplace();
     }
 
     // If there is a fighter and player name in the current session that
@@ -202,8 +207,8 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
         states.push(state);
 
         // Update sequence ranges for current session
-        Sequence& sessionFighterSeq = sessions_.back().fighters[fighterIdx];
-        sessionFighterSeq = Sequence(sessionFighterSeq.firstIdx(), states.count());
+        Range& sessionFighterSeq = sessions_.back().fighters[fighterIdx];
+        sessionFighterSeq.endIdx = states.count();
     }
 }
 
@@ -235,8 +240,12 @@ void SequenceSearchModel::clearAll()
     {
         queryResults_[i].graph.clear();
         queryResults_[i].matches.clearCompact();
+        queryResults_[i].mergedMatches.clearCompact();
+        queryResults_[i].mergedAndNormalizedMatches.clearCompact();
         queryResults_[i].sessionGraph.clearCompact();
         queryResults_[i].sessionMatches.clearCompact();
+        queryResults_[i].sessionMergedMatches.clearCompact();
+        queryResults_[i].sessionMergedAndNormalizedMatches.clearCompact();
     }
 
     dispatcher.dispatch(&SequenceSearchListener::onDataCleared);
@@ -302,6 +311,8 @@ void SequenceSearchModel::addQuery()
 
     results.sessionGraph.resize(sessionCount());
     results.sessionMatches.resize(sessionCount());
+    results.sessionMergedMatches.resize(sessionCount());
+    results.sessionMergedAndNormalizedMatches.resize(sessionCount());
 }
 
 // ----------------------------------------------------------------------------
@@ -377,15 +388,60 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
 
     const auto& states = fighters_[currentFighterIdx_].states;
 
-    results.matches = query.apply(states, Sequence(0, states.count()));
-    results.graph = Graph::fromSequences(states, results.matches);
-    results.graph.exportDOT("decision_graph_search.dot", fighters_[currentFighterIdx_].states, labelMapper_);
+    results.matches = query.apply(states, Range(0, states.count()));
+    results.mergedMatches = query.mergeMotions(states, results.matches);
+    results.mergedAndNormalizedMatches = query.normalizeMotions(states, results.mergedMatches);
+    results.graph = Graph::fromSequences(states, results.mergedAndNormalizedMatches);
+    Graph::fromSequences(states, results.mergedMatches).exportDOT("decision_graph_search.dot", fighters_[currentFighterIdx_].states, labelMapper_);
+
+#ifndef NDEBUG
+    printf("\nresults.matches:\n");
+    for (const auto& range : results.matches)
+    {
+        printf("  ");
+        for (int i = range.startIdx; i != range.endIdx; ++i)
+        {
+            if (i != range.startIdx)
+                printf(" -> ");
+            printf("0x%x (%s)", states[i].motion.value(), labelMapper_->hash40StringOrHex(states[i].motion).cStr());
+        }
+        printf("\n");
+    }
+    printf("\nresults.mergedMatches:\n");
+    for (const auto& seq : results.mergedMatches)
+    {
+        printf("  ");
+        for (int i = 0; i != seq.idxs.count(); ++i)
+        {
+            int idx = seq.idxs[i];
+            if (i != 0)
+                printf(" -> ");
+            printf("0x%x (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+        }
+        printf("\n");
+    }
+    printf("\nresults.mergedAndNormalizedMatches:\n");
+    for (const auto& seq : results.mergedAndNormalizedMatches)
+    {
+        printf("  ");
+        for (int i = 0; i != seq.idxs.count(); ++i)
+        {
+            int idx = seq.idxs[i];
+            if (i != 0)
+                printf(" -> ");
+            printf("0x%x (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+        }
+        printf("\n");
+    }
+#endif
 
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
         const auto& sessionSeq = sessions_[sessionIdx].fighters[currentFighterIdx_];
         results.sessionMatches[sessionIdx] = query.apply(states, sessionSeq);
-        results.sessionGraph[sessionIdx] = Graph::fromSequences(states, results.sessionMatches[sessionIdx]);
+        results.sessionMergedMatches[sessionIdx] = query.mergeMotions(states, results.sessionMatches[sessionIdx]);
+        results.sessionMergedAndNormalizedMatches[sessionIdx] = query.normalizeMotions(states, results.sessionMergedMatches[sessionIdx]);
+        results.sessionGraph[sessionIdx] = Graph::fromSequences(states, results.sessionMergedAndNormalizedMatches[sessionIdx]);
     }
 
     return true;
@@ -446,8 +502,8 @@ int SequenceSearchModel::totalMatchedStates() const
 {
     int count = 0;
     for (int i = 0; i != queryCount(); ++i)
-        for (const auto& seq : queryResults_[i].matches)
-            count += seq.count();
+        for (const auto& range : queryResults_[i].matches)
+            count += range.endIdx - range.startIdx - 1;
     return count;
 }
 
@@ -467,9 +523,15 @@ const Graph& SequenceSearchModel::graph(int queryIdx) const
 }
 
 // ----------------------------------------------------------------------------
-const rfcommon::Vector<Sequence>& SequenceSearchModel::matches(int queryIdx) const
+const rfcommon::Vector<Range>& SequenceSearchModel::matches(int queryIdx) const
 {
     return queryResults_[queryIdx].matches;
+}
+
+// ----------------------------------------------------------------------------
+const rfcommon::Vector<Sequence>& SequenceSearchModel::mergedMatches(int queryIdx) const
+{
+    return queryResults_[queryIdx].mergedMatches;
 }
 
 // ----------------------------------------------------------------------------
@@ -479,7 +541,7 @@ const Graph& SequenceSearchModel::sessionGraph(int queryIdx, int sessionIdx) con
 }
 
 // ----------------------------------------------------------------------------
-const rfcommon::Vector<Sequence>& SequenceSearchModel::sessionMatches(int queryIdx, int sessionIdx) const
+const rfcommon::Vector<Range>& SequenceSearchModel::sessionMatches(int queryIdx, int sessionIdx) const
 {
     return queryResults_[queryIdx].sessionMatches[sessionIdx];
 }
