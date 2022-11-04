@@ -162,7 +162,7 @@ rfcommon::Vector<Graph> Graph::islands() const
 
         Graph graph;
         graph.nodes.emplace(nodes[root].stateIdx);
-        map.insertNew(root, 0);
+        map.insertIfNew(root, 0);
         visited.visit(root);
 
         for (int edge : nodes[root].outgoingEdges)
@@ -189,7 +189,7 @@ rfcommon::Vector<Graph> Graph::islands() const
             // Insert new node (we call it the "pushed child")
             int pushedChild = graph.nodes.count();
             graph.nodes.emplace(nodes[child].stateIdx);
-            map.insertNew(child, pushedChild);
+            map.insertIfNew(child, pushedChild);
 
             // Connect new node to parent. Can be incoming or outgoing connection
             for (int edge : nodes[child].outgoingEdges)

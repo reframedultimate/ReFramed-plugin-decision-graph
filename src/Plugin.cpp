@@ -3,9 +3,14 @@
 #include "rfcommon/PluginInterface.hpp"
 
 // Gets called when the main application wants to create your plugin
-static rfcommon::Plugin* createDecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
+static rfcommon::Plugin* createDecisionGraphPlugin(
+        RFPluginFactory* factory,
+        rfcommon::VisualizerContext* visCtx,
+        rfcommon::Log* log,
+        rfcommon::UserMotionLabels* userLabels,
+        rfcommon::Hash40Strings* hash40Strings)
 {
-    return new DecisionGraphPlugin(factory, userLabels, hash40Strings);
+    return new DecisionGraphPlugin(factory, visCtx, userLabels, hash40Strings);
 }
 
 // Gets called when the main application removes your plugin from its

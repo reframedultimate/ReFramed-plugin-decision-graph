@@ -12,6 +12,7 @@ class GraphModel;
 class LabelMapper;
 class SequenceSearchModel;
 class SessionSettingsModel;
+class VisualizerModel;
 
 namespace rfcommon {
     class UserMotionLabels;
@@ -28,7 +29,7 @@ class DecisionGraphPlugin
         , public SessionSettingsListener
 {
 public:
-    DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings);
+    DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::VisualizerContext* visCtx, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings);
     ~DecisionGraphPlugin();
 
 private:
@@ -98,6 +99,7 @@ private:
     std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
     std::unique_ptr<SessionSettingsModel> sessionSettings_;
+    std::unique_ptr<VisualizerModel> visualizerModel_;
     rfcommon::Reference<rfcommon::Session> activeSession_;
     int noNotifyFrames_ = 0;
 

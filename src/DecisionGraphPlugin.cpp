@@ -2,20 +2,22 @@
 #include "decision-graph/views/SequenceSearchView.hpp"
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/LabelMapper.hpp"
+#include "decision-graph/models/Query.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/SessionSettingsModel.hpp"
-#include "decision-graph/models/Query.hpp"
+#include "decision-graph/models/VisualizerInterface.hpp"
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/HighresTimer.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
-DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
+DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::VisualizerContext* visCtx, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
     : Plugin(factory)
     , labelMapper_(new LabelMapper(userLabels, hash40Strings))
     , graphModel_(new GraphModel)
     , seqSearchModel_(new SequenceSearchModel(labelMapper_.get()))
     , sessionSettings_(new SessionSettingsModel)
+    , visualizerModel_(new VisualizerModel(seqSearchModel_.get(), visCtx, factory))
 {
     sessionSettings_->dispatcher.addListener(this);
 }
@@ -30,7 +32,7 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 rfcommon::Plugin::UIInterface* DecisionGraphPlugin::uiInterface() { return this; }
 rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
 rfcommon::Plugin::ReplayInterface* DecisionGraphPlugin::replayInterface() { return this; }
-rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return nullptr; }
+rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return visualizerModel_.get(); }
 rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterface() { return nullptr; }
 
 // ----------------------------------------------------------------------------
