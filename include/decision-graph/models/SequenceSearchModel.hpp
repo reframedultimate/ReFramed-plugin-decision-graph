@@ -6,7 +6,7 @@
 #include "rfcommon/Reference.hpp"
 #include "rfcommon/FrameDataListener.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
-#include "rfcommon/MetaDataListener.hpp"
+#include "rfcommon/MetadataListener.hpp"
 #include <memory>
 
 class Query;
@@ -15,7 +15,7 @@ class SequenceSearchListener;
 namespace rfcommon {
     class FrameData;
     class MappingInfo;
-    class MetaData;
+    class Metadata;
 }
 
 class SequenceSearchModel
@@ -24,7 +24,7 @@ public:
     SequenceSearchModel(const LabelMapper* labelMapper);
 
     int sessionCount() const;
-    void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::MetaData* mdata);
+    void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata);
     void addFrame(int frameIdx, const rfcommon::FrameData* fdata);
     void addAllFrames(const rfcommon::FrameData* fdata);
     void clearAll();

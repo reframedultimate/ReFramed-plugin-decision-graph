@@ -6,7 +6,7 @@
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/hash40.hpp"
 #include "rfcommon/MappingInfo.hpp"
-#include "rfcommon/MetaData.hpp"
+#include "rfcommon/Metadata.hpp"
 #include "rfcommon/Session.hpp"
 
 #include "decision-graph/models/LabelMapper.hpp"
@@ -25,7 +25,7 @@ int SequenceSearchModel::sessionCount() const
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, const rfcommon::MetaData* mdata)
+void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata)
 {
     // It's possible that the players switch fighters between games, 
     // especially when multiple sessions from different days are
@@ -47,7 +47,7 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
             if (indexUsed.findFirst(i) != indexUsed.end())
                 continue;
 
-            if (fighters_[i].states.fighterID == mdata->fighterID(s) && fighters_[i].playerName == mdata->name(s))
+            if (fighters_[i].states.fighterID == mdata->playerFighterID(s) && fighters_[i].playerName == mdata->playerTag(s))
             {
                 fighterIdxMapFromSession_[s] = i;
                 goto matched;
@@ -62,9 +62,9 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     {
         fighterIdxMapFromSession_[s] = fighters_.count();
         auto fighterData = fighters_.push({
-            mdata->name(s),
-            map->fighter.toName(mdata->fighterID(s)),
-            States(mdata->fighterID(s))
+            mdata->playerTag(s),
+            map->fighter.toName(mdata->playerFighterID(s)),
+            States(mdata->playerFighterID(s))
          });
 
         // Insert empty session ranges for the new fighters
@@ -101,8 +101,8 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     if (currentFighterIdx_ >= 0 && currentFighterIdx_ < fighters_.count())
     {
         for (int s = 0; s != mdata->fighterCount(); ++s)
-            if (fighters_[currentFighterIdx_].states.fighterID == mdata->fighterID(s) &&
-                fighters_[currentFighterIdx_].playerName == mdata->name(s))
+            if (fighters_[currentFighterIdx_].states.fighterID == mdata->playerFighterID(s) &&
+                fighters_[currentFighterIdx_].playerName == mdata->playerTag(s))
             {
                 currentFighterIdx_ = fighterIdxMapFromSession_[s];
                 break;
@@ -111,8 +111,8 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighters_.count())
     {
         for (int s = 0; s != mdata->fighterCount(); ++s)
-            if (previousFighterID_ == mdata->fighterID(s) &&
-                previousPlayerName_ == mdata->name(s))
+            if (previousFighterID_ == mdata->playerFighterID(s) &&
+                previousPlayerName_ == mdata->playerTag(s))
             {
                 currentFighterIdx_ = fighterIdxMapFromSession_[s];
                 break;
@@ -403,7 +403,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
         {
             if (i != range.startIdx)
                 printf(" -> ");
-            printf("0x%x (%s)", states[i].motion.value(), labelMapper_->hash40StringOrHex(states[i].motion).cStr());
+            printf("0x%lx (%s)", states[i].motion.value(), labelMapper_->hash40StringOrHex(states[i].motion).cStr());
         }
         printf("\n");
     }
@@ -416,7 +416,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%x (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+            printf("0x%lx (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
         }
         printf("\n");
     }
@@ -429,7 +429,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%x (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+            printf("0x%lx (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
         }
         printf("\n");
     }

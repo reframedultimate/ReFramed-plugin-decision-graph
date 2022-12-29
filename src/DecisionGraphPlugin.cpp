@@ -62,7 +62,7 @@ void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
         seqSearchModel_->clearAll();
     state_ = TRAINING;
 
-    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
+    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetadata());
 
     assert(activeSession_.isNull());
     activeSession_ = training;
@@ -74,7 +74,7 @@ void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training)
         seqSearchModel_->clearAll();
     state_ = TRAINING;
 
-    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetaData());
+    seqSearchModel_->startNewSession(training->tryGetMappingInfo(), training->tryGetMetadata());
     seqSearchModel_->addAllFrames(training->tryGetFrameData());
     seqSearchModel_->applyAllQueries();
 
@@ -84,7 +84,7 @@ void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training)
 }
 void DecisionGraphPlugin::onProtocolTrainingReset(rfcommon::Session* oldTraining, rfcommon::Session* newTraining)
 {
-    seqSearchModel_->startNewSession(newTraining->tryGetMappingInfo(), newTraining->tryGetMetaData());
+    seqSearchModel_->startNewSession(newTraining->tryGetMappingInfo(), newTraining->tryGetMetadata());
 
     assert(activeSession_.notNull());
     activeSession_->tryGetFrameData()->dispatcher.removeListener(this);
@@ -106,7 +106,7 @@ void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
 
     if (sessionSettings_->accumulateLiveSessions() == false)
         seqSearchModel_->clearAll();
-    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
+    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetadata());
 
     assert(activeSession_.isNull());
     activeSession_ = game;
@@ -118,7 +118,7 @@ void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game)
         seqSearchModel_->clearAll();
     state_ = GAME;
 
-    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetaData());
+    seqSearchModel_->startNewSession(game->tryGetMappingInfo(), game->tryGetMetadata());
     seqSearchModel_->addAllFrames(game->tryGetFrameData());
     seqSearchModel_->applyAllQueries();
 
@@ -138,7 +138,7 @@ void DecisionGraphPlugin::onGameSessionLoaded(rfcommon::Session* game)
 {
     seqSearchModel_->clearAll();
     if (auto map = game->tryGetMappingInfo())
-        if (auto mdata = game->tryGetMetaData())
+        if (auto mdata = game->tryGetMetadata())
             if (auto fdata = game->tryGetFrameData())
             {
                 seqSearchModel_->startNewSession(map, mdata);
@@ -157,7 +157,7 @@ void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training)
 {
     seqSearchModel_->clearAll();
     if (auto map = training->tryGetMappingInfo())
-        if (auto mdata = training->tryGetMetaData())
+        if (auto mdata = training->tryGetMetadata())
             if (auto fdata = training->tryGetFrameData())
             {
                 seqSearchModel_->startNewSession(map, mdata);
@@ -177,7 +177,7 @@ void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int 
     seqSearchModel_->clearAll();
     for (int i = 0; i != numGames; ++i)
         if (auto map = games[i]->tryGetMappingInfo())
-            if (auto mdata = games[i]->tryGetMetaData())
+            if (auto mdata = games[i]->tryGetMetadata())
                 if (auto fdata = games[i]->tryGetFrameData())
                 {
                     seqSearchModel_->startNewSession(map, mdata);
@@ -252,7 +252,7 @@ void DecisionGraphPlugin::onClearPreviousSessions()
     if (activeSession_)
     {
         auto map = activeSession_->tryGetMappingInfo();
-        auto mdata = activeSession_->tryGetMetaData();
+        auto mdata = activeSession_->tryGetMetadata();
         auto fdata = activeSession_->tryGetFrameData();
         if (map && mdata && fdata)
         {
