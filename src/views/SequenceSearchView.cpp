@@ -31,9 +31,12 @@ static void clearLayout(QLayout* layout)
     while ((item = layout->takeAt(0)) != nullptr)
     {
         if (item->layout())
-            delete item->layout();
+            delete item;
         if (item->widget())
+        {
             delete item->widget();
+            delete item;
+        }
     }
 }
 
