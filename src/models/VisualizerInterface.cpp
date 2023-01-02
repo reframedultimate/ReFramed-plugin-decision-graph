@@ -22,14 +22,18 @@ void VisualizerModel::updateData()
     rfcommon::VisualizerData data;
     const auto& states = seqSearchModel_->fighterStates(seqSearchModel_->currentFighter());
     for (int queryIdx = 0; queryIdx != seqSearchModel_->queryCount(); ++queryIdx)
+    {
+        rfcommon::Vector<rfcommon::VisualizerData::TimeInterval> timeIntervals;
         for (const auto range : seqSearchModel_->matches(queryIdx))
         {
             assert(range.startIdx != range.endIdx);
             const char* name = seqSearchModel_->queryStr(queryIdx);
             const auto startFrame = states[range.startIdx].sideData.frameIndex;
             const auto endFrame = states[range.endIdx - 1].sideData.frameIndex;
-            data.timeIntervals.emplace(name, startFrame, rfcommon::FrameIndex::fromValue(endFrame.index() + 1));
+            timeIntervals.emplace(name, startFrame, rfcommon::FrameIndex::fromValue(endFrame.index() + 1));
         }
+        data.timeIntervalSets.insertAlways(seqSearchModel_->queryStr(queryIdx), std::move(timeIntervals));
+    }
     setVisualizerData(std::move(data));
 }
 
