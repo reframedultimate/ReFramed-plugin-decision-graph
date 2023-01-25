@@ -378,6 +378,15 @@ static bool compileASTRecurse(
             break;
         }
 
+        // Assume string is hex describing a hash40 motion value
+        motion = rfcommon::FighterMotion::fromHexString(node->label.cStr());
+        if (motion.isValid())
+        {
+            fstack->push({{matchers->count()}, {matchers->count()}});
+            matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
+            break;
+        }
+
         return false;
     } break;
 

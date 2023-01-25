@@ -27,7 +27,7 @@ int SequenceSearchModel::sessionCount() const
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata)
 {
-    // It's possible that the players switch fighters between games, 
+    // It's possible that the players switch fighters between games,
     // especially when multiple sessions from different days are
     // accumulated. For this we set up a mapping table that maps the
     // session's fighter index to our own internal fighter index.
@@ -183,11 +183,26 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
             return opponentState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
         }();
 
+        // TODO: Bury state for ZSS:
+        //    FIGHTER_STATUS_KIND_TREAD_DAMAGE (185)   0x97eacd12e   (unknown)     kickflip_bury
+        //    FIGHTER_STATUS_KIND_BURY (200)           0xb0a145fb5   damage_lw_3   Hitstun, hitstun
+        //    FIGHTER_STATUS_KIND_BURY_WAIT (201)      0xb0a145fb5   damage_lw_3   Hitstun, hitstun
+        //    FIGHTER_STATUS_KIND_BURY_JUMP (202)      0x62dd02058   jump_f        Jump, jump, fh
+
+        // TODO: Command grabs
+        //    FIGHTER_STATUS_KIND_CAPTURE_YOSHI (243)  0x112f7cb4d1  (unknown)     grabbed, grabbed_pull
+        //    FIGHTER_STATUS_KIND_YOSHI_EGG (244)      0x93adf9e2e   (unknown)     (unlabeled)
+        //    FIGHTER_STATUS_KIND_YOSHI_EGG (244)      0x7fb997a80   invalid       (unlabeled)
+
+        // TODO: Phantom footstools:
+        //    FIGHTER_STATUS_KIND_JUMP (11)            HIT_STATUS_XLU
+        //    FIGHTER_STATUS_KIND_JUMP (11)            HIT_STATUS_NORMAL
+
         const State state(
             State::SideData(
-                fighterState.frameIndex(), 
-                fighterState.pos(), 
-                fighterState.damage(), 
+                fighterState.frameIndex(),
+                fighterState.pos(),
+                fighterState.damage(),
                 fighterState.shield()),
             fighterState.motion(),
             fighterState.status(),
