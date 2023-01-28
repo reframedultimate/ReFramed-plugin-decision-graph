@@ -2,7 +2,6 @@
 
 #include "rfcommon/FighterMotion.hpp"
 #include "rfcommon/FighterStatus.hpp"
-#include "rfcommon/FighterHitStatus.hpp"
 #include "rfcommon/FrameIndex.hpp"
 #include "rfcommon/Hashers.hpp"
 #include "rfcommon/Vec2.hpp"

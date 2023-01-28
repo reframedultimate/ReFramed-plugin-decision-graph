@@ -73,7 +73,7 @@ bool Matcher::matches(const State& state) const
     {
         bool onHit = state.opponentInHitlag();
         bool onShield = state.opponentInShieldlag();
-        bool onWhiff = !state.opponentInHitlag() && !state.opponentInShieldlag() && !state.opponentInHitstun();
+        bool onWhiff = !state.opponentInHitlag() && !state.opponentInShieldlag();
         uint8_t compare =
                 (static_cast<uint8_t>(onHit) << 0)
               | (static_cast<uint8_t>(onWhiff) << 1)
