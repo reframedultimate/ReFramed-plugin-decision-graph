@@ -73,7 +73,7 @@ bool Matcher::matches(const State& state) const
     {
         bool onHit = state.opponentInHitlag();
         bool onShield = state.opponentInShieldlag();
-        bool onWhiff = !state.opponentInHitlag() && !state.opponentInShieldlag();
+        bool onWhiff = !state.opponentInHitlag() && !state.opponentInShieldlag() && !state.opponentInHitstun();
         uint8_t compare =
                 (static_cast<uint8_t>(onHit) << 0)
               | (static_cast<uint8_t>(onWhiff) << 1)
@@ -127,6 +127,18 @@ QueryASTNode* Query::parse(const char* text)
 }
 
 // ----------------------------------------------------------------------------
+/*
+ * Represents a subset of the final finite automaton.
+ *
+ * Each fragment holds a list of unresolved incoming and outgoing transitions.
+ * As the AST is compiled, fragments are assembled together by connecting these
+ * transitions to each other in order to form larger and larger fragments, until
+ * the final finite automaton is completed.
+ *
+ * The "in" and "out" lists are indices into the vector of states/matchers.
+ * The "bridge" flag handles a special case where a fragment can have a direct
+ * transition from input to output without going through an internal state/matcher.
+ */
 struct Fragment
 {
     rfcommon::SmallVector<int, 4> in;
@@ -461,12 +473,13 @@ rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) c
     // current search pattern. If no pattern was found then this returns
     // the starting index
     auto doSequenceMatch = [this, &states, &l1, &l2, &info](const int startIdx) -> int {
+        const int maxMatchLength = 50;
         int stateIdx = startIdx;
 
         // Prepare current and next state lists
         int listid = 0;
-        rfcommon::SmallVector<int, 16>* clist = &l1;
-        rfcommon::SmallVector<int, 16>* nlist = &l2;
+        auto* clist = &l1;
+        auto* nlist = &l2;
         clist->clear();
         for (int i : matchers_[0].next)
             clist->emplace(i);
@@ -490,7 +503,7 @@ rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) c
                     }
 
                 // We have run out of states to match
-                if (stateIdx + 1 >= states.count())
+                if (stateIdx + 1 >= states.count() || stateIdx >= startIdx + maxMatchLength)
                 {
                     if (matchers_[matcherIdx].isAcceptCondition())
                         return stateIdx + 1;  // Success, return the "end" of the range which is the last index plus 1
@@ -512,8 +525,12 @@ rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) c
                 }
             }
 
-            if (nlist->count() == 0 || stateIdx + 1 >= states.count())
+            if (nlist->count() == 0
+                    || stateIdx >= startIdx + maxMatchLength
+                    || stateIdx + 1 >= states.count())
+            {
                 return startIdx;  // Failed to match anything
+            }
 
             // Advance
             stateIdx++;
@@ -569,8 +586,6 @@ rfcommon::Vector<Sequence> Query::mergeMotions(const States& states, const rfcom
     for (const auto& range : matches)
     {
         auto& seq = result.emplace();
-        seq.idxs.reserve(range.endIdx - range.startIdx);
-
         seq.idxs.push(range.startIdx);
         for (int idx = range.startIdx + 1; idx < range.endIdx; ++idx)
         {

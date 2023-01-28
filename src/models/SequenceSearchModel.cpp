@@ -134,54 +134,28 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
     for (int sessionFighterIdx = 0; sessionFighterIdx != fdata->fighterCount(); ++sessionFighterIdx)
     {
         const auto& fighterState = fdata->stateAt(sessionFighterIdx, frameIdx);
+        const auto& prevFighterState = frameIdx > 0 ?
+                fdata->stateAt(sessionFighterIdx, frameIdx - 1) : fighterState;
+        const auto& opponentState = fdata->fighterCount() == 2 ?
+                fdata->stateAt(1 - sessionFighterIdx, frameIdx) : fighterState;
+        const auto& prevOpponentState = frameIdx > 0 ?
+                fdata->fighterCount() == 2 ?
+                    fdata->stateAt(1 - sessionFighterIdx, frameIdx - 1) : opponentState :
+                prevFighterState;
 
-        const bool inHitlag = [this, fdata, sessionFighterIdx, frameIdx, &fighterState]() -> bool {
-            if (fdata->fighterCount() != 2)
-                return false;
+        const bool inHitlag =
+                opponentState.flags().attackConnected() &&
+                fighterState.hitstun() == prevFighterState.hitstun();
+        const bool inHitstun = fighterState.hitstun() > 0;
+        const bool inShieldlag = fighterState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
+        const bool isRising = fighterState.pos().y() > prevFighterState.pos().y();
+        const bool isFalling = fighterState.pos().y() < prevFighterState.pos().y();
 
-            const auto& opponentState = fdata->stateAt(1 - sessionFighterIdx, frameIdx);
-            const auto& prevFighterState = frameIdx > 0 ? fdata->stateAt(sessionFighterIdx, frameIdx - 1) : fighterState;
-            if (opponentState.flags().attackConnected())
-                return fighterState.hitstun() == prevFighterState.hitstun();
-
-            return false;
-        }();
-
-        const bool inHitstun = [&fighterState]() -> bool {
-            return fighterState.hitstun() > 0;
-        }();
-
-        const bool inShieldlag = [&fighterState]() -> bool {
-            return fighterState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
-        }();
-
-        const bool opponentInHitlag = [this, fdata, sessionFighterIdx, frameIdx, &fighterState]() -> bool {
-            if (fdata->fighterCount() != 2)
-                return false;
-
-            const auto& opponentState = fdata->stateAt(1 - sessionFighterIdx, frameIdx);
-            const auto& prevOpponentState = frameIdx > 0 ? fdata->stateAt(1 - sessionFighterIdx, frameIdx - 1) : opponentState;
-            if (fighterState.flags().attackConnected())
-                return opponentState.hitstun() == prevOpponentState.hitstun();
-
-            return false;
-        }();
-
-        const bool opponentInHitstun = [fdata, sessionFighterIdx, frameIdx]() -> bool {
-            if (fdata->fighterCount() != 2)
-                return false;
-
-            const auto& opponentState = fdata->stateAt(1 - sessionFighterIdx, frameIdx);
-            return opponentState.hitstun() > 0;
-        }();
-
-        const bool opponentInShieldlag = [fdata, sessionFighterIdx, frameIdx]() -> bool {
-            if (fdata->fighterCount() != 2)
-                return false;
-
-            const auto& opponentState = fdata->stateAt(1 - sessionFighterIdx, frameIdx);
-            return opponentState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
-        }();
+        const bool opponentInHitlag =
+                fighterState.flags().attackConnected() &&
+                opponentState.hitstun() == prevOpponentState.hitstun();
+        const bool opponentInHitstun = opponentState.hitstun() > 0;
+        const bool opponentInShieldlag = opponentState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
 
         // TODO: Bury state for ZSS:
         //    FIGHTER_STATUS_KIND_TREAD_DAMAGE (185)   0x97eacd12e   (unknown)     kickflip_bury
@@ -198,7 +172,23 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
         //    FIGHTER_STATUS_KIND_JUMP (11)            HIT_STATUS_XLU
         //    FIGHTER_STATUS_KIND_JUMP (11)            HIT_STATUS_NORMAL
 
-        const State state(
+        // Only add state if it is meaningfully different from the previously
+        // added state
+        const int fighterIdx = fighterIdxMapFromSession_[sessionFighterIdx];
+        States& states = fighters_[fighterIdx].states;
+        if (states.count() > 0 &&
+                fighterState.motion() == states.back().motion &&
+                fighterState.status() == states.back().status)
+        {
+            // It's possible that a move starts before it hits a shield/hits
+            // an opponent. If this happens, we update the already added state
+            // to include this flag
+            states.back().flags |= State::makeFlags(inHitlag, false, inShieldlag, opponentInHitlag, false, opponentInShieldlag);
+            continue;
+        }
+
+        // Add state to fighter's global sequence (spans multiple sessions)
+        states.push(State(
             State::SideData(
                 fighterState.frameIndex(),
                 fighterState.pos(),
@@ -206,20 +196,9 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
                 fighterState.shield()),
             fighterState.motion(),
             fighterState.status(),
-            fighterState.hitStatus(),
             inHitlag, inHitstun, inShieldlag,
             opponentInHitlag, opponentInHitstun, opponentInShieldlag
-        );
-
-        // Only process state if it is meaningfully different from the previously
-        // processed state
-        const int fighterIdx = fighterIdxMapFromSession_[sessionFighterIdx];
-        States& states = fighters_[fighterIdx].states;
-        if (states.count() > 0 && state.compareWithoutSideData(states.back()))
-            continue;
-
-        // Add state to fighter's global sequence (spans multiple sessions)
-        states.push(state);
+        ));
 
         // Update sequence ranges for current session
         Range& sessionFighterSeq = sessions_.back().fighters[fighterIdx];
