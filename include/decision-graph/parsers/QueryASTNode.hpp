@@ -18,14 +18,16 @@ struct QueryASTNode
     } type;
 
     enum ContextQualifierFlags {
-        OS    = 0x01,
-        OOS   = 0x02,
-        HIT   = 0x04,
-        WHIFF = 0x08,
-        FH    = 0x10,
-        SH    = 0x20,
-        DJ    = 0x40,
-        IDJ   = 0x80
+        OS      = 0x0001,
+        OOS     = 0x0002,
+        HIT     = 0x0004,
+        WHIFF   = 0x0008,
+        RISING  = 0x0010,
+        FALLING = 0x0020,
+        SH      = 0x0040,
+        FH      = 0x0080,
+        DJ      = 0x0100,
+        IDJ     = 0x0200
     };
 
     struct Statement {

@@ -52,6 +52,11 @@ static int percent_to_value(char* str)
 "oos"                   { return TOK_OOS; }
 "hit"                   { return TOK_HIT; }
 "whiff"                 { return TOK_WHIFF; }
+"rising"                { return TOK_RISING; }
+"falling"               { return TOK_FALLING; }
+"sh"                    { return TOK_SH; }
+"fh"                    { return TOK_FH; }
+"dj"                    { return TOK_DJ; }
 "idj"                   { return TOK_IDJ; }
 "0x"[0-9a-fA-F]+        { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 [0-9]+%                 { yylval->integer_value = percent_to_value(yytext); return TOK_PERCENT; }

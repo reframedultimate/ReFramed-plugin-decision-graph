@@ -69,13 +69,15 @@
 %destructor { StrFree($$); } <string_value>
 %destructor { QueryASTNode::destroySingle($$); } <node_value>
 
-%token '.' '*' '+' '?' '(' ')' '|' '!'
+%token '.' '*' '+' '?' '(' ')' '|' '!' '[' ']'
 %token '>' '<' '-'
 %token INTO
 %token OS
 %token OOS
 %token HIT
 %token WHIFF
+%token RISING
+%token FALLING
 %token SH
 %token FH
 %token DJ

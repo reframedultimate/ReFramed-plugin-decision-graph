@@ -17,16 +17,18 @@ class Matcher
 public:
     enum MatchFlags
     {
-        MATCH_ACCEPT = 0x01,
-        MATCH_MOTION = 0x02,
-        MATCH_STATUS = 0x04,
+        MATCH_ACCEPT = 0x01,  // Is an accept condition
+        MATCH_MOTION = 0x02,  // Match the motion hash40 value
+        MATCH_STATUS = 0x04,  // Match the status value
     };
 
     enum ContextQualifier
     {
-        HIT       = 0x01,
-        WHIFF     = 0x02,
-        SHIELD    = 0x04,
+        HIT       = 0x01,  // Move connected with the opponent
+        WHIFF     = 0x02,  // Move did not connect with the opponent or shield
+        SHIELD    = 0x04,  // Move connected with shield
+        RISING    = 0x08,  // Move is rising (y1 > y0)
+        FALLING   = 0x10   // Move is falling (y1 < y0)
     };
 
     struct DamageRange
