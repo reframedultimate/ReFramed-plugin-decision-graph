@@ -95,69 +95,72 @@
 
 %%
 query
-  : stmnts                     { *ast = $1; }
+  : stmnts                        { *ast = $1; }
   ;
 stmnts
-  : stmnts INTO qual_stmnt     { $$ = QueryASTNode::newStatement($1, $3); }
-  | qual_stmnt                 { $$ = $1; }
+  : stmnts INTO qual_stmnt        { $$ = QueryASTNode::newStatement($1, $3); }
+  | qual_stmnt                    { $$ = $1; }
+  | qual_stmnt '[' stmnts ']'     { $$ = $1; }
   ;
 qual_stmnt
-  : stmnt damages              { $$ = $2; addDamageRangeChild($2, $1); }
-  | stmnt                      { $$ = $1; }
+  : stmnt damages                 { $$ = $2; addDamageRangeChild($2, $1); }
+  | stmnt                         { $$ = $1; }
   ;
 stmnt
-  : pre_qual union post_qual   { $$ = QueryASTNode::newContextQualifier($2, $1 | $3); }
-  | union post_qual            { $$ = QueryASTNode::newContextQualifier($1, $2); }
-  | pre_qual union             { $$ = QueryASTNode::newContextQualifier($2, $1); }
-  | union                      { $$ = $1; }
+  : pre_qual union post_qual      { $$ = QueryASTNode::newContextQualifier($2, $1 | $3); }
+  | union post_qual               { $$ = QueryASTNode::newContextQualifier($1, $2); }
+  | pre_qual union                { $$ = QueryASTNode::newContextQualifier($2, $1); }
+  | union                         { $$ = $1; }
   ;
 union
-  : union '|' union            { $$ = QueryASTNode::newUnion($1, $3); }
-  | repitition                 { $$ = $1; }
+  : union '|' union               { $$ = QueryASTNode::newUnion($1, $3); }
+  | repitition                    { $$ = $1; }
   ;
 repitition
-  : inversion '+'              { $$ = QueryASTNode::newRepitition($1, 1, -1); }
-  | inversion '*'              { $$ = QueryASTNode::newRepitition($1, 0, -1); }
-  | inversion '?'              { $$ = QueryASTNode::newRepitition($1, 0, 1); }
-  | inversion NUM              { $$ = QueryASTNode::newRepitition($1, $2, $2); }
-  | inversion NUM ',' NUM      { $$ = QueryASTNode::newRepitition($1, $2, $4); }
-  | inversion NUM ',' '+'      { $$ = QueryASTNode::newRepitition($1, $2, -1); }
-  | inversion NUM ',' '*'      { $$ = QueryASTNode::newRepitition($1, $2, -1); }
-  | inversion                  { $$ = $1; }
+  : inversion '+'                 { $$ = QueryASTNode::newRepitition($1, 1, -1); }
+  | inversion '*'                 { $$ = QueryASTNode::newRepitition($1, 0, -1); }
+  | inversion '?'                 { $$ = QueryASTNode::newRepitition($1, 0, 1); }
+  | inversion NUM                 { $$ = QueryASTNode::newRepitition($1, $2, $2); }
+  | inversion NUM ',' NUM         { $$ = QueryASTNode::newRepitition($1, $2, $4); }
+  | inversion NUM ',' '+'         { $$ = QueryASTNode::newRepitition($1, $2, -1); }
+  | inversion NUM ',' '*'         { $$ = QueryASTNode::newRepitition($1, $2, -1); }
+  | inversion                     { $$ = $1; }
   ;
 inversion
-  : '!' label                  { $$ = QueryASTNode::newInversion($2); }
-  | label                      { $$ = $1; }
-  | '.'                        { $$ = QueryASTNode::newWildcard(); }
-  | '(' stmnts ')'             { $$ = $2; }
+  : '!' label                     { $$ = QueryASTNode::newInversion($2); }
+  | label                         { $$ = $1; }
+  | '.'                           { $$ = QueryASTNode::newWildcard(); }
+  | '(' stmnts ')'                { $$ = $2; }
   ;
 label
-  : LABEL                      { $$ = QueryASTNode::newLabel($1); StrFree($1); }
+  : LABEL                         { $$ = QueryASTNode::newLabel($1); StrFree($1); }
   ;
 pre_qual
-  : pre_qual '|' pre_qual      { $$ = $1; $$ |= $3; }
-  | '(' pre_qual ')'           { $$ = $2; }
-  | FH                         { $$ = QueryASTNode::FH; }
-  | SH                         { $$ = QueryASTNode::SH; }
-  | DJ                         { $$ = QueryASTNode::DJ; }
-  | IDJ                        { $$ = QueryASTNode::IDJ; }
+  : pre_qual '|' pre_qual         { $$ = $1; $$ |= $3; }
+  | '(' pre_qual ')'              { $$ = $2; }
+  | FH                            { $$ = QueryASTNode::FH; }
+  | SH                            { $$ = QueryASTNode::SH; }
+  | DJ                            { $$ = QueryASTNode::DJ; }
+  | IDJ                           { $$ = QueryASTNode::IDJ; }
+  | FALLING                       { $$ = QueryASTNode::FALLING; }
+  | RISING                        { $$ = QueryASTNode::RISING; }
   ;
 post_qual
-  : post_qual '|' post_qual    { $$ = $1; $$ |= $3; }
-  | '(' post_qual ')'          { $$ = $2; }
-  | OS                         { $$ = QueryASTNode::OS; }
-  | OOS                        { $$ = QueryASTNode::OOS; }
-  | HIT                        { $$ = QueryASTNode::HIT; }
-  | WHIFF                      { $$ = QueryASTNode::WHIFF; }
+  : post_qual '|' post_qual       { $$ = $1; $$ |= $3; }
+  | '(' post_qual ')'             { $$ = $2; }
+  | OS                            { $$ = QueryASTNode::OS; }
+  | OOS                           { $$ = QueryASTNode::OOS; }
+  | HIT                           { $$ = QueryASTNode::HIT; }
+  | WHIFF                         { $$ = QueryASTNode::WHIFF; }
   ;
 damages
-  : damages damage             { $$ = $2; $2->damageRange.child = $1; }
-  | damage                     { $$ = $1; }
+  : damages damage                { $$ = $2; $2->damageRange.child = $1; }
+  | damage                        { $$ = $1; }
   ;
 damage
-  : PERCENT '-' PERCENT        { $$ = QueryASTNode::newDamageRange(nullptr, $1, $3); }
-  | '>' PERCENT                { $$ = QueryASTNode::newDamageRange(nullptr, $2, 999); }
-  | '<' PERCENT                { $$ = QueryASTNode::newDamageRange(nullptr, 0, $2); }
+  : PERCENT '-' PERCENT           { $$ = QueryASTNode::newDamageRange(nullptr, $1, $3); }
+  | '>' PERCENT                   { $$ = QueryASTNode::newDamageRange(nullptr, $2, 999); }
+  | '<' PERCENT                   { $$ = QueryASTNode::newDamageRange(nullptr, 0, $2); }
   ;
 %%
 

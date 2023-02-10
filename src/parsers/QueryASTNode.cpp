@@ -39,6 +39,12 @@ QueryASTNode* QueryASTNode::newLabel(const char* label)
 }
 
 // ----------------------------------------------------------------------------
+QueryASTNode* QueryASTNode::newLabel(const char* label, const char* oppLabel)
+{
+    return new QueryASTNode(label, oppLabel);
+}
+
+// ----------------------------------------------------------------------------
 QueryASTNode* QueryASTNode::newContextQualifier(QueryASTNode* child, uint8_t contextQualifierFlags)
 {
     return new QueryASTNode(ContextQualifier(child, contextQualifierFlags));
@@ -153,8 +159,12 @@ static void writeNodes(const QueryASTNode* node, FILE* fp, const rfcommon::HashM
         fprintf(fp, "  n%d [shape=\"rectangle\",label=\".\"];\n", nodeID);
         break;
     case QueryASTNode::LABEL:
-        fprintf(fp, "  n%d [shape=\"rectangle\",label=\"%s\"];\n",
-                nodeID, node->label.cStr());
+        if (node->labels.oppLabel.length())
+            fprintf(fp, "  n%d [shape=\"rectangle\",label=\"%s [%s]\"];\n",
+                    nodeID, node->labels.label.cStr(), node->labels.oppLabel.cStr());
+        else
+            fprintf(fp, "  n%d [shape=\"rectangle\",label=\"%s\"];\n",
+                    nodeID, node->labels.label.cStr());
         break;
     case QueryASTNode::CONTEXT_QUALIFIER: {
         rfcommon::SmallVector<rfcommon::SmallString<5>, 5> flags;

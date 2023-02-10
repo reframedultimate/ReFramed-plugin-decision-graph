@@ -196,6 +196,8 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
                 fighterState.shield()),
             fighterState.motion(),
             fighterState.status(),
+            opponentState.motion(),
+            opponentState.status(),
             inHitlag, inHitstun, inShieldlag,
             opponentInHitlag, opponentInHitstun, opponentInShieldlag
         ));

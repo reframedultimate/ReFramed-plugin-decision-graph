@@ -354,7 +354,7 @@ static bool compileASTRecurse(
 
         // Assume label is a user label and maps to one or more motion
         // values
-        auto motions = labels->matchUserLabels(fighterID, node->label.cStr());
+        auto motions = labels->matchUserLabels(fighterID, node->labels.label.cStr());
         if (motions.count() > 0)
         {
             Fragment& fragment = fstack->emplace();
@@ -382,7 +382,7 @@ static bool compileASTRecurse(
 
         // Assume label is actually a label and maps to a single motion
         // value
-        auto motion = labels->matchKnownHash40(node->label.cStr());
+        auto motion = labels->matchKnownHash40(node->labels.label.cStr());
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
@@ -391,7 +391,7 @@ static bool compileASTRecurse(
         }
 
         // Assume string is hex describing a hash40 motion value
-        motion = rfcommon::FighterMotion::fromHexString(node->label.cStr());
+        motion = rfcommon::FighterMotion::fromHexString(node->labels.label.cStr());
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});

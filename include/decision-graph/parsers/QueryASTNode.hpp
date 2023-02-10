@@ -65,13 +65,21 @@ struct QueryASTNode
         int lower, upper;
     };
 
+    struct Labels {
+        Labels(const char* label) : label(label) {}
+        Labels(const char* label, const char* oppLabel) : label(label), oppLabel(oppLabel) {}
+        rfcommon::SmallString<7> label;
+        rfcommon::SmallString<7> oppLabel;
+    };
+
 private:
     QueryASTNode(Statement statement) : type(STATEMENT), statement(statement) {}
     QueryASTNode(Repitition repitition) : type(REPITITION), repitition(repitition) {}
     QueryASTNode(Union union_) : type(UNION), union_(union_) {}
     QueryASTNode(Inversion inversion) : type(INVERSION), inversion(inversion) {}
     QueryASTNode(Type type) : type(type) {}
-    QueryASTNode(const char* label) : type(LABEL), label(label) {}
+    QueryASTNode(const char* label) : type(LABEL), labels(label) {}
+    QueryASTNode(const char* label, const char* oppLabel) : type(LABEL), labels(label, oppLabel) {}
     QueryASTNode(ContextQualifier contextQualifier) : type(CONTEXT_QUALIFIER), contextQualifier(contextQualifier) {}
     QueryASTNode(DamageRange damageRange) : type(DAMAGE_RANGE), damageRange(damageRange) {}
     ~QueryASTNode() {}
@@ -83,6 +91,7 @@ public:
     static QueryASTNode* newInversion(QueryASTNode* child);
     static QueryASTNode* newWildcard();
     static QueryASTNode* newLabel(const char* label);
+    static QueryASTNode* newLabel(const char* label, const char* oppLabel);
     static QueryASTNode* newContextQualifier(QueryASTNode* child, uint8_t contextQualifierFlags);
     static QueryASTNode* newDamageRange(QueryASTNode* child, int lower, int upper);
 
@@ -96,7 +105,7 @@ public:
         Repitition repitition;
         Union union_;
         Inversion inversion;
-        rfcommon::SmallString<7> label;
+        Labels labels;
         ContextQualifier contextQualifier;
         DamageRange damageRange;
     };

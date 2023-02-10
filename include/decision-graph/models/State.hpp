@@ -15,13 +15,16 @@ public:
             const SideData& sideData,
             rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
+            rfcommon::FighterMotion oppMotion,
+            rfcommon::FighterStatus oppStatus,
             bool inHitlag, bool inHitstun, bool inShieldlag,
-            bool opponentInHitlag, bool opponentInHitstun,
-            bool opponentInShieldlag)
+            bool oppInHitlag, bool oppInHitstun, bool oppInShieldlag)
         : motion(motion)
+        , oppMotion(oppMotion)
         , sideData(sideData)
         , status(status)
-        , flags(makeFlags(inHitlag, inHitstun, inShieldlag, opponentInHitlag, opponentInHitstun, opponentInShieldlag))
+        , oppStatus(oppStatus)
+        , flags(makeFlags(inHitlag, inHitstun, inShieldlag, oppInHitlag, oppInHitstun, oppInShieldlag))
     {}
 
     // We only hash motion, status and flags, and NOT timings/position/shield/damage,
@@ -92,8 +95,10 @@ public:
     };
 
     const rfcommon::FighterMotion motion;        // u64
+    const rfcommon::FighterMotion oppMotion;     // u64
     const SideData sideData;                     // f32, f32, f32, f32, u32
     const rfcommon::FighterStatus status;        // u16
+    const rfcommon::FighterStatus oppStatus;     // u16
     uint8_t flags;                               // u8
 
 private:
