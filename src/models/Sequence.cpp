@@ -1,5 +1,5 @@
 #include "decision-graph/models/Sequence.hpp"
-#include "decision-graph/models/LabelMapper.hpp"
+#include "rfcommon/MotionLabels.hpp"
 
 // ----------------------------------------------------------------------------
 States::States(rfcommon::FighterID fighterID)
@@ -18,7 +18,7 @@ Sequence::Sequence() {}
 Sequence::~Sequence() {}
 
 // ----------------------------------------------------------------------------
-rfcommon::String toString(const States& states, const Range& range, LabelMapper* labels)
+rfcommon::String toString(const States& states, const Range& range, rfcommon::MotionLabels* labels)
 {
     rfcommon::String result;
     for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
@@ -29,7 +29,7 @@ rfcommon::String toString(const States& states, const Range& range, LabelMapper*
         if (state.inHitlag() || state.inHitstun())
             label = "disadv";
         else
-            label = labels->bestEffortStringHighestLayer(states.fighterID, state.motion);
+            label = labels->toPreferredNotation(states.fighterID, state.motion);
 
         if (state.opponentInShieldlag())
             label += " os";
@@ -44,7 +44,7 @@ rfcommon::String toString(const States& states, const Range& range, LabelMapper*
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::String toString(const States& states, const Sequence& seq, LabelMapper* labels)
+rfcommon::String toString(const States& states, const Sequence& seq, rfcommon::MotionLabels* labels)
 {
     rfcommon::String result;
     for (int stateIdx : seq.idxs)
@@ -55,7 +55,7 @@ rfcommon::String toString(const States& states, const Sequence& seq, LabelMapper
         if (state.inHitlag() || state.inHitstun())
             label = "disadv";
         else
-            label = labels->bestEffortStringHighestLayer(states.fighterID, state.motion);
+            label = labels->toPreferredNotation(states.fighterID, state.motion);
 
         if (state.opponentInShieldlag())
             label += " os";

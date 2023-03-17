@@ -5,6 +5,10 @@
 #include <QWidget>
 #include <memory>
 
+namespace rfcommon {
+    class MotionLabels;
+}
+
 // Forward declare the class created by Qt designer
 namespace Ui {
     class SequenceSearchView;
@@ -15,7 +19,6 @@ class QLineEdit;
 class QToolButton;
 
 class GraphModel;
-class LabelMapper;
 class SequenceSearchModel;
 class SessionSettingsModel;
 
@@ -30,7 +33,7 @@ public:
             SequenceSearchModel* model,
             SessionSettingsModel* sessionSettings,
             GraphModel* graphModel,
-            LabelMapper* labels,
+            rfcommon::MotionLabels* labels,
             QWidget* parent=nullptr);
     ~SequenceSearchView();
 

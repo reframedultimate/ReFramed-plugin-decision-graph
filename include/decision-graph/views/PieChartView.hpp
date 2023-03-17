@@ -4,12 +4,14 @@
 #include <QWidget>
 
 class SequenceSearchModel;
-class LabelMapper;
 
 class QStackedWidget;
-
 class QwtPlot;
 class QwtPlotMultiBarChart;
+
+namespace rfcommon {
+    class MotionLabels;
+}
 
 namespace QtCharts {
     class QPieSeries;
@@ -25,7 +27,7 @@ class PieChartView
         , public SequenceSearchListener
 {
 public:
-    explicit PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent=nullptr);
+    explicit PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent=nullptr);
     ~PieChartView();
 
 private:
@@ -43,7 +45,7 @@ private:
 
 private:
     SequenceSearchModel* model_;
-    LabelMapper* labels_;
+    rfcommon::MotionLabels* labels_;
     QStackedWidget* pieStack_;
 
     QtCharts::QPieSeries* pieIncomingSeries_;

@@ -3,15 +3,18 @@
 #include "decision-graph/listeners/SequenceSearchListener.hpp"
 #include <QWidget>
 
-class LabelMapper;
 class SequenceSearchModel;
+
+namespace rfcommon {
+    class MotionLabels;
+}
 
 class ShieldHealthView
         : public QWidget
         , public SequenceSearchListener
 {
 public:
-    explicit ShieldHealthView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent=nullptr);
+    explicit ShieldHealthView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent=nullptr);
     ~ShieldHealthView();
 
 private:
@@ -24,5 +27,5 @@ private:
 
 private:
     SequenceSearchModel* model_;
-    LabelMapper* labels_;
+    rfcommon::MotionLabels* labels_;
 };

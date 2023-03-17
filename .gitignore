@@ -1,3 +1,6 @@
 /build*
+/out
+/CMakeSettings.json
+/.vs
 *.swp
 *.txt.user

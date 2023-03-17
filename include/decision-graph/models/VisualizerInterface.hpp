@@ -10,22 +10,22 @@ extern "C" {
 }
 
 namespace rfcommon {
-    class VisualizerContext;
+    class PluginContext;
 }
 
 class VisualizerModel
-        : public rfcommon::Plugin::VisualizerInterface
+        : public rfcommon::Plugin::SharedDataInterface
         , public SequenceSearchListener
 {
 public:
-    VisualizerModel(SequenceSearchModel* seqSearchModel, rfcommon::VisualizerContext* visCtx, RFPluginFactory* factory);
+    VisualizerModel(SequenceSearchModel* seqSearchModel, rfcommon::PluginContext* pluginCtx, RFPluginFactory* factory);
     ~VisualizerModel();
 
 private:
     void updateData();
 
 private:
-    void onVisualizerDataChanged() override;
+    void onSharedDataChanged() override;
 
 private:
     void onCurrentFighterChanged() override;

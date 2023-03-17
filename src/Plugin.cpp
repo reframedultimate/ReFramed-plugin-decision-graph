@@ -5,12 +5,11 @@
 // Gets called when the main application wants to create your plugin
 static rfcommon::Plugin* createDecisionGraphPlugin(
         RFPluginFactory* factory,
-        rfcommon::VisualizerContext* visCtx,
+        rfcommon::PluginContext* pluginCtx,
         rfcommon::Log* log,
-        rfcommon::UserMotionLabels* userLabels,
-        rfcommon::Hash40Strings* hash40Strings)
+        rfcommon::MotionLabels* labels)
 {
-    return new DecisionGraphPlugin(factory, visCtx, userLabels, hash40Strings);
+    return new DecisionGraphPlugin(factory, pluginCtx, labels);
 }
 
 // Gets called when the main application removes your plugin from its

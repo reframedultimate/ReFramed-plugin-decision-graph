@@ -2,7 +2,7 @@
 #include "decision-graph/models/SequenceSearchModel.hpp"
 
 // ----------------------------------------------------------------------------
-ShieldHealthView::ShieldHealthView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent)
+ShieldHealthView::ShieldHealthView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent)
     : QWidget(parent)
     , model_(model)
     , labels_(labels)

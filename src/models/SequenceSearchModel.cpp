@@ -2,19 +2,20 @@
 #include "decision-graph/parsers/QueryASTNode.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
+
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/hash40.hpp"
 #include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/Metadata.hpp"
+#include "rfcommon/MotionLabels.hpp"
 #include "rfcommon/Session.hpp"
 
-#include "decision-graph/models/LabelMapper.hpp"
 #include <cstdio>
 
 // ----------------------------------------------------------------------------
-SequenceSearchModel::SequenceSearchModel(const LabelMapper* labelMapper)
-    : labelMapper_(labelMapper)
+SequenceSearchModel::SequenceSearchModel(const rfcommon::MotionLabels* labels)
+    : labels_(labels)
     , previousFighterID_(rfcommon::FighterID::makeInvalid())
 {}
 
@@ -346,14 +347,14 @@ void SequenceSearchModel::compileQuery(int queryIdx)
     ast->exportDOT("query-ast.dot");
 
     const auto fighterID = fighters_[currentFighterIdx_].states.fighterID;
-    auto query = Query::compileAST(ast, labelMapper_, fighterID);
+    auto query = Query::compileAST(ast, labels_, fighterID);
     QueryASTNode::destroyRecurse(ast);
     if (query == nullptr)
     {
         queryError_ = "Compile error";
         return;
     }
-    query->exportDOT("query.dot", labelMapper_, fighterID);
+    query->exportDOT("query.dot", labels_, fighterID);
 
     queries_[queryIdx].reset(query);
     dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled, queryIdx);
@@ -388,9 +389,15 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
     results.mergedMatches = query.mergeMotions(states, results.matches);
     results.mergedAndNormalizedMatches = query.normalizeMotions(states, results.mergedMatches);
     results.graph = Graph::fromSequences(states, results.mergedAndNormalizedMatches);
-    Graph::fromSequences(states, results.mergedMatches).exportDOT("decision_graph_search.dot", fighters_[currentFighterIdx_].states, labelMapper_);
+    Graph::fromSequences(states, results.mergedMatches).exportDOT("decision_graph_search.dot", fighters_[currentFighterIdx_].states, labels_);
 
 #ifndef NDEBUG
+    auto toHash40OrHex = [this](rfcommon::FighterMotion motion) -> rfcommon::String {
+        if (const char* h40 = labels_->lookupHash40(motion))
+            return h40;
+        return motion.toHex();
+    };
+
     printf("\nresults.matches:\n");
     for (const auto& range : results.matches)
     {
@@ -399,7 +406,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
         {
             if (i != range.startIdx)
                 printf(" -> ");
-            printf("0x%lx (%s)", states[i].motion.value(), labelMapper_->hash40StringOrHex(states[i].motion).cStr());
+            printf("0x%lx (%s)", states[i].motion.value(), toHash40OrHex(states[i].motion).cStr());
         }
         printf("\n");
     }
@@ -412,7 +419,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+            printf("0x%lx (%s)", states[idx].motion.value(), toHash40OrHex(states[idx].motion).cStr());
         }
         printf("\n");
     }
@@ -425,7 +432,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", states[idx].motion.value(), labelMapper_->hash40StringOrHex(states[idx].motion).cStr());
+            printf("0x%lx (%s)", states[idx].motion.value(), toHash40OrHex(states[idx].motion).cStr());
         }
         printf("\n");
     }

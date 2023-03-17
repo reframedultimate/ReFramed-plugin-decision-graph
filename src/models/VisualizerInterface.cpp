@@ -1,10 +1,11 @@
 #include "decision-graph/models/VisualizerInterface.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
-#include "rfcommon/VisualizerData.hpp"
+
+#include "rfcommon/PluginSharedData.hpp"
 
 // ----------------------------------------------------------------------------
-VisualizerModel::VisualizerModel(SequenceSearchModel* seqSearchModel, rfcommon::VisualizerContext* visCtx, RFPluginFactory* factory)
-    : VisualizerInterface(visCtx, factory)
+VisualizerModel::VisualizerModel(SequenceSearchModel* seqSearchModel, rfcommon::PluginContext* pluginCtx, RFPluginFactory* factory)
+    : SharedDataInterface(pluginCtx, factory)
     , seqSearchModel_(seqSearchModel)
 {
     seqSearchModel_->dispatcher.addListener(this);
@@ -19,11 +20,11 @@ VisualizerModel::~VisualizerModel()
 // ----------------------------------------------------------------------------
 void VisualizerModel::updateData()
 {
-    rfcommon::VisualizerData data;
+    rfcommon::PluginSharedData data;
     const auto& states = seqSearchModel_->fighterStates(seqSearchModel_->currentFighter());
     for (int queryIdx = 0; queryIdx != seqSearchModel_->queryCount(); ++queryIdx)
     {
-        rfcommon::Vector<rfcommon::VisualizerData::TimeInterval> timeIntervals;
+        rfcommon::Vector<rfcommon::PluginSharedData::TimeInterval> timeIntervals;
         for (const auto range : seqSearchModel_->matches(queryIdx))
         {
             assert(range.startIdx != range.endIdx);
@@ -34,12 +35,11 @@ void VisualizerModel::updateData()
         }
         data.timeIntervalSets.insertAlways(seqSearchModel_->queryStr(queryIdx), std::move(timeIntervals));
     }
-    setVisualizerData(std::move(data));
+    setSharedData(std::move(data));
 }
 
 // ----------------------------------------------------------------------------
-void VisualizerModel::onVisualizerDataChanged()
-{}
+void VisualizerModel::onSharedDataChanged() {}
 
 // ----------------------------------------------------------------------------
 void VisualizerModel::onCurrentFighterChanged() { updateData(); }

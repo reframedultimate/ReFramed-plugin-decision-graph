@@ -1,23 +1,23 @@
 #include "decision-graph/DecisionGraphPlugin.hpp"
 #include "decision-graph/views/SequenceSearchView.hpp"
 #include "decision-graph/models/GraphModel.hpp"
-#include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/SessionSettingsModel.hpp"
 #include "decision-graph/models/VisualizerInterface.hpp"
+
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/HighresTimer.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
-DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::VisualizerContext* visCtx, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings)
+DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::PluginContext* pluginCtx, rfcommon::MotionLabels* labels)
     : Plugin(factory)
-    , labelMapper_(new LabelMapper(userLabels, hash40Strings))
     , graphModel_(new GraphModel)
-    , seqSearchModel_(new SequenceSearchModel(labelMapper_.get()))
+    , seqSearchModel_(new SequenceSearchModel(labels))
     , sessionSettings_(new SessionSettingsModel)
-    , visualizerModel_(new VisualizerModel(seqSearchModel_.get(), visCtx, factory))
+    , visualizerModel_(new VisualizerModel(seqSearchModel_.get(), pluginCtx, factory))
+    , labels_(labels)
 {
     sessionSettings_->dispatcher.addListener(this);
 }
@@ -32,14 +32,14 @@ DecisionGraphPlugin::~DecisionGraphPlugin()
 rfcommon::Plugin::UIInterface* DecisionGraphPlugin::uiInterface() { return this; }
 rfcommon::Plugin::RealtimeInterface* DecisionGraphPlugin::realtimeInterface() { return this; }
 rfcommon::Plugin::ReplayInterface* DecisionGraphPlugin::replayInterface() { return this; }
-rfcommon::Plugin::VisualizerInterface* DecisionGraphPlugin::visualizerInterface() { return visualizerModel_.get(); }
+rfcommon::Plugin::SharedDataInterface* DecisionGraphPlugin::sharedInterface() { return visualizerModel_.get(); }
 rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterface() { return nullptr; }
 
 // ----------------------------------------------------------------------------
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(seqSearchModel_.get(), sessionSettings_.get(), graphModel_.get(), labelMapper_.get());
+    return new SequenceSearchView(seqSearchModel_.get(), sessionSettings_.get(), graphModel_.get(), labels_);
 }
 
 // ----------------------------------------------------------------------------
@@ -194,25 +194,19 @@ void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, in
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraphPlugin::onUserMotionLabelsLayerAdded(int layerIdx, const char* name)
-{
-    seqSearchModel_->applyAllQueries();
-}
-void DecisionGraphPlugin::onUserMotionLabelsLayerRemoved(int layerIdx, const char* name)
-{
-    seqSearchModel_->applyAllQueries();
-}
-void DecisionGraphPlugin::onUserMotionLabelsNewEntry(rfcommon::FighterID fighterID, int entryIdx)
-{
-    seqSearchModel_->applyAllQueries();
-}
-void DecisionGraphPlugin::onUserMotionLabelsUserLabelChanged(rfcommon::FighterID fighterID, int entryIdx, const char* oldLabel, const char* newLabel)
-{
-    seqSearchModel_->applyAllQueries();
-}
-void DecisionGraphPlugin::onUserMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int entryIdx, rfcommon::UserMotionLabelsCategory oldCategory, rfcommon::UserMotionLabelsCategory newCategory)
-{
-}
+void DecisionGraphPlugin::onMotionLabelsLoaded() { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsHash40sUpdated() { seqSearchModel_->applyAllQueries(); }
+
+void DecisionGraphPlugin::onMotionLabelsLayerInserted(int layerIdx) { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx) { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsLayerNameChanged(int layerIdx) {}
+void DecisionGraphPlugin::onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage) {}
+void DecisionGraphPlugin::onMotionLabelsLayerMoved(int fromIdx, int toIdx) { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsLayerMerged(int layerIdx) { seqSearchModel_->applyAllQueries(); }
+
+void DecisionGraphPlugin::onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsLabelChanged(rfcommon::FighterID fighterID, int row, int layerIdx) { seqSearchModel_->applyAllQueries(); }
+void DecisionGraphPlugin::onMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int row, int oldCategory) {}
 
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame)

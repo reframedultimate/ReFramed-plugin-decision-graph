@@ -5,7 +5,7 @@
 #include "rfcommon/ListenerDispatcher.hpp"
 #include "rfcommon/FrameDataListener.hpp"
 #include "rfcommon/Reference.hpp"
-#include "rfcommon/UserMotionLabelsListener.hpp"
+#include "rfcommon/MotionLabelsListener.hpp"
 #include <memory>
 
 class GraphModel;
@@ -15,8 +15,7 @@ class SessionSettingsModel;
 class VisualizerModel;
 
 namespace rfcommon {
-    class UserMotionLabels;
-    class Hash40Strings;
+    class MotionLabels;
 }
 
 class DecisionGraphPlugin
@@ -24,12 +23,12 @@ class DecisionGraphPlugin
         , public rfcommon::Plugin::UIInterface
         , public rfcommon::Plugin::RealtimeInterface
         , public rfcommon::Plugin::ReplayInterface
-        , public rfcommon::UserMotionLabelsListener
+        , public rfcommon::MotionLabelsListener
         , public rfcommon::FrameDataListener
         , public SessionSettingsListener
 {
 public:
-    DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::VisualizerContext* visCtx, rfcommon::UserMotionLabels* userLabels, rfcommon::Hash40Strings* hash40Strings);
+    DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::PluginContext* pluginCtx, rfcommon::MotionLabels* labels);
     ~DecisionGraphPlugin();
 
 private:
@@ -51,7 +50,7 @@ private:
 private:
     Plugin::UIInterface* uiInterface() override final;
     Plugin::ReplayInterface* replayInterface() override final;
-    Plugin::VisualizerInterface* visualizerInterface() override final;
+    Plugin::SharedDataInterface* sharedInterface() override final;
     Plugin::RealtimeInterface* realtimeInterface() override final;
     Plugin::VideoPlayerInterface* videoPlayerInterface() override final;
 
@@ -79,12 +78,19 @@ private:
     void onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) override final;
 
 private:
-    void onUserMotionLabelsLayerAdded(int layerIdx, const char* name) override final;
-    void onUserMotionLabelsLayerRemoved(int layerIdx, const char* name) override final;
+    void onMotionLabelsLoaded() override;
+    void onMotionLabelsHash40sUpdated() override;
 
-    void onUserMotionLabelsNewEntry(rfcommon::FighterID fighterID, int entryIdx) override final;
-    void onUserMotionLabelsUserLabelChanged(rfcommon::FighterID fighterID, int entryIdx, const char* oldLabel, const char* newLabel) override final;
-    void onUserMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int entryIdx, rfcommon::UserMotionLabelsCategory oldCategory, rfcommon::UserMotionLabelsCategory newCategory) override final;
+    void onMotionLabelsLayerInserted(int layerIdx) override;
+    void onMotionLabelsLayerRemoved(int layerIdx) override;
+    void onMotionLabelsLayerNameChanged(int layerIdx) override;
+    void onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage) override;
+    void onMotionLabelsLayerMoved(int fromIdx, int toIdx) override;
+    void onMotionLabelsLayerMerged(int layerIdx) override;
+
+    void onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) override;
+    void onMotionLabelsLabelChanged(rfcommon::FighterID fighterID, int row, int layerIdx) override;
+    void onMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int row, int oldCategory) override;
 
 private:
     void onFrameDataNewUniqueFrame(int frameIdx, const rfcommon::Frame<4>& frame) override final;
@@ -95,12 +101,12 @@ private:
     void onClearPreviousSessions() override final;
 
 private:
-    std::unique_ptr<LabelMapper> labelMapper_;
     std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
     std::unique_ptr<SessionSettingsModel> sessionSettings_;
     std::unique_ptr<VisualizerModel> visualizerModel_;
     rfcommon::Reference<rfcommon::Session> activeSession_;
+    rfcommon::MotionLabels* labels_;
     int noNotifyFrames_ = 0;
 
     enum State

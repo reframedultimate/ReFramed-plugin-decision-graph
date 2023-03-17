@@ -1,8 +1,8 @@
 #include "decision-graph/models/Graph.hpp"
-#include "decision-graph/models/LabelMapper.hpp"
 
 #include "rfcommon/Frame.hpp"
 #include "rfcommon/MappingInfo.hpp"
+#include "rfcommon/MotionLabels.hpp"
 
 #include <cstdio>
 #include <cinttypes>
@@ -463,7 +463,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportDOT(const char* fileName, const States& states, const LabelMapper* labels) const
+void Graph::exportDOT(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const
 {
     FILE* fp = fopen(fileName, "wb");
     if (fp == nullptr)
@@ -512,7 +512,7 @@ void Graph::exportDOT(const char* fileName, const States& states, const LabelMap
         fprintf(fp, "  n%d [shape=record,color=\"%f 1.0 1.0\",label=\"{ %s %s }\"];\n",
             nodeIdx,
             hue(accIncomingWeights(nodeIdx)),
-            labels->bestEffortStringAllLayers(states.fighterID, state.motion).cStr(),
+            labels->toPreferredNotation(states.fighterID, state.motion),
             flags.cStr());
     }
 
@@ -530,7 +530,7 @@ void Graph::exportDOT(const char* fileName, const States& states, const LabelMap
 }
 
 // ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, const States& states, const LabelMapper* labels) const
+void Graph::exportOGDFSVG(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const
 {
     ogdf::Graph G;
     ogdf::GraphAttributes GA(G,
@@ -547,7 +547,7 @@ void Graph::exportOGDFSVG(const char* fileName, const States& states, const Labe
     {
         const State& state = states[node.stateIdx];
         ogdf::node N = G.newNode();
-        GA.label(N) = labels->bestEffortStringAllLayers(states.fighterID, state.motion).cStr();
+        GA.label(N) = labels->toPreferredNotation(states.fighterID, state.motion);
         GA.width(N) = 250;
         GA.height(N) = 20;
         ogdfNodes.push(N);

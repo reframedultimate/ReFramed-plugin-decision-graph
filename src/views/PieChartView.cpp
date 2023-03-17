@@ -1,6 +1,5 @@
 #include "decision-graph/views/PieChartView.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
-#include "decision-graph/models/LabelMapper.hpp"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,7 +17,7 @@
 #include "qwt_math.h"
 
 // ----------------------------------------------------------------------------
-PieChartView::PieChartView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent)
+PieChartView::PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent)
     : model_(model)
     , labels_(labels)
     , pieStack_(new QStackedWidget)

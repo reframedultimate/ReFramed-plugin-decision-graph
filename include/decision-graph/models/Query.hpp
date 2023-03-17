@@ -93,11 +93,11 @@ class Query
 {
 public:
     static QueryASTNode* parse(const char* text);
-    static Query* compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfcommon::FighterID fighterID);
+    static Query* compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);
     rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
     rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
     rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;
-    void exportDOT(const char* filename, const LabelMapper* labels, rfcommon::FighterID fighterID);
+    void exportDOT(const char* filename, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);
 
 private:
     friend class QueryBuilder;

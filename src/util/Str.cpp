@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------
 char* StrDup(const char* s)
 {
-    const int len = strlen(s);
+    int len = (int)strlen(s);
     char* dup = (char*)malloc(len + 1);
     strcpy(dup, s);
     return dup;

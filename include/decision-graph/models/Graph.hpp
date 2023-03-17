@@ -3,6 +3,7 @@
 #include "decision-graph/models/Edge.hpp"
 #include "decision-graph/models/Node.hpp"
 #include "decision-graph/models/Sequence.hpp"
+
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/FighterID.hpp"
 
@@ -59,8 +60,8 @@ public:
 
     rfcommon::Vector<UniqueSequence> treeToUniqueIncomingSequences() const;
 
-    void exportDOT(const char* fileName, const States& states, const LabelMapper* labels) const;
-    void exportOGDFSVG(const char* fileName, const States& states, const LabelMapper* labels) const;
+    void exportDOT(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const;
+    void exportOGDFSVG(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const;
 
     rfcommon::Vector<Node> nodes;
     rfcommon::Vector<Edge> edges;

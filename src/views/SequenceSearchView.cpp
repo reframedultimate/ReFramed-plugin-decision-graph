@@ -45,7 +45,7 @@ SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
         SessionSettingsModel* sessionSettings,
         GraphModel* graphModel,
-        LabelMapper* labels,
+        rfcommon::MotionLabels* labels,
         QWidget* parent)
     : QWidget(parent)
     , model_(model)

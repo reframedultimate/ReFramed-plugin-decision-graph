@@ -1,9 +1,11 @@
-#include "decision-graph/models/LabelMapper.hpp"
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/parsers/QueryParser.y.hpp"
 #include "decision-graph/parsers/QueryScanner.lex.hpp"
 #include "decision-graph/parsers/QueryASTNode.hpp"
+
 #include "rfcommon/HashMap.hpp"
+#include "rfcommon/MotionLabels.hpp"
+
 #include <cstdio>
 #include <cinttypes>
 #include <memory>
@@ -183,7 +185,7 @@ static Fragment duplicateFragment(const Fragment& f, rfcommon::Vector<Matcher>* 
 // ----------------------------------------------------------------------------
 static bool compileASTRecurse(
         const QueryASTNode* node,
-        const LabelMapper* labels,
+        const rfcommon::MotionLabels* labels,
         rfcommon::FighterID fighterID,
         rfcommon::Vector<Matcher>* matchers,
         rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>>* mergeMotions,
@@ -354,7 +356,7 @@ static bool compileASTRecurse(
 
         // Assume label is a user label and maps to one or more motion
         // values
-        auto motions = labels->matchUserLabels(fighterID, node->labels.label.cStr());
+        auto motions = labels->toMotions(fighterID, node->labels.label.cStr());
         if (motions.count() > 0)
         {
             Fragment& fragment = fstack->emplace();
@@ -380,9 +382,9 @@ static bool compileASTRecurse(
             break;
         }
 
-        // Assume label is actually a label and maps to a single motion
+        // Assume label is actually a hash40 string and maps to a single motion
         // value
-        auto motion = labels->matchKnownHash40(node->labels.label.cStr());
+        auto motion = labels->toMotion(node->labels.label.cStr());
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
@@ -419,7 +421,7 @@ static bool compileASTRecurse(
 }
 
 // ----------------------------------------------------------------------------
-Query* Query::compileAST(const QueryASTNode* ast, const LabelMapper* labels, rfcommon::FighterID fighterID)
+Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID)
 {
     std::unique_ptr<Query> query(new Query);
     query->matchers_.push(Matcher::start());
@@ -641,17 +643,23 @@ rfcommon::Vector<Sequence> Query::normalizeMotions(const States& states, const r
 }
 
 // ----------------------------------------------------------------------------
-void Query::exportDOT(const char* filename, const LabelMapper* labels, rfcommon::FighterID fighterID)
+void Query::exportDOT(const char* filename, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID)
 {
     FILE* fp = fopen(filename, "w");
     fprintf(fp, "digraph query {\n");
+
+    auto toHash40OrHex = [labels](rfcommon::FighterMotion motion) -> rfcommon::String {
+        if (const char* h40 = labels->lookupHash40(motion))
+            return h40;
+        return motion.toHex();
+    };
 
     for (int i = 0; i != matchers_.count(); ++i)
     {
         rfcommon::String label =
                 i == 0 ? "start" :
                 matchers_[i].isWildcard() ? "." :
-                labels->hash40StringOrHex(matchers_[i].motion_);
+                toHash40OrHex(matchers_[i].motion_);
         const char* color = matchers_[i].isAcceptCondition() ? "red" : "black";
         fprintf(fp, "m%d [shape=\"record\",color=\"%s\",label=\"%s", i, color, label.cStr());
 

@@ -138,9 +138,6 @@ label
 pre_qual
   : pre_qual '|' pre_qual         { $$ = $1; $$ |= $3; }
   | '(' pre_qual ')'              { $$ = $2; }
-  | FH                            { $$ = QueryASTNode::FH; }
-  | SH                            { $$ = QueryASTNode::SH; }
-  | DJ                            { $$ = QueryASTNode::DJ; }
   | IDJ                           { $$ = QueryASTNode::IDJ; }
   | FALLING                       { $$ = QueryASTNode::FALLING; }
   | RISING                        { $$ = QueryASTNode::RISING; }

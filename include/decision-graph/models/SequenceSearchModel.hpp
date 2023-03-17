@@ -2,11 +2,13 @@
 
 #include "decision-graph/models/Sequence.hpp"
 #include "decision-graph/models/Graph.hpp"
-#include "rfcommon/Vector.hpp"
-#include "rfcommon/Reference.hpp"
+
 #include "rfcommon/FrameDataListener.hpp"
 #include "rfcommon/ListenerDispatcher.hpp"
 #include "rfcommon/MetadataListener.hpp"
+#include "rfcommon/Reference.hpp"
+#include "rfcommon/Vector.hpp"
+
 #include <memory>
 
 class Query;
@@ -16,12 +18,13 @@ namespace rfcommon {
     class FrameData;
     class MappingInfo;
     class Metadata;
+    class MotionLabels;
 }
 
 class SequenceSearchModel
 {
 public:
-    SequenceSearchModel(const LabelMapper* labelMapper);
+    SequenceSearchModel(const rfcommon::MotionLabels* labels);
 
     int sessionCount() const;
     void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata);
@@ -68,7 +71,7 @@ private:
     bool applyQueryNoNotify(int queryIdx);
 
 private:
-    const LabelMapper* const labelMapper_;
+    const rfcommon::MotionLabels* const labels_;
 
     struct Session
     {

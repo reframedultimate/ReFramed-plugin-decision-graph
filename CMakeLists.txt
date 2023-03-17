@@ -17,7 +17,6 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
     SOURCES
         "src/models/Graph.cpp"
         "src/models/GraphModel.cpp"
-        "src/models/LabelMapper.cpp"
         "src/models/Query.cpp"
         "src/models/Sequence.cpp"
         "src/models/SequenceSearchModel.cpp"
@@ -44,7 +43,6 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include/${PLUGIN_NAME}/models/Edge.hpp"
         "include/${PLUGIN_NAME}/models/Graph.hpp"
         "include/${PLUGIN_NAME}/models/GraphModel.hpp"
-        "include/${PLUGIN_NAME}/models/LabelMapper.hpp"
         "include/${PLUGIN_NAME}/models/Node.hpp"
         "include/${PLUGIN_NAME}/models/Query.hpp"
         "include/${PLUGIN_NAME}/models/Sequence.hpp"

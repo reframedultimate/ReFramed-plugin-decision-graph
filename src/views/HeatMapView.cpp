@@ -2,7 +2,7 @@
 #include "decision-graph/models/SequenceSearchModel.hpp"
 
 // ----------------------------------------------------------------------------
-HeatMapView::HeatMapView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent)
+HeatMapView::HeatMapView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent)
     : QWidget(parent)
     , model_(model)
     , labels_(labels)

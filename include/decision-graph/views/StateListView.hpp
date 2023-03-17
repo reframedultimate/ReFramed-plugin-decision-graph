@@ -3,7 +3,10 @@
 #include "decision-graph/listeners/SequenceSearchListener.hpp"
 #include <QWidget>
 
-class LabelMapper;
+namespace rfcommon {
+    class MotionLabels;
+}
+
 class SequenceSearchModel;
 
 class StateListView
@@ -11,7 +14,7 @@ class StateListView
         , public SequenceSearchListener
 {
 public:
-    explicit StateListView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent=nullptr);
+    explicit StateListView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent=nullptr);
     ~StateListView();
 
 private:
@@ -24,5 +27,5 @@ private:
 
 private:
     SequenceSearchModel* model_;
-    LabelMapper* labels_;
+    rfcommon::MotionLabels* labels_;
 };

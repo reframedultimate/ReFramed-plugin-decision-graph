@@ -3,18 +3,21 @@
 #include "decision-graph/listeners/SequenceSearchListener.hpp"
 #include <QWidget>
 
-class LabelMapper;
 class SequenceSearchModel;
 
 class QwtPlot;
 class QwtPlotHistogram;
+
+namespace rfcommon {
+    class MotionLabels;
+}
 
 class TimingsView
         : public QWidget
         , public SequenceSearchListener
 {
 public:
-    explicit TimingsView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent=nullptr);
+    explicit TimingsView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent=nullptr);
     ~TimingsView();
 
 private:
@@ -27,7 +30,7 @@ private:
 
 private:
     SequenceSearchModel* model_;
-    LabelMapper* labels_;
+    rfcommon::MotionLabels* labels_;
     QwtPlot* relativePlot_;
     QwtPlotHistogram* relativeData_;
 };

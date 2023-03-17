@@ -7,7 +7,7 @@
 #include <QVBoxLayout>
 
 // ----------------------------------------------------------------------------
-TimingsView::TimingsView(SequenceSearchModel* model, LabelMapper* labels, QWidget* parent)
+TimingsView::TimingsView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent)
     : QWidget(parent)
     , model_(model)
     , labels_(labels)
