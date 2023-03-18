@@ -8,8 +8,8 @@ States::States(rfcommon::FighterID fighterID)
 States::~States() {}
 
 // ----------------------------------------------------------------------------
-Range::Range(int startIdx, int endIdx) 
-    : startIdx(startIdx), endIdx(endIdx) 
+Range::Range(int startIdx, int endIdx)
+    : startIdx(startIdx), endIdx(endIdx)
 {}
 Range::~Range() {}
 
@@ -18,7 +18,17 @@ Sequence::Sequence() {}
 Sequence::~Sequence() {}
 
 // ----------------------------------------------------------------------------
-rfcommon::String toString(const States& states, const Range& range, rfcommon::MotionLabels* labels)
+rfcommon::String toNotationFallback(rfcommon::FighterID fighterID, rfcommon::FighterMotion motion, const rfcommon::MotionLabels* labels)
+{
+    if (const char* l = labels->toPreferredNotation(fighterID, motion))
+        return l;
+    if (const char* h40 = labels->lookupHash40(motion))
+        return h40;
+    return motion.toHex();
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::String toString(const States& states, const Range& range, const rfcommon::MotionLabels* labels)
 {
     rfcommon::String result;
     for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
@@ -29,7 +39,7 @@ rfcommon::String toString(const States& states, const Range& range, rfcommon::Mo
         if (state.inHitlag() || state.inHitstun())
             label = "disadv";
         else
-            label = labels->toPreferredNotation(states.fighterID, state.motion);
+            label = toNotationFallback(states.fighterID, state.motion, labels);
 
         if (state.opponentInShieldlag())
             label += " os";
@@ -55,7 +65,7 @@ rfcommon::String toString(const States& states, const Sequence& seq, rfcommon::M
         if (state.inHitlag() || state.inHitstun())
             label = "disadv";
         else
-            label = labels->toPreferredNotation(states.fighterID, state.motion);
+            label = toNotationFallback(states.fighterID, state.motion, labels);
 
         if (state.opponentInShieldlag())
             label += " os";

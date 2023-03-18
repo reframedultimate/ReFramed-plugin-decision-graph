@@ -8,6 +8,7 @@
 
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/HighresTimer.hpp"
+#include "rfcommon/MotionLabels.hpp"
 #include "rfcommon/Session.hpp"
 
 // ----------------------------------------------------------------------------
@@ -20,11 +21,13 @@ DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::Plu
     , labels_(labels)
 {
     sessionSettings_->dispatcher.addListener(this);
+    labels_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::~DecisionGraphPlugin()
 {
+    labels_->dispatcher.removeListener(this);
     sessionSettings_->dispatcher.removeListener(this);
 }
 
@@ -57,7 +60,7 @@ void DecisionGraphPlugin::onProtocolDisconnectedFromServer() {}
 
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
-{ 
+{
     if (state_ != TRAINING)
         seqSearchModel_->clearAll();
     state_ = TRAINING;
@@ -68,7 +71,7 @@ void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
     activeSession_ = training;
     activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
-void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training) 
+void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training)
 {
     if (state_ != TRAINING)
         seqSearchModel_->clearAll();
@@ -112,7 +115,7 @@ void DecisionGraphPlugin::onProtocolGameStarted(rfcommon::Session* game)
     activeSession_ = game;
     activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
-void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game) 
+void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game)
 {
     if (state_ != GAME)
         seqSearchModel_->clearAll();
@@ -126,7 +129,7 @@ void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game)
     activeSession_ = game;
     activeSession_->tryGetFrameData()->dispatcher.addListener(this);
 }
-void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game) 
+void DecisionGraphPlugin::onProtocolGameEnded(rfcommon::Session* game)
 {
     assert(activeSession_.notNull());
     activeSession_->tryGetFrameData()->dispatcher.removeListener(this);
@@ -153,7 +156,7 @@ void DecisionGraphPlugin::onGameSessionUnloaded(rfcommon::Session* game)
     seqSearchModel_->clearAll();
     state_ = NONE;
 }
-void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training) 
+void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training)
 {
     seqSearchModel_->clearAll();
     if (auto map = training->tryGetMappingInfo())
@@ -167,12 +170,12 @@ void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training)
 
     state_ = REPLAY;
 }
-void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training) 
+void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training)
 {
     seqSearchModel_->clearAll();
     state_ = NONE;
 }
-void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int numGames) 
+void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int numGames)
 {
     seqSearchModel_->clearAll();
     for (int i = 0; i != numGames; ++i)
@@ -187,7 +190,7 @@ void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int 
 
     state_ = REPLAY;
 }
-void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames) 
+void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames)
 {
     seqSearchModel_->clearAll();
     state_ = NONE;
@@ -196,6 +199,8 @@ void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, in
 // ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onMotionLabelsLoaded() { seqSearchModel_->applyAllQueries(); }
 void DecisionGraphPlugin::onMotionLabelsHash40sUpdated() { seqSearchModel_->applyAllQueries(); }
+
+void DecisionGraphPlugin::onMotionLabelsPreferredLayerChanged(int usage) { seqSearchModel_->applyAllQueries(); }
 
 void DecisionGraphPlugin::onMotionLabelsLayerInserted(int layerIdx) { seqSearchModel_->applyAllQueries(); }
 void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx) { seqSearchModel_->applyAllQueries(); }

@@ -2,7 +2,6 @@
 
 #include "decision-graph/listeners/SessionSettingsListener.hpp"
 #include "rfcommon/Plugin.hpp"
-#include "rfcommon/ListenerDispatcher.hpp"
 #include "rfcommon/FrameDataListener.hpp"
 #include "rfcommon/Reference.hpp"
 #include "rfcommon/MotionLabelsListener.hpp"
@@ -80,6 +79,8 @@ private:
 private:
     void onMotionLabelsLoaded() override;
     void onMotionLabelsHash40sUpdated() override;
+
+    void onMotionLabelsPreferredLayerChanged(int usage) override;
 
     void onMotionLabelsLayerInserted(int layerIdx) override;
     void onMotionLabelsLayerRemoved(int layerIdx) override;
