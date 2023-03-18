@@ -1,7 +1,6 @@
 #include "ui_SequenceSearchView.h"
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
-#include "decision-graph/models/SessionSettingsModel.hpp"
 #include "decision-graph/views/DamageView.hpp"
 #include "decision-graph/views/GraphView.hpp"
 #include "decision-graph/views/HeatMapView.hpp"
@@ -43,18 +42,17 @@ static void clearLayout(QLayout* layout)
 // ----------------------------------------------------------------------------
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
-        SessionSettingsModel* sessionSettings,
         GraphModel* graphModel,
         rfcommon::MotionLabels* labels,
         QWidget* parent)
     : QWidget(parent)
-    , model_(model)
-    , sessionSettings_(sessionSettings)
+    , seqSearchModel_(model)
     , graphModel_(graphModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
     ui_->setupUi(this);
+
     ui_->tab_stateList->setLayout(new QVBoxLayout);
     ui_->tab_stateList->layout()->addWidget(new StateListView(model, labels));
 
@@ -81,21 +79,17 @@ SequenceSearchView::SequenceSearchView(
 
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
-    connect(ui_->toolButton_addQuery, &QToolButton::released, 
+    connect(ui_->toolButton_addQuery, &QToolButton::released,
             this, &SequenceSearchView::addQueryBox);
-    connect(ui_->checkBox_accumulateLiveSessions, &QCheckBox::toggled,
-            this, &SequenceSearchView::onAccumulateLiveSessionsToggled);
-    connect(ui_->pushButton_clearPreviousSessions, &QPushButton::released,
-            this, &SequenceSearchView::onClearPreviousSessionsReleased);
 
-    model_->dispatcher.addListener(this);
+    seqSearchModel_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 SequenceSearchView::~SequenceSearchView()
 {
     // Remove things in reverse order
-    model_->dispatcher.removeListener(this);
+    seqSearchModel_->dispatcher.removeListener(this);
     delete ui_;
 }
 
@@ -110,11 +104,11 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
     }
 
     QByteArray ba = text.toUtf8();
-    model_->setQuery(index, ba.constData());
-    model_->compileQuery(index);
+    seqSearchModel_->setQuery(index, ba.constData());
+    seqSearchModel_->compileQuery(index);
 
-    if (model_->queryCompiled(index))
-        model_->applyQuery(index);
+    if (seqSearchModel_->queryCompiled(index))
+        seqSearchModel_->applyQuery(index);
 
     updateQueryCompileError(index);
 }
@@ -122,8 +116,8 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
 // ----------------------------------------------------------------------------
 void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
-    model_->setCurrentFighter(index);
-    model_->applyAllQueries();
+    seqSearchModel_->setCurrentFighter(index);
+    seqSearchModel_->applyAllQueries();
 }
 
 // ----------------------------------------------------------------------------
@@ -169,7 +163,7 @@ void SequenceSearchView::addQueryBox()
             }
     });
 
-    model_->addQuery();
+    seqSearchModel_->addQuery();
 }
 
 // ----------------------------------------------------------------------------
@@ -184,84 +178,40 @@ void SequenceSearchView::removeQueryBox(int index)
     for (; index != queryBoxes_.count(); ++index)
         queryBoxes_[index].name->setText("#" + QString::number(index + 1) + ":");
 
-    model_->removeQuery(index);
-    model_->applyAllQueries();
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onAccumulateLiveSessionsToggled(bool enable)
-{
-    sessionSettings_->setAccumulateLiveSessions(enable);
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onClearPreviousSessionsReleased()
-{
-    sessionSettings_->clearPreviousSessions();
+    seqSearchModel_->removeQuery(index);
+    seqSearchModel_->applyAllQueries();
 }
 
 // ----------------------------------------------------------------------------
 void SequenceSearchView::updateQueryCompileError(int queryIdx)
 {
-    if (model_->queryCompiled(queryIdx))
+    if (seqSearchModel_->queryCompiled(queryIdx))
         queryBoxes_[queryIdx].parseError->setVisible(false);
     else
     {
-        queryBoxes_[queryIdx].parseError->setText(model_->lastQueryError());
+        queryBoxes_[queryIdx].parseError->setText(seqSearchModel_->lastQueryError());
         queryBoxes_[queryIdx].parseError->setVisible(true);
     }
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::updateQueryStats()
-{
-    ui_->label_frames->setText("Frames loaded: " + QString::number(model_->totalFrameCount()));
-    ui_->label_sequenceLength->setText("States loaded: " + QString::number(model_->totalSequenceLength()));
-    ui_->label_matches->setText("Matched sequences: " + QString::number(model_->totalMatchedSequences()));
-    ui_->label_matchedStates->setText("Matched states: " + QString::number(model_->totalMatchedStates()));
-    ui_->label_matchedUniqueStates->setText("Matched unique states: " + QString::number(model_->totalMatchedUniqueStates()));
 }
 
 // ----------------------------------------------------------------------------
 void SequenceSearchView::onCurrentFighterChanged()
 {
     bool blocked = ui_->comboBox_player->blockSignals(true);
-        ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+        ui_->comboBox_player->setCurrentIndex(seqSearchModel_->currentFighter());
     ui_->comboBox_player->blockSignals(blocked);
 }
-
-// ----------------------------------------------------------------------------
 void SequenceSearchView::onNewSession()
 {
     bool blocked = ui_->comboBox_player->blockSignals(true);
         ui_->comboBox_player->clear();
-        for (int i = 0; i != model_->fighterCount(); ++i)
-            ui_->comboBox_player->addItem(QString(model_->playerName(i)) + " (" + model_->fighterName(i) + ")");
-        if (model_->fighterCount() > 0)
-            ui_->comboBox_player->setCurrentIndex(model_->currentFighter());
+        for (int i = 0; i != seqSearchModel_->fighterCount(); ++i)
+            ui_->comboBox_player->addItem(QString(seqSearchModel_->playerName(i)) + " (" + seqSearchModel_->fighterName(i) + ")");
+        if (seqSearchModel_->fighterCount() > 0)
+            ui_->comboBox_player->setCurrentIndex(seqSearchModel_->currentFighter());
     ui_->comboBox_player->blockSignals(blocked);
 }
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onDataAdded()
-{
-    updateQueryStats();
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onDataCleared()
-{
-    updateQueryStats();
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onQueryCompiled(int queryIdx)
-{
-    updateQueryCompileError(queryIdx);
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onQueryApplied()
-{
-    updateQueryStats();
-}
+void SequenceSearchView::onDataAdded() {}
+void SequenceSearchView::onDataCleared() {}
+void SequenceSearchView::onQueryCompiled(int queryIdx) { updateQueryCompileError(queryIdx); }
+void SequenceSearchView::onQueryApplied() {}

@@ -13,182 +13,285 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
-   <item row="0" column="0">
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Point of View</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Player:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="comboBox_player">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QGroupBox" name="groupBox_query">
-     <property name="title">
-      <string>Query</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
-      <item>
-       <widget class="QToolButton" name="toolButton_addQuery">
-        <property name="text">
-         <string>+</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="title">
-      <string>Query Stats</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QLabel" name="label_frames">
-        <property name="text">
-         <string>Total Frames: 0</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_sequenceLength">
-        <property name="text">
-         <string>Total Sequence Length: 0</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_matches">
-        <property name="text">
-         <string>Matches: 0</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_matchedStates">
-        <property name="text">
-         <string>Matched States: 0</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_matchedUniqueStates">
-        <property name="text">
-         <string>Matched Unique States: 0</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QGroupBox" name="groupBox_graphSettings">
-     <property name="title">
-      <string>Session Settings</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QCheckBox" name="checkBox_accumulateLiveSessions">
-        <property name="text">
-         <string>Accumulate data over multiple games</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_clearPreviousSessions">
-        <property name="text">
-         <string>Clear results from previous games</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <spacer name="verticalSpacer">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QSplitter" name="splitter">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>292</height>
-      </size>
+     <property name="childrenCollapsible">
+      <bool>false</bool>
      </property>
-    </spacer>
-   </item>
-   <item row="0" column="1" rowspan="5">
-    <widget class="QTabWidget" name="tabWidget">
-     <property name="currentIndex">
-      <number>7</number>
-     </property>
-     <widget class="QWidget" name="tab_stateList">
-      <attribute name="title">
-       <string>State List</string>
-      </attribute>
+     <widget class="QScrollArea" name="scrollArea">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>412</width>
+         <height>1063</height>
+        </rect>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QGroupBox" name="groupBox_pov">
+          <property name="title">
+           <string>Point of View</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="1">
+            <widget class="QComboBox" name="comboBox_player">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>You:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Opponent:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="comboBox_opponent"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_query">
+          <property name="title">
+           <string>Query</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QToolButton" name="toolButton_addQuery">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_damageConstraints">
+          <property name="title">
+           <string>Damage Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <item>
+            <widget class="QToolButton" name="toolButton_addDamageConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_shieldConstraints">
+          <property name="title">
+           <string>Shield Health Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="QToolButton" name="toolButton_addShieldConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_posConstraints">
+          <property name="title">
+           <string>Position Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QToolButton" name="toolButton_addPosConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_relPosConstraints">
+          <property name="title">
+           <string>Relative Position Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <item>
+            <widget class="QToolButton" name="toolButton_addRelPosConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Templates</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <item>
+            <widget class="QListWidget" name="listWidget"/>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QPushButton" name="pushButton_2">
+               <property name="text">
+                <string>New</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton">
+               <property name="text">
+                <string>Save</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_3">
+               <property name="text">
+                <string>Delete</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>400</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
      </widget>
-     <widget class="QWidget" name="tab_pieChart">
-      <attribute name="title">
-       <string>Pie Chart</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_graph">
-      <attribute name="title">
-       <string>Graph</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_timings">
-      <attribute name="title">
-       <string>Timings</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_damage">
-      <attribute name="title">
-       <string>Damage</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_shield">
-      <attribute name="title">
-       <string>Shield</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_heatmap">
-      <attribute name="title">
-       <string>Heat Map</string>
-      </attribute>
-     </widget>
-     <widget class="QWidget" name="tab_positioning">
-      <attribute name="title">
-       <string>Positioning</string>
-      </attribute>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_stateList">
+       <attribute name="title">
+        <string>State List</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_pieChart">
+       <attribute name="title">
+        <string>Pie Chart</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_graph">
+       <attribute name="title">
+        <string>Graph</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_timings">
+       <attribute name="title">
+        <string>Timings</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_damage">
+       <attribute name="title">
+        <string>Damage</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_shield">
+       <attribute name="title">
+        <string>Shield</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_heatmap">
+       <attribute name="title">
+        <string>Heat Map</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_positioning">
+       <attribute name="title">
+        <string>Positioning</string>
+       </attribute>
+      </widget>
      </widget>
     </widget>
    </item>

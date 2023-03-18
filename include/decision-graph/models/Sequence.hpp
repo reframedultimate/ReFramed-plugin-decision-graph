@@ -36,5 +36,5 @@ public:
     rfcommon::SmallVector<int, 8> idxs;
 };
 
-rfcommon::String toString(const States& states, const Range& range, rfcommon::MotionLabels* labels);
-rfcommon::String toString(const States& states, const Sequence& seq, rfcommon::MotionLabels* labels);
+rfcommon::String toString(const States& states, const Range& range, const rfcommon::MotionLabels* labels);
+rfcommon::String toString(const States& states, const Sequence& seq, const rfcommon::MotionLabels* labels);

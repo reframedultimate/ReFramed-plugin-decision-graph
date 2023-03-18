@@ -54,7 +54,7 @@ rfcommon::String toString(const States& states, const Range& range, const rfcomm
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::String toString(const States& states, const Sequence& seq, rfcommon::MotionLabels* labels)
+rfcommon::String toString(const States& states, const Sequence& seq, const rfcommon::MotionLabels* labels)
 {
     rfcommon::String result;
     for (int stateIdx : seq.idxs)

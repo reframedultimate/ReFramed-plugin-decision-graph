@@ -27,6 +27,7 @@ public:
     SequenceSearchModel(const rfcommon::MotionLabels* labels);
 
     int sessionCount() const;
+    const char* sessionName(int sessionIdx) const;
     void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata);
     void addFrame(int frameIdx, const rfcommon::FrameData* fdata);
     void addAllFrames(const rfcommon::FrameData* fdata);
@@ -82,6 +83,7 @@ private:
         // the fighter does not exist in this session then the range will
         // be empty
         rfcommon::Vector<Range> fighters;
+        rfcommon::String sessionName_;
     };
     rfcommon::Vector<Session> sessions_;
 

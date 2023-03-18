@@ -8,6 +8,7 @@ namespace rfcommon {
 }
 
 class SequenceSearchModel;
+class QTextEdit;
 
 class StateListView
         : public QWidget
@@ -16,6 +17,9 @@ class StateListView
 public:
     explicit StateListView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent=nullptr);
     ~StateListView();
+
+private:
+    void updateText();
 
 private:
     void onCurrentFighterChanged() override;
@@ -28,4 +32,6 @@ private:
 private:
     SequenceSearchModel* model_;
     rfcommon::MotionLabels* labels_;
+
+    QTextEdit* textEdit_;
 };

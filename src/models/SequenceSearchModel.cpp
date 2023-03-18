@@ -3,13 +3,12 @@
 #include "decision-graph/models/Query.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 
-#include "rfcommon/Frame.hpp"
+#include "rfcommon/FighterState.hpp"
 #include "rfcommon/FrameData.hpp"
-#include "rfcommon/hash40.hpp"
 #include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/Metadata.hpp"
 #include "rfcommon/MotionLabels.hpp"
-#include "rfcommon/Session.hpp"
+#include "rfcommon/ReplayFilename.hpp"
 
 #include <cstdio>
 
@@ -23,6 +22,12 @@ SequenceSearchModel::SequenceSearchModel(const rfcommon::MotionLabels* labels)
 int SequenceSearchModel::sessionCount() const
 {
     return sessions_.count();
+}
+
+// ----------------------------------------------------------------------------
+const char* SequenceSearchModel::sessionName(int sessionIdx) const
+{
+    return sessions_[sessionIdx].sessionName_.cStr();
 }
 
 // ----------------------------------------------------------------------------
@@ -76,7 +81,8 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // Create session
     auto sessionData = sessions_.push({
         mdata->timeStarted(),
-        rfcommon::Vector<Range>::makeReserved(fighters_.count())
+        rfcommon::Vector<Range>::makeReserved(fighters_.count()),
+        rfcommon::ReplayFilename::fromMetadata(map, mdata)
     });
 
     // For new sessions, point the session ranges to the end of each
@@ -547,4 +553,10 @@ const Graph& SequenceSearchModel::sessionGraph(int queryIdx, int sessionIdx) con
 const rfcommon::Vector<Range>& SequenceSearchModel::sessionMatches(int queryIdx, int sessionIdx) const
 {
     return queryResults_[queryIdx].sessionMatches[sessionIdx];
+}
+
+// ----------------------------------------------------------------------------
+const rfcommon::Vector<Sequence>& SequenceSearchModel::sessionMergedMatches(int queryIdx, int sessionIdx) const
+{
+    return queryResults_[queryIdx].sessionMergedMatches[sessionIdx];
 }
