@@ -131,7 +131,7 @@ void SequenceSearchView::addQueryBox()
     box.parseError->setStyleSheet("QLabel {color: #FF2020}");
     box.query = new QLineEdit;
     box.remove = new QToolButton;
-    box.remove->setText("X");
+    box.remove->setIcon(QIcon::fromTheme("x"));
 
     QGridLayout* boxLayout = new QGridLayout;
     boxLayout->addWidget(box.name, 0, 0);
