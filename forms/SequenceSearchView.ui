@@ -40,8 +40,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>412</width>
-         <height>1099</height>
+         <width>418</width>
+         <height>1059</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -136,89 +136,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_damageConstraints">
+         <widget class="QGroupBox" name="groupBox_timingSettings">
           <property name="title">
-           <string>Damage Constraints</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_4">
-           <item>
-            <widget class="QToolButton" name="toolButton_addDamageConstraint">
-             <property name="text">
-              <string>+</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../../ReFramed/application/res/reframed.qrc">
-               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_shieldConstraints">
-          <property name="title">
-           <string>Shield Health Constraints</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_5">
-           <item>
-            <widget class="QToolButton" name="toolButton_addShieldConstraint">
-             <property name="text">
-              <string>+</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../../ReFramed/application/res/reframed.qrc">
-               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_posConstraints">
-          <property name="title">
-           <string>Position Constraints</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
-           <item>
-            <widget class="QToolButton" name="toolButton_addPosConstraint">
-             <property name="text">
-              <string>+</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../../ReFramed/application/res/reframed.qrc">
-               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_relPosConstraints">
-          <property name="title">
-           <string>Relative Position Constraints</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <widget class="QToolButton" name="toolButton_addRelPosConstraint">
-             <property name="text">
-              <string>+</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../../ReFramed/application/res/reframed.qrc">
-               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="title">
-           <string>Measure Time Between</string>
+           <string>Timings Settings</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1,0">
            <item row="0" column="0">
@@ -294,6 +214,139 @@
              <property name="icon">
               <iconset resource="../../ReFramed/application/res/reframed.qrc">
                <normaloff>:/icons/feather-light/apps/scalable/arrow-right.svg</normaloff>:/icons/feather-light/apps/scalable/arrow-right.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_damageSettings">
+          <property name="title">
+           <string>Damage Settings</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_3">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Bucket size:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="spinBox_damageBucketSize">
+             <property name="minimum">
+              <number>5</number>
+             </property>
+             <property name="maximum">
+              <number>100</number>
+             </property>
+             <property name="singleStep">
+              <number>5</number>
+             </property>
+             <property name="value">
+              <number>20</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>%</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_shieldSettings">
+          <property name="title">
+           <string>Shield Settings</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_heatMapSettings">
+          <property name="title">
+           <string>Heat Map Settings</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_damageConstraints">
+          <property name="title">
+           <string>Damage Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <item>
+            <widget class="QToolButton" name="toolButton_addDamageConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../ReFramed/application/res/reframed.qrc">
+               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_shieldConstraints">
+          <property name="title">
+           <string>Shield Health Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <item>
+            <widget class="QToolButton" name="toolButton_addShieldConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../ReFramed/application/res/reframed.qrc">
+               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_posConstraints">
+          <property name="title">
+           <string>Position Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <widget class="QToolButton" name="toolButton_addPosConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../ReFramed/application/res/reframed.qrc">
+               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_relPosConstraints">
+          <property name="title">
+           <string>Relative Position Constraints</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <item>
+            <widget class="QToolButton" name="toolButton_addRelPosConstraint">
+             <property name="text">
+              <string>+</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../ReFramed/application/res/reframed.qrc">
+               <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
              </property>
             </widget>
            </item>

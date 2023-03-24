@@ -76,7 +76,9 @@ SequenceSearchView::SequenceSearchView(
     ui_->tab_heatmap->layout()->addWidget(new HeatMapView(model, labels));
 
     addQueryBox();
+    onTabIndexChanged(ui_->tabWidget->currentIndex());
 
+    connect(ui_->tabWidget, &QTabWidget::currentChanged, this, &SequenceSearchView::onTabIndexChanged);
     connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
             this, &SequenceSearchView::onComboBoxPlayerChanged);
     connect(ui_->toolButton_addQuery, &QToolButton::released,
@@ -91,6 +93,73 @@ SequenceSearchView::~SequenceSearchView()
     // Remove things in reverse order
     seqSearchModel_->dispatcher.removeListener(this);
     delete ui_;
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onTabIndexChanged(int index)
+{
+    switch (index)
+    {
+    case 0:
+    case 1:
+    case 2:
+        ui_->groupBox_timingSettings->setVisible(false);
+        ui_->groupBox_damageSettings->setVisible(false);
+        ui_->groupBox_shieldSettings->setVisible(false);
+        ui_->groupBox_heatMapSettings->setVisible(false);
+
+        ui_->groupBox_damageConstraints->setVisible(true);
+        ui_->groupBox_shieldConstraints->setVisible(true);
+        ui_->groupBox_posConstraints->setVisible(true);
+        ui_->groupBox_relPosConstraints->setVisible(true);
+        break;
+    case 3:
+        ui_->groupBox_timingSettings->setVisible(true);
+        ui_->groupBox_damageSettings->setVisible(false);
+        ui_->groupBox_shieldSettings->setVisible(false);
+        ui_->groupBox_heatMapSettings->setVisible(false);
+
+        ui_->groupBox_damageConstraints->setVisible(true);
+        ui_->groupBox_shieldConstraints->setVisible(true);
+        ui_->groupBox_posConstraints->setVisible(true);
+        ui_->groupBox_relPosConstraints->setVisible(true);
+        break;
+    case 4:
+        ui_->groupBox_timingSettings->setVisible(false);
+        ui_->groupBox_damageSettings->setVisible(true);
+        ui_->groupBox_shieldSettings->setVisible(false);
+        ui_->groupBox_heatMapSettings->setVisible(false);
+
+        ui_->groupBox_damageConstraints->setVisible(false);
+        ui_->groupBox_shieldConstraints->setVisible(true);
+        ui_->groupBox_posConstraints->setVisible(true);
+        ui_->groupBox_relPosConstraints->setVisible(true);
+        break;
+    case 5:
+        ui_->groupBox_timingSettings->setVisible(false);
+        ui_->groupBox_damageSettings->setVisible(false);
+        ui_->groupBox_shieldSettings->setVisible(true);
+        ui_->groupBox_heatMapSettings->setVisible(false);
+
+        ui_->groupBox_damageConstraints->setVisible(true);
+        ui_->groupBox_shieldConstraints->setVisible(false);
+        ui_->groupBox_posConstraints->setVisible(true);
+        ui_->groupBox_relPosConstraints->setVisible(true);
+        break;
+
+    case 6:
+    case 7:
+        ui_->groupBox_timingSettings->setVisible(false);
+        ui_->groupBox_damageSettings->setVisible(false);
+        ui_->groupBox_shieldSettings->setVisible(false);
+        ui_->groupBox_heatMapSettings->setVisible(true);
+
+        ui_->groupBox_damageConstraints->setVisible(true);
+        ui_->groupBox_shieldConstraints->setVisible(true);
+        ui_->groupBox_posConstraints->setVisible(true);
+        ui_->groupBox_relPosConstraints->setVisible(true);
+        break;
+    }
 }
 
 // ----------------------------------------------------------------------------

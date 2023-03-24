@@ -2,8 +2,10 @@
 #include "rfcommon/MotionLabels.hpp"
 
 // ----------------------------------------------------------------------------
-States::States(rfcommon::FighterID fighterID)
-    : fighterID(fighterID)
+States::States(rfcommon::FighterID fighterID, const rfcommon::String& playerName, const rfcommon::String& fighterName)
+    : playerName(playerName)
+    , fighterName(fighterName)
+    , fighterID(fighterID)
 {}
 States::~States() {}
 

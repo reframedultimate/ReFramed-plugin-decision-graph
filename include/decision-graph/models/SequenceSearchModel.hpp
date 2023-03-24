@@ -26,6 +26,9 @@ class SequenceSearchModel
 public:
     SequenceSearchModel(const rfcommon::MotionLabels* labels);
 
+    /*
+     * 
+     */
     int sessionCount() const;
     const char* sessionName(int sessionIdx) const;
     void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata);
@@ -87,13 +90,7 @@ private:
     };
     rfcommon::Vector<Session> sessions_;
 
-    struct Fighter
-    {
-        rfcommon::String playerName;
-        rfcommon::String fighterName;
-        States states;
-    };
-    rfcommon::Vector<Fighter> fighters_;
+    rfcommon::Vector<States> fighters_;
     rfcommon::SmallVector<int, 8> fighterIdxMapFromSession_;
     int currentFighterIdx_ = -1;
 

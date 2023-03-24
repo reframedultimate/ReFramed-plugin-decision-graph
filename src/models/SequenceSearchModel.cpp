@@ -270,7 +270,7 @@ int SequenceSearchModel::currentFighter() const
 void SequenceSearchModel::setCurrentFighter(int fighterIdx)
 {
     currentFighterIdx_ = fighterIdx;
-    previousFighterID_ = fighters_[fighterIdx].states.fighterID;
+    previousFighterID_ = fighters_[fighterIdx].fighterID;
     previousPlayerName_ = fighters_[fighterIdx].playerName;
     dispatcher.dispatch(&SequenceSearchListener::onCurrentFighterChanged);
 }
@@ -290,13 +290,13 @@ const char* SequenceSearchModel::fighterName(int fighterIdx) const
 // ----------------------------------------------------------------------------
 rfcommon::FighterID SequenceSearchModel::fighterID(int fighterIdx) const
 {
-    return fighters_[fighterIdx].states.fighterID;
+    return fighters_[fighterIdx].fighterID;
 }
 
 // ----------------------------------------------------------------------------
 const States& SequenceSearchModel::fighterStates(int fighterIdx) const
 {
-    return fighters_[fighterIdx].states;
+    return fighters_[fighterIdx];
 }
 
 // ----------------------------------------------------------------------------
@@ -389,7 +389,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
     auto& results = queryResults_[queryIdx];
     auto& query = *queries_[queryIdx];
 
-    const auto& states = fighters_[currentFighterIdx_].states;
+    const auto& states = fighters_[currentFighterIdx_];
 
     results.matches = query.apply(states, Range(0, states.count()));
     results.mergedMatches = query.mergeMotions(states, results.matches);

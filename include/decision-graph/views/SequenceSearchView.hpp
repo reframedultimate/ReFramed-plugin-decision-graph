@@ -36,6 +36,7 @@ public:
     ~SequenceSearchView();
 
 private slots:
+    void onTabIndexChanged(int index);
     void onLineEditQueryTextChanged(int index, const QString& text);
     void onComboBoxPlayerChanged(int index);
     void addQueryBox();

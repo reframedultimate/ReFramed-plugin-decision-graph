@@ -77,13 +77,10 @@ private:
     Matcher(
             rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
-            const DamageRanges& damage,
             uint8_t ctxQualFlags,
             uint8_t matchFlags);
 
     rfcommon::FighterMotion motion_;
-    DamageRanges damage_;
-    int motionLayerIdx_;
     rfcommon::FighterStatus status_;
     uint8_t ctxQualFlags_;
     uint8_t matchFlags_;
