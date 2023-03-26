@@ -17,7 +17,7 @@ ShieldHealthView::~ShieldHealthView()
 }
 
 // ----------------------------------------------------------------------------
-void ShieldHealthView::onCurrentFighterChanged() {}
+void ShieldHealthView::onPOVChanged() {}
 void ShieldHealthView::onNewSession() {}
 void ShieldHealthView::onDataAdded() {}
 void ShieldHealthView::onDataCleared() {}

@@ -17,7 +17,7 @@ HeatMapView::~HeatMapView()
 }
 
 // ----------------------------------------------------------------------------
-void HeatMapView::onCurrentFighterChanged() {}
+void HeatMapView::onPOVChanged() {}
 void HeatMapView::onNewSession() {}
 void HeatMapView::onDataAdded() {}
 void HeatMapView::onDataCleared() {}

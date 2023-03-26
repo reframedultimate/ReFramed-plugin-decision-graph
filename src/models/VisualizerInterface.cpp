@@ -42,7 +42,7 @@ void VisualizerModel::updateData()
 void VisualizerModel::onSharedDataChanged() {}
 
 // ----------------------------------------------------------------------------
-void VisualizerModel::onCurrentFighterChanged() { updateData(); }
+void VisualizerModel::onPOVChanged() { updateData(); }
 void VisualizerModel::onNewSession() { updateData(); }
 void VisualizerModel::onDataAdded() { updateData(); }
 void VisualizerModel::onDataCleared() { updateData(); }

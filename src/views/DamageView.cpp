@@ -17,7 +17,7 @@ DamageView::~DamageView()
 }
 
 // ----------------------------------------------------------------------------
-void DamageView::onCurrentFighterChanged() {}
+void DamageView::onPOVChanged() {}
 void DamageView::onNewSession() {}
 void DamageView::onDataAdded() {}
 void DamageView::onDataCleared() {}

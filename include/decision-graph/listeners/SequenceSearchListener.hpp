@@ -3,10 +3,10 @@
 class SequenceSearchListener
 {
 public:
-    virtual void onCurrentFighterChanged() = 0;
-    virtual void onNewSession() = 0;
+    virtual void onNewSessions() = 0;
+    virtual void onClearAll() = 0;
     virtual void onDataAdded() = 0;
-    virtual void onDataCleared() = 0;
+    virtual void onPOVChanged() = 0;
     virtual void onQueryCompiled(int queryIdx) = 0;
-    virtual void onQueryApplied() = 0;
+    virtual void onQueriesApplied() = 0;
 };

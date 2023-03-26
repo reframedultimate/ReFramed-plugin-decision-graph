@@ -49,7 +49,7 @@ StateListView::~StateListView()
 }
 
 // ----------------------------------------------------------------------------
-void StateListView::onCurrentFighterChanged() {}
+void StateListView::onPOVChanged() {}
 void StateListView::onNewSession() {}
 void StateListView::onDataAdded() {}
 void StateListView::onDataCleared() {}

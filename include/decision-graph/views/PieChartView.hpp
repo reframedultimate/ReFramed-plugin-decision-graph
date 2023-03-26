@@ -36,7 +36,7 @@ private:
     void updateBreakdownCharts();
 
 private:
-    void onCurrentFighterChanged() override;
+    void onPOVChanged() override;
     void onNewSession() override;
     void onDataAdded() override;
     void onDataCleared() override;

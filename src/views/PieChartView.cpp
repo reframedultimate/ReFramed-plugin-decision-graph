@@ -251,7 +251,7 @@ void PieChartView::updateBreakdownCharts()
 }
 
 // ----------------------------------------------------------------------------
-void PieChartView::onCurrentFighterChanged()
+void PieChartView::onPOVChanged()
 {
     updateVisible();
     updateIOCharts();

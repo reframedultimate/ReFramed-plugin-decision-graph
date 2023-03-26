@@ -27,7 +27,7 @@ int SequenceSearchModel::sessionCount() const
 // ----------------------------------------------------------------------------
 const char* SequenceSearchModel::sessionName(int sessionIdx) const
 {
-    return sessions_[sessionIdx].sessionName_.cStr();
+    return sessions_[sessionIdx].sessionName.cStr();
 }
 
 // ----------------------------------------------------------------------------
@@ -43,17 +43,17 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // two different players when they play the same character, and it
     // doesn't make sense to clump together frame data from the same player
     // when he plays different characters.
-    auto indexUsed = rfcommon::SmallVector<int, 8>::makeReserved(fighters_.count());
+    auto indexUsed = rfcommon::SmallVector<int, 8>::makeReserved(fighterStates_.count());
     auto unmapped = rfcommon::SmallVector<int, 8>::makeReserved(mdata->fighterCount());
     fighterIdxMapFromSession_.resize(mdata->fighterCount());
     for (int s = 0; s != mdata->fighterCount(); ++s)
     {
-        for (int i = 0; i != fighters_.count(); ++i)
+        for (int i = 0; i != fighterStates_.count(); ++i)
         {
             if (indexUsed.findFirst(i) != indexUsed.end())
                 continue;
 
-            if (fighters_[i].states.fighterID == mdata->playerFighterID(s) && fighters_[i].playerName == mdata->playerTag(s))
+            if (fighterStates_[i].fighterID == mdata->playerFighterID(s) && fighterStates_[i].playerName == mdata->playerTag(s))
             {
                 fighterIdxMapFromSession_[s] = i;
                 goto matched;
@@ -66,8 +66,8 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // Create new entries for unmapped fighters
     for (int s : unmapped)
     {
-        fighterIdxMapFromSession_[s] = fighters_.count();
-        auto fighterData = fighters_.push({
+        fighterIdxMapFromSession_[s] = fighterStates_.count();
+        auto fighterData = fighterStates_.push({
             mdata->playerTag(s),
             map->fighter.toName(mdata->playerFighterID(s)),
             States(mdata->playerFighterID(s))
@@ -75,22 +75,22 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
 
         // Insert empty session ranges for the new fighters
         for (int i = 0; i != sessions_.count(); ++i)
-            sessions_[i].fighters.emplace(0, 0);
+            sessions_[i].fighterStatesRange.emplace(0, 0);
     }
 
     // Create session
     auto sessionData = sessions_.push({
         mdata->timeStarted(),
-        rfcommon::Vector<Range>::makeReserved(fighters_.count()),
+        rfcommon::Vector<Range>::makeReserved(fighterStates_.count()),
         rfcommon::ReplayFilename::fromMetadata(map, mdata)
     });
 
     // For new sessions, point the session ranges to the end of each
     // sequence
-    for (int i = 0; i != fighters_.count(); ++i)
+    for (int i = 0; i != fighterStates_.count(); ++i)
     {
         const int endIdx = fighters_[i].states.count();
-        sessionData->fighters.emplace(endIdx, endIdx);
+        sessionData->fighterStatesRange.emplace(endIdx, endIdx);
     }
 
     // Update size of results structure
@@ -105,17 +105,17 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // If there is a fighter and player name in the current session that
     // matches the previous fighter, we will want to set that as the current
     // fighter. This is a small QoL that helps with scanning through replays.
-    if (currentFighterIdx_ >= 0 && currentFighterIdx_ < fighters_.count())
+    if (currentFighterIdx_ >= 0 && currentFighterIdx_ < fighterStates_.count())
     {
         for (int s = 0; s != mdata->fighterCount(); ++s)
             if (fighters_[currentFighterIdx_].states.fighterID == mdata->playerFighterID(s) &&
-                fighters_[currentFighterIdx_].playerName == mdata->playerTag(s))
+                fighterStates_[currentFighterIdx_].playerName == mdata->playerTag(s))
             {
                 currentFighterIdx_ = fighterIdxMapFromSession_[s];
                 break;
             }
     }
-    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighters_.count())
+    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighterStates_.count())
     {
         for (int s = 0; s != mdata->fighterCount(); ++s)
             if (previousFighterID_ == mdata->playerFighterID(s) &&
@@ -127,7 +127,7 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     }
 
     // Make sure to never go out of bounds when switching between e.g. 1v1 and 2v2
-    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighters_.count())
+    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighterStates_.count())
         currentFighterIdx_ = 0;
 
     dispatcher.dispatch(&SequenceSearchListener::onNewSession);
@@ -136,8 +136,6 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameData* fdata)
 {
-    frameCount_++;
-
     for (int sessionFighterIdx = 0; sessionFighterIdx != fdata->fighterCount(); ++sessionFighterIdx)
     {
         const auto& fighterState = fdata->stateAt(sessionFighterIdx, frameIdx);
@@ -210,7 +208,7 @@ void SequenceSearchModel::addFrameNoNotify(int frameIdx, const rfcommon::FrameDa
         ));
 
         // Update sequence ranges for current session
-        Range& sessionFighterSeq = sessions_.back().fighters[fighterIdx];
+        Range& sessionFighterSeq = sessions_.back().fighterStatesRange[fighterIdx];
         sessionFighterSeq.endIdx = states.count();
     }
 }
@@ -234,10 +232,9 @@ void SequenceSearchModel::addAllFrames(const rfcommon::FrameData* fdata)
 void SequenceSearchModel::clearAll()
 {
     sessions_.clearCompact();
-    fighters_.clearCompact();
+    fighterStates_.clearCompact();
     fighterIdxMapFromSession_.clearCompact();
     currentFighterIdx_ = -1;
-    frameCount_ = 0;
 
     for (int i = 0; i != queryCount(); ++i)
     {
@@ -257,7 +254,7 @@ void SequenceSearchModel::clearAll()
 // ----------------------------------------------------------------------------
 int SequenceSearchModel::fighterCount() const
 {
-    return fighters_.count();
+    return fighterStates_.count();
 }
 
 // ----------------------------------------------------------------------------
@@ -267,36 +264,36 @@ int SequenceSearchModel::currentFighter() const
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::setCurrentFighter(int fighterIdx)
+void SequenceSearchModel::setPlayerPOV(int fighterIdx)
 {
     currentFighterIdx_ = fighterIdx;
-    previousFighterID_ = fighters_[fighterIdx].fighterID;
-    previousPlayerName_ = fighters_[fighterIdx].playerName;
-    dispatcher.dispatch(&SequenceSearchListener::onCurrentFighterChanged);
+    previousFighterID_ = fighterStates_[fighterIdx].fighterID;
+    previousPlayerName_ = fighterStates_[fighterIdx].playerName;
+    dispatcher.dispatch(&SequenceSearchListener::onPOVChanged);
 }
 
 // ----------------------------------------------------------------------------
 const char* SequenceSearchModel::playerName(int fighterIdx) const
 {
-    return fighters_[fighterIdx].playerName.cStr();
+    return fighterStates_[fighterIdx].playerName.cStr();
 }
 
 // ----------------------------------------------------------------------------
 const char* SequenceSearchModel::fighterName(int fighterIdx) const
 {
-    return fighters_[fighterIdx].fighterName.cStr();
+    return fighterStates_[fighterIdx].fighterName.cStr();
 }
 
 // ----------------------------------------------------------------------------
 rfcommon::FighterID SequenceSearchModel::fighterID(int fighterIdx) const
 {
-    return fighters_[fighterIdx].fighterID;
+    return fighterStates_[fighterIdx].fighterID;
 }
 
 // ----------------------------------------------------------------------------
 const States& SequenceSearchModel::fighterStates(int fighterIdx) const
 {
-    return fighters_[fighterIdx];
+    return fighterStates_[fighterIdx];
 }
 
 // ----------------------------------------------------------------------------
@@ -306,7 +303,7 @@ int SequenceSearchModel::queryCount() const
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchModel::addQuery()
+int SequenceSearchModel::addQuery()
 {
     queries_.emplace();
     queryStrings_.emplace();
@@ -316,6 +313,8 @@ void SequenceSearchModel::addQuery()
     results.sessionMatches.resize(sessionCount());
     results.sessionMergedMatches.resize(sessionCount());
     results.sessionMergedAndNormalizedMatches.resize(sessionCount());
+
+    return queries_.count() - 1;
 }
 
 // ----------------------------------------------------------------------------
@@ -389,7 +388,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
     auto& results = queryResults_[queryIdx];
     auto& query = *queries_[queryIdx];
 
-    const auto& states = fighters_[currentFighterIdx_];
+    const auto& states = fighterStates_[currentFighterIdx_];
 
     results.matches = query.apply(states, Range(0, states.count()));
     results.mergedMatches = query.mergeMotions(states, results.matches);
@@ -446,7 +445,7 @@ bool SequenceSearchModel::applyQueryNoNotify(int queryIdx)
 
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
-        const auto& sessionSeq = sessions_[sessionIdx].fighters[currentFighterIdx_];
+        const auto& sessionSeq = sessions_[sessionIdx].fighterStatesRange[currentFighterIdx_];
         results.sessionMatches[sessionIdx] = query.apply(states, sessionSeq);
         results.sessionMergedMatches[sessionIdx] = query.mergeMotions(states, results.sessionMatches[sessionIdx]);
         results.sessionMergedAndNormalizedMatches[sessionIdx] = query.normalizeMotions(states, results.sessionMergedMatches[sessionIdx]);
@@ -486,52 +485,6 @@ const char* SequenceSearchModel::lastQueryError() const
 }
 
 // ----------------------------------------------------------------------------
-int SequenceSearchModel::totalFrameCount() const
-{
-    return frameCount_;
-}
-
-// ----------------------------------------------------------------------------
-int SequenceSearchModel::totalSequenceLength() const
-{
-    return fighters_.count() ? fighters_[currentFighterIdx_].states.count() : 0;
-}
-
-// ----------------------------------------------------------------------------
-int SequenceSearchModel::totalMatchedSequences() const
-{
-    int count = 0;
-    for (int i = 0; i != queryCount(); ++i)
-        count += queryResults_[i].matches.count();
-    return count;
-}
-
-// ----------------------------------------------------------------------------
-int SequenceSearchModel::totalMatchedStates() const
-{
-    int count = 0;
-    for (int i = 0; i != queryCount(); ++i)
-        for (const auto& range : queryResults_[i].matches)
-            count += range.endIdx - range.startIdx - 1;
-    return count;
-}
-
-// ----------------------------------------------------------------------------
-int SequenceSearchModel::totalMatchedUniqueStates() const
-{
-    int count = 0;
-    for (int i = 0; i != queryCount(); ++i)
-        count += queryResults_[i].graph.nodes.count();
-    return count;
-}
-
-// ----------------------------------------------------------------------------
-const Graph& SequenceSearchModel::graph(int queryIdx) const
-{
-    return queryResults_[queryIdx].graph;
-}
-
-// ----------------------------------------------------------------------------
 const rfcommon::Vector<Range>& SequenceSearchModel::matches(int queryIdx) const
 {
     return queryResults_[queryIdx].matches;
@@ -541,12 +494,6 @@ const rfcommon::Vector<Range>& SequenceSearchModel::matches(int queryIdx) const
 const rfcommon::Vector<Sequence>& SequenceSearchModel::mergedMatches(int queryIdx) const
 {
     return queryResults_[queryIdx].mergedMatches;
-}
-
-// ----------------------------------------------------------------------------
-const Graph& SequenceSearchModel::sessionGraph(int queryIdx, int sessionIdx) const
-{
-    return queryResults_[queryIdx].sessionGraph[sessionIdx];
 }
 
 // ----------------------------------------------------------------------------

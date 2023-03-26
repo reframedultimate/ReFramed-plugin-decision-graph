@@ -35,7 +35,7 @@ TimingsView::~TimingsView()
 }
 
 // ----------------------------------------------------------------------------
-void TimingsView::onCurrentFighterChanged() {}
+void TimingsView::onPOVChanged() {}
 void TimingsView::onNewSession() {}
 void TimingsView::onDataAdded() {}
 void TimingsView::onDataCleared() {}

@@ -185,7 +185,7 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
 // ----------------------------------------------------------------------------
 void SequenceSearchView::onComboBoxPlayerChanged(int index)
 {
-    seqSearchModel_->setCurrentFighter(index);
+    seqSearchModel_->setPlayerPOV(index);
     seqSearchModel_->applyAllQueries();
 }
 
@@ -264,7 +264,7 @@ void SequenceSearchView::updateQueryCompileError(int queryIdx)
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::onCurrentFighterChanged()
+void SequenceSearchView::onPOVChanged()
 {
     bool blocked = ui_->comboBox_player->blockSignals(true);
         ui_->comboBox_player->setCurrentIndex(seqSearchModel_->currentFighter());
