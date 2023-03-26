@@ -69,8 +69,7 @@
 %destructor { StrFree($$); } <string_value>
 %destructor { QueryASTNode::destroySingle($$); } <node_value>
 
-%token '.' '*' '+' '?' '(' ')' '|' '!' '[' ']'
-%token '>' '<' '-'
+%token '.' '*' '+' '?' '(' ')' '|' '!'
 %token INTO
 %token OS
 %token OOS
@@ -86,7 +85,7 @@
 %token<integer_value> PERCENT
 %token<string_value> LABEL
 
-%type<node_value> stmnts qual_stmnt stmnt repitition union inversion label damages damage
+%type<node_value> stmnts stmnt repitition union inversion label
 %type<ctx_flags> pre_qual post_qual
 
 %right '|'
@@ -98,12 +97,7 @@ query
   : stmnts                        { *ast = $1; }
   ;
 stmnts
-  : stmnts INTO qual_stmnt        { $$ = QueryASTNode::newStatement($1, $3); }
-  | qual_stmnt                    { $$ = $1; }
-  | qual_stmnt '[' stmnts ']'     { $$ = $1; }
-  ;
-qual_stmnt
-  : stmnt damages                 { $$ = $2; addDamageRangeChild($2, $1); }
+  : stmnts INTO stmnt             { $$ = QueryASTNode::newStatement($1, $3); }
   | stmnt                         { $$ = $1; }
   ;
 stmnt
@@ -150,28 +144,7 @@ post_qual
   | HIT                           { $$ = QueryASTNode::HIT; }
   | WHIFF                         { $$ = QueryASTNode::WHIFF; }
   ;
-damages
-  : damages damage                { $$ = $2; $2->damageRange.child = $1; }
-  | damage                        { $$ = $1; }
-  ;
-damage
-  : PERCENT '-' PERCENT           { $$ = QueryASTNode::newDamageRange(nullptr, $1, $3); }
-  | '>' PERCENT                   { $$ = QueryASTNode::newDamageRange(nullptr, $2, 999); }
-  | '<' PERCENT                   { $$ = QueryASTNode::newDamageRange(nullptr, 0, $2); }
-  ;
 %%
-
-static void addDamageRangeChild(QueryASTNode* root, QueryASTNode* child)
-{
-    assert(root->type == QueryASTNode::DAMAGE_RANGE);
-    while (root->damageRange.child)
-    {
-        root = root->damageRange.child;
-        assert(root->type == QueryASTNode::DAMAGE_RANGE);
-    }
-
-    root->damageRange.child = child;
-}
 
 static void qperror(qpscan_t scanner, const char* msg, ...)
 {

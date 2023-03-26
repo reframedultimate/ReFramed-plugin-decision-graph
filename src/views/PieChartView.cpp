@@ -291,3 +291,11 @@ void PieChartView::onQueryApplied()
     updateIOCharts();
     updateBreakdownCharts();
 }
+
+void PieChartView::onNewSessions() override;
+void PieChartView::onClearAll() override;
+void PieChartView::onDataAdded() override;
+void PieChartView::onPOVChanged() override;
+void PieChartView::onQueriesChanged() override;
+void PieChartView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) override;
+void PieChartView::onQueriesApplied() override;

@@ -7,6 +7,7 @@ public:
     virtual void onClearAll() = 0;
     virtual void onDataAdded() = 0;
     virtual void onPOVChanged() = 0;
-    virtual void onQueryCompiled(int queryIdx) = 0;
+    virtual void onQueriesChanged() = 0;
+    virtual void onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) = 0;
     virtual void onQueriesApplied() = 0;
 };

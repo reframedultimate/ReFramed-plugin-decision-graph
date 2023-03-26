@@ -25,15 +25,6 @@
 "sh"                    { return TOK_SH; }
 "dj"                    { return TOK_DJ; }*/
 
-static int percent_to_value(char* str)
-{
-    int len = strlen(str);
-    str[len-1] = 0;
-    int value = atoi(str);
-    str[len-1] = '%';
-    return value;
-}
-
 %}
 
 %option nodefault
@@ -43,22 +34,18 @@ static int percent_to_value(char* str)
 %option prefix="qp"
 
 %%
-[\.\(\)\|\?\+\*!\,]     { return yytext[0]; }
-->                      { return TOK_INTO; }
--                       { return '-'; }
-"<"                     { return '<'; }
-">"                     { return '>'; }
-"os"                    { return TOK_OS; }
-"oos"                   { return TOK_OOS; }
-"hit"                   { return TOK_HIT; }
-"whiff"                 { return TOK_WHIFF; }
-"rising"                { return TOK_RISING; }
-"falling"               { return TOK_FALLING; }
-"idj"                   { return TOK_IDJ; }
-"0x"[0-9a-fA-F]+        { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
-[0-9]+%                 { yylval->integer_value = percent_to_value(yytext); return TOK_PERCENT; }
-[0-9]+                  { yylval->integer_value = atoi(yytext); return TOK_NUM; }
-[a-zA-Z_][a-zA-Z0-9_]+? { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
+[\.\(\)\|\?\+\*!\,]        { return yytext[0]; }
+"->"                       { return TOK_INTO; }
+"os"                       { return TOK_OS; }
+"oos"                      { return TOK_OOS; }
+"hit"                      { return TOK_HIT; }
+"whiff"                    { return TOK_WHIFF; }
+"rising"                   { return TOK_RISING; }
+"falling"                  { return TOK_FALLING; }
+"idj"                      { return TOK_IDJ; }
+"0x"[0-9a-fA-F]+           { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
+[0-9]+                     { yylval->integer_value = atoi(yytext); return TOK_NUM; }
+[a-zA-Z_][a-zA-Z0-9_\- ]+? { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 [ \t\r\n]
-.                       { return yytext[0]; }
+.                          { return yytext[0]; }
 %%

@@ -17,9 +17,10 @@ DamageView::~DamageView()
 }
 
 // ----------------------------------------------------------------------------
-void DamageView::onPOVChanged() {}
-void DamageView::onNewSession() {}
+void DamageView::onNewSessions() {}
+void DamageView::onClearAll() {}
 void DamageView::onDataAdded() {}
-void DamageView::onDataCleared() {}
-void DamageView::onQueryCompiled(int queryIdx) {}
-void DamageView::onQueryApplied() {}
+void DamageView::onPOVChanged() {}
+void DamageView::onQueriesChanged() {}
+void DamageView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void DamageView::onQueriesApplied() {}

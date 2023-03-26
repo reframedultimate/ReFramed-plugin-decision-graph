@@ -18,33 +18,33 @@ VisualizerModel::~VisualizerModel()
 }
 
 // ----------------------------------------------------------------------------
-void VisualizerModel::updateData()
+void VisualizerModel::onSharedDataChanged() {}
+
+// ----------------------------------------------------------------------------
+void VisualizerModel::onNewSessions() {}
+void VisualizerModel::onClearAll()
+{
+    setSharedData({});
+}
+void VisualizerModel::onDataAdded() {}
+void VisualizerModel::onPOVChanged() {}
+void VisualizerModel::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void VisualizerModel::onQueriesApplied()
 {
     rfcommon::PluginSharedData data;
-    const auto& states = seqSearchModel_->fighterStates(seqSearchModel_->currentFighter());
+    const auto& states = seqSearchModel_->fighterStates(seqSearchModel_->playerPOV());
     for (int queryIdx = 0; queryIdx != seqSearchModel_->queryCount(); ++queryIdx)
     {
         rfcommon::Vector<rfcommon::PluginSharedData::TimeInterval> timeIntervals;
         for (const auto range : seqSearchModel_->matches(queryIdx))
         {
             assert(range.startIdx != range.endIdx);
-            const char* name = seqSearchModel_->queryStr(queryIdx);
+            const rfcommon::String& name = seqSearchModel_->playerQuery(queryIdx);
             const auto startFrame = states[range.startIdx].sideData.frameIndex;
             const auto endFrame = states[range.endIdx - 1].sideData.frameIndex;
             timeIntervals.emplace(name, startFrame, rfcommon::FrameIndex::fromValue(endFrame.index() + 1));
         }
-        data.timeIntervalSets.insertAlways(seqSearchModel_->queryStr(queryIdx), std::move(timeIntervals));
+        data.timeIntervalSets.insertAlways(seqSearchModel_->playerQuery(queryIdx), std::move(timeIntervals));
     }
     setSharedData(std::move(data));
 }
-
-// ----------------------------------------------------------------------------
-void VisualizerModel::onSharedDataChanged() {}
-
-// ----------------------------------------------------------------------------
-void VisualizerModel::onPOVChanged() { updateData(); }
-void VisualizerModel::onNewSession() { updateData(); }
-void VisualizerModel::onDataAdded() { updateData(); }
-void VisualizerModel::onDataCleared() { updateData(); }
-void VisualizerModel::onQueryCompiled(int queryIdx) {}
-void VisualizerModel::onQueryApplied() { updateData(); }

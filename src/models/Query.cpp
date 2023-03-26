@@ -16,31 +16,28 @@ Matcher Matcher::start()
     return Matcher(
         rfcommon::FighterMotion::makeInvalid(),
         rfcommon::FighterStatus::makeInvalid(),
-        {},
         0,
         0
     );
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::wildCard(const DamageRanges& damageRanges, uint8_t ctxQualFlags)
+Matcher Matcher::wildCard(uint8_t ctxQualFlags)
 {
     return Matcher(
         rfcommon::FighterMotion::makeInvalid(),
         rfcommon::FighterStatus::makeInvalid(),
-        damageRanges,
         ctxQualFlags,
         0
     );
 }
 
 // ----------------------------------------------------------------------------
-Matcher Matcher::motion(rfcommon::FighterMotion motion, const DamageRanges& damageRanges, uint8_t ctxQualFlags)
+Matcher Matcher::motion(rfcommon::FighterMotion motion, uint8_t ctxQualFlags)
 {
     return Matcher(
         motion,
         rfcommon::FighterStatus::makeInvalid(),
-        damageRanges,
         ctxQualFlags,
         MATCH_MOTION
     );
@@ -50,11 +47,9 @@ Matcher Matcher::motion(rfcommon::FighterMotion motion, const DamageRanges& dama
 Matcher::Matcher(
         rfcommon::FighterMotion motion,
         rfcommon::FighterStatus status,
-        const DamageRanges& damage,
         uint8_t ctxQualFlags,
         uint8_t matchFlags)
     : motion_(motion)
-    , damage_(damage)
     , status_(status)
     , ctxQualFlags_(ctxQualFlags)
     , matchFlags_(matchFlags)
@@ -88,7 +83,7 @@ bool Matcher::matches(const State& state) const
 }
 
 // ----------------------------------------------------------------------------
-QueryASTNode* Query::parse(const char* text)
+QueryASTNode* Query::parse(const rfcommon::String& text)
 {
     qpscan_t scanner;
     qppstate* parser;
@@ -100,7 +95,7 @@ QueryASTNode* Query::parse(const char* text)
 
     if (qplex_init(&scanner) != 0)
         goto init_scanner_failed;
-    buf = qp_scan_bytes(text, strlen(text), scanner);
+    buf = qp_scan_bytes(text.cStr(), text.length(), scanner);
     if (buf == nullptr)
         goto scan_bytes_failed;
     parser = qppstate_new();
@@ -190,8 +185,7 @@ static bool compileASTRecurse(
         rfcommon::Vector<Matcher>* matchers,
         rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>>* mergeMotions,
         rfcommon::SmallVector<Fragment, 16>* fstack,
-        rfcommon::SmallVector<uint8_t, 16>* qstack,
-        Matcher::DamageRanges* dstack)
+        rfcommon::SmallVector<uint8_t, 16>* qstack)
 {
     // OR all flags currently on the stack
     auto calcContextQualifierFlags = [](rfcommon::SmallVector<uint8_t, 16>* qstack) -> uint8_t {
@@ -211,8 +205,8 @@ static bool compileASTRecurse(
     switch (node->type)
     {
     case QueryASTNode::STATEMENT: {
-        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
-        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& right = fstack->back(1);
@@ -237,7 +231,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::REPITITION: {
-        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
         if (fstack->count() < 1) return false;
 
         // Invalid values
@@ -328,8 +322,8 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::UNION: {
-        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
-        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
         if (fstack->count() < 2) return false;
 
         Fragment& f1 = fstack->back(1);
@@ -343,12 +337,12 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::INVERSION:
-        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
         break;
 
     case QueryASTNode::WILDCARD: {
         fstack->push({{matchers->count()}, {matchers->count()}});
-        matchers->push(Matcher::wildCard(*dstack, calcContextQualifierFlags(qstack)));
+        matchers->push(Matcher::wildCard(calcContextQualifierFlags(qstack)));
     } break;
 
     case QueryASTNode::LABEL: {
@@ -364,7 +358,7 @@ static bool compileASTRecurse(
             {
                 fragment.in.push(matchers->count());
                 fragment.out.push(matchers->count());
-                matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
+                matchers->push(Matcher::motion(motion, ctxtQualFlags));
             }
 
             // If the user label maps to multiple motions a, b, c, then
@@ -388,7 +382,7 @@ static bool compileASTRecurse(
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
-            matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
+            matchers->push(Matcher::motion(motion, ctxtQualFlags));
             break;
         }
 
@@ -397,7 +391,7 @@ static bool compileASTRecurse(
         if (motion.isValid())
         {
             fstack->push({{matchers->count()}, {matchers->count()}});
-            matchers->push(Matcher::motion(motion, *dstack, ctxtQualFlags));
+            matchers->push(Matcher::motion(motion, ctxtQualFlags));
             break;
         }
 
@@ -406,14 +400,8 @@ static bool compileASTRecurse(
 
     case QueryASTNode::CONTEXT_QUALIFIER: {
         qstack->push(node->contextQualifier.flags);
-        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
+        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
         qstack->pop();
-    } break;
-
-    case QueryASTNode::DAMAGE_RANGE: {
-        dstack->push({ node->damageRange.lower, node->damageRange.upper });
-        if (!compileASTRecurse(node->damageRange.child, labels, fighterID, matchers, mergeMotions, fstack, qstack, dstack)) return false;
-        dstack->pop();
     } break;
     }
 
@@ -428,9 +416,8 @@ Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* 
 
     rfcommon::SmallVector<Fragment, 16> fstack;  // "fragment stack"
     rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
-    Matcher::DamageRanges dstack;                // "damage stack"
 
-    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &query->mergeMotions_, &fstack, &qstack, &dstack))
+    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &query->mergeMotions_, &fstack, &qstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;

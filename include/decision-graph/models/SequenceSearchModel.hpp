@@ -53,6 +53,7 @@ public:
      * Note that notifyNewSessions() implies notifyFramesAdded().
      */
     void addFrame(int frameIdx, const rfcommon::FrameData* fdata);
+    void addAllFrames(const rfcommon::FrameData* fdata);
     void notifyFramesAdded();
 
     /*
@@ -64,13 +65,13 @@ public:
      */
     void setPlayerPOV(int fighterIdx);
     void setOpponentPOV(int fighterIdx);
-    int fighterCount() const;
-    int playerFighter() const;
-    int opponentFighter() const;
-    const char* playerName(int fighterIdx) const;
-    const char* fighterName(int fighterIdx) const;
-    rfcommon::FighterID fighterID(int fighterIdx) const;
-    const States& fighterStates(int fighterIdx) const;
+    int playerPOV() const { return currentFighterIdx_; }
+    int opponentPOV() const { return opponentFighterIdx_; }
+    int fighterCount() const { return fighterStates_.count(); }
+    const rfcommon::String& playerName(int fighterIdx) const { return fighterStates_[fighterIdx].playerName; }
+    const rfcommon::String& fighterName(int fighterIdx) const { return fighterStates_[fighterIdx].fighterName; }
+    rfcommon::FighterID fighterID(int fighterIdx) const { return fighterStates_[fighterIdx].fighterID; }
+    const States& fighterStates(int fighterIdx) const { return fighterStates_[fighterIdx]; }
 
     /*
      * Adding a query will create a new empty entry in the list of queries and
@@ -87,8 +88,9 @@ public:
     void setQuery(int queryIdx, const char* queryStr, const char* oppQueryStr);
     void removeQuery(int queryIdx);
     void notifyQueriesChanged();
-    int queryCount() const;
-    const char* queryStr(int queryIdx) const;
+    int queryCount() const { return compiledQueries_.count(); }
+    const rfcommon::String& playerQuery(int queryIdx) const { return queryStrings_[queryIdx].player; }
+    const rfcommon::String& opponentQuery(int queryIdx) const { return queryStrings_[queryIdx].opponent; }
 
     /*
      * Once the query strings are set, they need to be compiled. This needs to
@@ -99,28 +101,33 @@ public:
      * returned.
      */
     bool compileQuery(int queryIdx, rfcommon::FighterID fighterID, rfcommon::FighterID oppFighterID);
-    const char* lastQueryError();
 
     /*
      * Applies queries to the current data. Whenever frames are added, or new
      * sessions are added, or if a query is re-compiled, this should be called.
      *
-     * Trying to apply a query that failed to compiled will fail and not do
-     * anything.
-     *
-     * Calls onQueriesApplied()
+     * Trying to apply a query that failed to compiled will fail and do nothing.
+     * 
+     * Make sure to call notifyQueriesApplied() to update the UI.
      */
-    bool applyQuery(int queryIdx);
-    bool applyAllQueries();
+    bool applyQuery(int queryIdx, const States& playerStates, const States& opponentStates);
+    bool applyAllQueries(const States& playerStates, const States& opponentStates);
+    void notifyQueriesApplied();
 
-    const rfcommon::Vector<Range>& matches(int queryIdx) const;
-    const rfcommon::Vector<Sequence>& mergedMatches(int queryIdx) const;
-    const rfcommon::Vector<Range>& sessionMatches(int queryIdx, int sessionIdx) const;
-    const rfcommon::Vector<Sequence>& sessionMergedMatches(int queryIdx, int sessionIdx) const;
+    const rfcommon::Vector<Range>& matches(int queryIdx) const
+        { return queryResults_[queryIdx].matches; }
+    const rfcommon::Vector<Sequence>& mergedMatches(int queryIdx) const
+        { return queryResults_[queryIdx].mergedMatches; }
+    const rfcommon::Vector<Range>& sessionMatches(int queryIdx, int sessionIdx) const
+        { return queryResults_[queryIdx].sessionMatches[sessionIdx]; }
+    const rfcommon::Vector<Sequence>& sessionMergedMatches(int queryIdx, int sessionIdx) const
+        { return queryResults_[queryIdx].sessionMergedMatches[sessionIdx]; }
 
     rfcommon::ListenerDispatcher<SequenceSearchListener> dispatcher;
 
 private:
+    const rfcommon::MotionLabels* const labels_;
+
     // Accumulates all states spanned over all sessions for every unique fighter
     rfcommon::Vector<States> fighterStates_;
 
@@ -147,22 +154,34 @@ private:
     int currentFighterIdx_ = -1;
     int opponentFighterIdx_ = -1;
 
+    struct QueryStrings
+    {
+        rfcommon::String player;
+        rfcommon::String opponent;
+    };
+
+    struct QueryNFAs
+    {
+        std::unique_ptr<Query> player;
+        std::unique_ptr<Query> opponent;
+    };
+
     struct QueryResult
     {
-        Graph graph;
         rfcommon::Vector<Range> matches;
         rfcommon::Vector<Sequence> mergedMatches;
         rfcommon::Vector<Sequence> mergedAndNormalizedMatches;
-        rfcommon::Vector<Graph> sessionGraph;
         rfcommon::Vector<rfcommon::Vector<Range>> sessionMatches;
         rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedMatches;
         rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedAndNormalizedMatches;
     };
+
+    rfcommon::Vector<QueryStrings> queryStrings_;
     rfcommon::Vector<QueryResult> queryResults_;
-    rfcommon::Vector<std::unique_ptr<Query>> queries_;
-    rfcommon::Vector<rfcommon::String> queryStrings_;
-    rfcommon::String queryError_;
+    rfcommon::Vector<QueryNFAs> compiledQueries_;
 
     rfcommon::FighterID previousFighterID_;
     rfcommon::String previousPlayerName_;
+    rfcommon::FighterID previousOpponentID_;
+    rfcommon::String previousOpponentName_;
 };

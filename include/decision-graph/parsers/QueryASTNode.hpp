@@ -13,8 +13,7 @@ struct QueryASTNode
         INVERSION,
         WILDCARD,
         LABEL,
-        CONTEXT_QUALIFIER,
-        DAMAGE_RANGE
+        CONTEXT_QUALIFIER
     } type;
 
     enum ContextQualifierFlags {
@@ -56,12 +55,6 @@ struct QueryASTNode
         uint8_t flags;
     };
 
-    struct DamageRange {
-        DamageRange(QueryASTNode* child, int lower, int upper) : child(child), lower(lower), upper(upper) {}
-        QueryASTNode* child;
-        int lower, upper;
-    };
-
     struct Labels {
         Labels(const char* label) : label(label) {}
         Labels(const char* label, const char* oppLabel) : label(label), oppLabel(oppLabel) {}
@@ -78,7 +71,6 @@ private:
     QueryASTNode(const char* label) : type(LABEL), labels(label) {}
     QueryASTNode(const char* label, const char* oppLabel) : type(LABEL), labels(label, oppLabel) {}
     QueryASTNode(ContextQualifier contextQualifier) : type(CONTEXT_QUALIFIER), contextQualifier(contextQualifier) {}
-    QueryASTNode(DamageRange damageRange) : type(DAMAGE_RANGE), damageRange(damageRange) {}
     ~QueryASTNode() {}
 
 public:
@@ -104,6 +96,5 @@ public:
         Inversion inversion;
         Labels labels;
         ContextQualifier contextQualifier;
-        DamageRange damageRange;
     };
 };

@@ -17,7 +17,7 @@ namespace rfcommon {
 class States : public rfcommon::Vector<State>
 {
 public:
-    States(rfcommon::FighterID fighterID, const rfcommon::String& playerName, const rfcommon::String& fighterName);;
+    States(rfcommon::FighterID fighterID, const rfcommon::String& playerName, const rfcommon::String& fighterName);
     ~States();
 
     const rfcommon::String playerName;

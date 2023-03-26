@@ -22,18 +22,15 @@ public:
     ~VisualizerModel();
 
 private:
-    void updateData();
-
-private:
     void onSharedDataChanged() override;
 
 private:
-    void onPOVChanged() override;
-    void onNewSession() override;
+    void onNewSessions() override;
+    void onClearAll() override;
     void onDataAdded() override;
-    void onDataCleared() override;
-    void onQueryCompiled(int queryIdx) override;
-    void onQueryApplied() override;
+    void onPOVChanged() override;
+    void onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) override;
+    void onQueriesApplied() override;
 
 private:
     SequenceSearchModel* seqSearchModel_;
