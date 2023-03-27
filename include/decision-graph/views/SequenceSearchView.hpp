@@ -38,27 +38,29 @@ public:
 private slots:
     void onTabIndexChanged(int index);
     void onLineEditQueryTextChanged(int index, const QString& text);
-    void onComboBoxPlayerChanged(int index);
     void addQueryBox();
     void removeQueryBox(int index);
 
 private:
-    void updateQueryCompileError(int queryIdx);
+    void onComboBoxPlayersChanged();
 
 private:
-    void onPOVChanged() override;
-    void onNewSession() override;
+    void onNewSessions() override;
+    void onClearAll() override;
     void onDataAdded() override;
-    void onDataCleared() override;
-    void onQueryCompiled(int queryIdx) override;
-    void onQueryApplied() override;
+    void onPOVChanged() override;
+    void onQueriesChanged() override;
+    void onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) override;
+    void onQueriesApplied() override;
 
 private:
     struct QueryBox
     {
         QLabel* name;
-        QLabel* parseError;
-        QLineEdit* query;
+        QLabel* playerStatus;
+        QLabel* opponentStatus;
+        QLineEdit* playerQuery;
+        QLineEdit* opponentQuery;
         QToolButton* remove;
     };
 

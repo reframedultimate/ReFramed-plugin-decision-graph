@@ -17,9 +17,10 @@ HeatMapView::~HeatMapView()
 }
 
 // ----------------------------------------------------------------------------
-void HeatMapView::onPOVChanged() {}
-void HeatMapView::onNewSession() {}
+void HeatMapView::onNewSessions() {}
+void HeatMapView::onClearAll() {}
 void HeatMapView::onDataAdded() {}
-void HeatMapView::onDataCleared() {}
-void HeatMapView::onQueryCompiled(int queryIdx) {}
-void HeatMapView::onQueryApplied() {}
+void HeatMapView::onPOVChanged() {}
+void HeatMapView::onQueriesChanged() {}
+void HeatMapView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void HeatMapView::onQueriesApplied() {}

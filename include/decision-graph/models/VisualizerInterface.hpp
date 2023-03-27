@@ -29,6 +29,7 @@ private:
     void onClearAll() override;
     void onDataAdded() override;
     void onPOVChanged() override;
+    void onQueriesChanged() override;
     void onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) override;
     void onQueriesApplied() override;
 

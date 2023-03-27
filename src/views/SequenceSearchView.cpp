@@ -79,10 +79,8 @@ SequenceSearchView::SequenceSearchView(
     onTabIndexChanged(ui_->tabWidget->currentIndex());
 
     connect(ui_->tabWidget, &QTabWidget::currentChanged, this, &SequenceSearchView::onTabIndexChanged);
-    connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged),
-            this, &SequenceSearchView::onComboBoxPlayerChanged);
-    connect(ui_->toolButton_addQuery, &QToolButton::released,
-            this, &SequenceSearchView::addQueryBox);
+    connect(ui_->comboBox_player, qOverload<int>(&QComboBox::currentIndexChanged), [this] { onComboBoxPlayersChanged(); });
+    connect(ui_->toolButton_addQuery, &QToolButton::released, this, &SequenceSearchView::addQueryBox);
 
     seqSearchModel_->dispatcher.addListener(this);
 }
@@ -167,26 +165,30 @@ void SequenceSearchView::onLineEditQueryTextChanged(int index, const QString& te
 {
     if (text.length() == 0)
     {
-        queryBoxes_[index].parseError->setText("Query string empty.");
-        queryBoxes_[index].parseError->setVisible(true);
+        queryBoxes_[index].playerStatus->setText("Query string empty.");
+        queryBoxes_[index].playerStatus->setStyleSheet("QLabel {color: #FF2020}");
+        queryBoxes_[index].playerStatus->setVisible(true);
         return;
     }
 
-    QByteArray ba = text.toUtf8();
-    seqSearchModel_->setQuery(index, ba.constData());
-    seqSearchModel_->compileQuery(index);
+    seqSearchModel_->setQuery(index,
+        queryBoxes_[index].playerQuery->text().toUtf8().constData(),
+        queryBoxes_[index].opponentQuery->text().toUtf8().constData());
+    seqSearchModel_->notifyQueriesChanged();
 
-    if (seqSearchModel_->queryCompiled(index))
-        seqSearchModel_->applyQuery(index);
+    if (seqSearchModel_->playerPOV() >= 0 && seqSearchModel_->opponentPOV() >= 0)
+    {
+        seqSearchModel_->compileQuery(index,
+            seqSearchModel_->fighterID(seqSearchModel_->playerPOV()),
+            seqSearchModel_->fighterID(seqSearchModel_->opponentPOV()));
 
-    updateQueryCompileError(index);
-}
-
-// ----------------------------------------------------------------------------
-void SequenceSearchView::onComboBoxPlayerChanged(int index)
-{
-    seqSearchModel_->setPlayerPOV(index);
-    seqSearchModel_->applyAllQueries();
+        if (seqSearchModel_->applyQuery(index,
+                seqSearchModel_->fighterStates(seqSearchModel_->playerPOV()),
+                seqSearchModel_->fighterStates(seqSearchModel_->opponentPOV())))
+        {
+            seqSearchModel_->notifyQueriesApplied();
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -196,17 +198,23 @@ void SequenceSearchView::addQueryBox()
 
     QueryBox& box = queryBoxes_.emplace();
     box.name = new QLabel("#" + QString::number(queryBoxes_.count()) + ":");
-    box.parseError = new QLabel("Query text empty.");
-    box.parseError->setStyleSheet("QLabel {color: #FF2020}");
-    box.query = new QLineEdit;
+    box.playerStatus = new QLabel("Query string empty.");
+    box.playerStatus->setStyleSheet("QLabel {color: #FF2020}");
+    box.opponentStatus = new QLabel;
+    box.opponentStatus->setVisible(false);
+    box.playerQuery = new QLineEdit;
+    box.opponentQuery = new QLineEdit;
+    box.opponentQuery->setPlaceholderText("Opponent search string");
     box.remove = new QToolButton;
     box.remove->setIcon(QIcon::fromTheme("x"));
 
     QGridLayout* boxLayout = new QGridLayout;
     boxLayout->addWidget(box.name, 0, 0);
-    boxLayout->addWidget(box.query, 0, 1);
+    boxLayout->addWidget(box.playerQuery, 0, 1);
     boxLayout->addWidget(box.remove, 0, 2);
-    boxLayout->addWidget(box.parseError, 1, 1, 1, 3, Qt::AlignRight);
+    boxLayout->addWidget(box.playerStatus, 1, 1, 1, 3, Qt::AlignRight);
+    boxLayout->addWidget(box.opponentQuery, 2, 1);
+    boxLayout->addWidget(box.opponentStatus, 3, 1, 1, 3, Qt::AlignRight);
 
     QVBoxLayout* groupLayout = static_cast<QVBoxLayout*>(ui_->groupBox_query->layout());
     groupLayout->addLayout(boxLayout);
@@ -222,10 +230,10 @@ void SequenceSearchView::addQueryBox()
             }
     });
 
-    QLineEdit* queryEdit = box.query;
-    connect(box.query, &QLineEdit::textChanged, [this, queryEdit](const QString& text) {
+    QLineEdit* queryEdit = box.playerQuery;
+    connect(box.playerQuery, &QLineEdit::textChanged, [this, queryEdit](const QString& text) {
         for (int i = 0; i != queryBoxes_.count(); ++i)
-            if (queryBoxes_[i].query == queryEdit)
+            if (queryBoxes_[i].playerQuery == queryEdit)
             {
                 onLineEditQueryTextChanged(i, text);
                 break;
@@ -248,39 +256,60 @@ void SequenceSearchView::removeQueryBox(int index)
         queryBoxes_[index].name->setText("#" + QString::number(index + 1) + ":");
 
     seqSearchModel_->removeQuery(index);
-    seqSearchModel_->applyAllQueries();
+    seqSearchModel_->applyAllQueries(
+        seqSearchModel_->fighterStates(seqSearchModel_->playerPOV()),
+        seqSearchModel_->fighterStates(seqSearchModel_->opponentPOV())
+    );
 }
 
 // ----------------------------------------------------------------------------
-void SequenceSearchView::updateQueryCompileError(int queryIdx)
+void SequenceSearchView::onComboBoxPlayersChanged()
 {
-    if (seqSearchModel_->queryCompiled(queryIdx))
-        queryBoxes_[queryIdx].parseError->setVisible(false);
-    else
+    seqSearchModel_->setPlayerPOV(ui_->comboBox_player->currentIndex());
+
+    seqSearchModel_->applyAllQueries(
+         seqSearchModel_->fighterStates(seqSearchModel_->playerPOV()),
+         seqSearchModel_->fighterStates(seqSearchModel_->opponentPOV()));
+}
+
+// ----------------------------------------------------------------------------
+void SequenceSearchView::onNewSessions()
+{
+    // Update dropdowns with list of players
+    QSignalBlocker blockPlayer(ui_->comboBox_player);
+    QSignalBlocker blockOpponent(ui_->comboBox_opponent);
+
+    ui_->comboBox_player->clear();
+    ui_->comboBox_opponent->clear();
+    for (int i = 0; i != seqSearchModel_->fighterCount(); ++i)
     {
-        queryBoxes_[queryIdx].parseError->setText(seqSearchModel_->lastQueryError());
-        queryBoxes_[queryIdx].parseError->setVisible(true);
+        QString name = QString::fromUtf8(seqSearchModel_->playerName(i).cStr());
+        QString fighter = QString::fromUtf8(seqSearchModel_->fighterName(i).cStr());
+        QString text = name + " (" + fighter + ")";
+        ui_->comboBox_player->addItem(text);
+        ui_->comboBox_opponent->addItem(text);
+    }
+
+    if (seqSearchModel_->fighterCount() > 0)
+    {
+        ui_->comboBox_player->setCurrentIndex(seqSearchModel_->playerPOV());
+        ui_->comboBox_opponent->setCurrentIndex(seqSearchModel_->opponentPOV());
     }
 }
-
-// ----------------------------------------------------------------------------
+void SequenceSearchView::onClearAll() {}
+void SequenceSearchView::onDataAdded() {}
 void SequenceSearchView::onPOVChanged()
 {
-    bool blocked = ui_->comboBox_player->blockSignals(true);
-        ui_->comboBox_player->setCurrentIndex(seqSearchModel_->currentFighter());
-    ui_->comboBox_player->blockSignals(blocked);
+    QSignalBlocker blockPlayer(ui_->comboBox_player);
+    ui_->comboBox_player->setCurrentIndex(seqSearchModel_->playerPOV());
 }
-void SequenceSearchView::onNewSession()
+void SequenceSearchView::onQueriesChanged() {}
+void SequenceSearchView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError)
 {
-    bool blocked = ui_->comboBox_player->blockSignals(true);
-        ui_->comboBox_player->clear();
-        for (int i = 0; i != seqSearchModel_->fighterCount(); ++i)
-            ui_->comboBox_player->addItem(QString(seqSearchModel_->playerName(i)) + " (" + seqSearchModel_->fighterName(i) + ")");
-        if (seqSearchModel_->fighterCount() > 0)
-            ui_->comboBox_player->setCurrentIndex(seqSearchModel_->currentFighter());
-    ui_->comboBox_player->blockSignals(blocked);
+    queryBoxes_[queryIdx].playerStatus->setVisible(!success);
+    queryBoxes_[queryIdx].playerStatus->setText(QString::fromUtf8(error));
 }
-void SequenceSearchView::onDataAdded() {}
-void SequenceSearchView::onDataCleared() {}
-void SequenceSearchView::onQueryCompiled(int queryIdx) { updateQueryCompileError(queryIdx); }
-void SequenceSearchView::onQueryApplied() {}
+void SequenceSearchView::onQueriesApplied()
+{
+
+}

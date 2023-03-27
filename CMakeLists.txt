@@ -37,7 +37,6 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "src/Plugin.cpp"
     HEADERS
         "include/${PLUGIN_NAME}/listeners/SequenceSearchListener.hpp"
-        "include/${PLUGIN_NAME}/listeners/UserLabelsListener.hpp"
         "include/${PLUGIN_NAME}/models/Edge.hpp"
         "include/${PLUGIN_NAME}/models/Graph.hpp"
         "include/${PLUGIN_NAME}/models/GraphModel.hpp"

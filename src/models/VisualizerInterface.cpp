@@ -28,6 +28,7 @@ void VisualizerModel::onClearAll()
 }
 void VisualizerModel::onDataAdded() {}
 void VisualizerModel::onPOVChanged() {}
+void VisualizerModel::onQueriesChanged() {}
 void VisualizerModel::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
 void VisualizerModel::onQueriesApplied()
 {
@@ -36,7 +37,7 @@ void VisualizerModel::onQueriesApplied()
     for (int queryIdx = 0; queryIdx != seqSearchModel_->queryCount(); ++queryIdx)
     {
         rfcommon::Vector<rfcommon::PluginSharedData::TimeInterval> timeIntervals;
-        for (const auto range : seqSearchModel_->matches(queryIdx))
+        for (const auto& range : seqSearchModel_->matches(queryIdx))
         {
             assert(range.startIdx != range.endIdx);
             const rfcommon::String& name = seqSearchModel_->playerQuery(queryIdx);

@@ -17,9 +17,10 @@ ShieldHealthView::~ShieldHealthView()
 }
 
 // ----------------------------------------------------------------------------
-void ShieldHealthView::onPOVChanged() {}
-void ShieldHealthView::onNewSession() {}
+void ShieldHealthView::onNewSessions() {}
+void ShieldHealthView::onClearAll() {}
 void ShieldHealthView::onDataAdded() {}
-void ShieldHealthView::onDataCleared() {}
-void ShieldHealthView::onQueryCompiled(int queryIdx) {}
-void ShieldHealthView::onQueryApplied() {}
+void ShieldHealthView::onPOVChanged() {}
+void ShieldHealthView::onQueriesChanged() {}
+void ShieldHealthView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void ShieldHealthView::onQueriesApplied() {}

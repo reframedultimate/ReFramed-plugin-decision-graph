@@ -26,12 +26,12 @@ void StateListView::updateText()
 {
     textEdit_->clear();
 
-    const States& states = model_->fighterStates(model_->currentFighter());
+    const States& states = model_->fighterStates(model_->playerPOV());
 
     for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
     {
         QTextCursor cursor = textEdit_->textCursor();
-        cursor.insertText("Query: " + QString::fromUtf8(model_->queryStr(queryIdx)) + "\n");
+        cursor.insertText("Query: " + QString::fromUtf8(model_->playerQuery(queryIdx).cStr()) + "\n");
 
         for (int sessionIdx = 0; sessionIdx != model_->sessionCount(); ++sessionIdx)
         {
@@ -49,9 +49,10 @@ StateListView::~StateListView()
 }
 
 // ----------------------------------------------------------------------------
-void StateListView::onPOVChanged() {}
-void StateListView::onNewSession() {}
+void StateListView::onNewSessions() {}
+void StateListView::onClearAll() {}
 void StateListView::onDataAdded() {}
-void StateListView::onDataCleared() {}
-void StateListView::onQueryCompiled(int queryIdx) {}
-void StateListView::onQueryApplied() { updateText(); }
+void StateListView::onPOVChanged() {}
+void StateListView::onQueriesChanged() {}
+void StateListView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void StateListView::onQueriesApplied() { updateText(); }

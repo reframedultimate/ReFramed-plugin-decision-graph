@@ -28,12 +28,7 @@ public:
      * Allocates and prepares a new entry in the sessions structures. You
      * should call notifyNewSessions() after adding 1 or more sessions to
      * notify the UI. This will cause the UI to clear any data from previous
-     * sessions and adopt the data from the newly added sessions.
-     *
-     * It's also possible to add frame data to each session you create before
-     * calling notifyNewSessions(). This will cause the UI to adopt the new
-     * data instead of showing empty data. It is not necessary to call
-     * notifyFramesAdded(), as this is implied by notifyNewSessions().
+     * sessions and adopt new session data such as player names and fighters.
      */
     void startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata);
     void notifyNewSessions();
@@ -49,8 +44,6 @@ public:
     /*
      * Adds a frame to the currently active session. You can call this multiple
      * times and then call notifyFramesAdded() to cause the UI to update.
-     *
-     * Note that notifyNewSessions() implies notifyFramesAdded().
      */
     void addFrame(int frameIdx, const rfcommon::FrameData* fdata);
     void addAllFrames(const rfcommon::FrameData* fdata);
@@ -107,7 +100,7 @@ public:
      * sessions are added, or if a query is re-compiled, this should be called.
      *
      * Trying to apply a query that failed to compiled will fail and do nothing.
-     * 
+     *
      * Make sure to call notifyQueriesApplied() to update the UI.
      */
     bool applyQuery(int queryIdx, const States& playerStates, const States& opponentStates);

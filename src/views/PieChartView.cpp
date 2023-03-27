@@ -14,8 +14,6 @@
 #include "qwt_text.h"
 #include "qwt_column_symbol.h"
 
-#include "qwt_math.h"
-
 // ----------------------------------------------------------------------------
 PieChartView::PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* labels, QWidget* parent)
     : model_(model)
@@ -124,8 +122,12 @@ void PieChartView::updateIOCharts()
 
     if (model_->queryCount() == 1)
     {
+        if (model_->playerPOV() < 0)
+            return;
+        const States& states = model_->fighterStates(model_->playerPOV());
+
         // Find largest island
-        const auto islands = model_->graph(0).islands();
+        const auto islands = Graph::fromSequences(states, model_->mergedMatches(0)).islands();
         if (islands.count() == 0)
             return;
 
@@ -138,7 +140,6 @@ void PieChartView::updateIOCharts()
                 largest = i;
             }
 
-        const States& states = model_->fighterStates(model_->currentFighter());
         const Graph& graph = islands[largest];
         const Graph& outgoingTree = graph.outgoingTree(states);
         const Graph& incomingTree = graph.incomingTree(states);
@@ -187,10 +188,10 @@ void PieChartView::updateBreakdownCharts()
     {
         for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)
         {
-            const auto label = model_->queryStr(queryIdx);
+            const auto& label = model_->playerQuery(queryIdx);
             const int value = model_->matches(queryIdx).count();
 
-            pieBreakdownSeries_->append(label, value);
+            pieBreakdownSeries_->append(QString::fromUtf8(label.cStr()), value);
         }
         pieBreakdownSeries_->setLabelsVisible(true);
 
@@ -226,7 +227,7 @@ void PieChartView::updateBreakdownCharts()
             symbol->setPalette(color);
             barBreakdownData_->setSymbol(queryIdx, symbol);
 
-            barTitles += QwtText(model_->queryStr(queryIdx));
+            barTitles += QwtText(QString::fromUtf8(model_->playerQuery(queryIdx).cStr()));
         }
 
         if (model_->sessionCount() == 1)
@@ -251,51 +252,20 @@ void PieChartView::updateBreakdownCharts()
 }
 
 // ----------------------------------------------------------------------------
-void PieChartView::onPOVChanged()
+void PieChartView::onNewSessions() {}
+void PieChartView::onClearAll()
 {
     updateVisible();
     updateIOCharts();
     updateBreakdownCharts();
 }
-
-// ----------------------------------------------------------------------------
-void PieChartView::onNewSession()
+void PieChartView::onDataAdded() {}
+void PieChartView::onPOVChanged() {}
+void PieChartView::onQueriesChanged() {}
+void PieChartView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void PieChartView::onQueriesApplied()
 {
     updateVisible();
     updateIOCharts();
     updateBreakdownCharts();
 }
-
-// ----------------------------------------------------------------------------
-void PieChartView::onDataAdded()
-{
-}
-
-// ----------------------------------------------------------------------------
-void PieChartView::onDataCleared()
-{
-    updateVisible();
-    updateIOCharts();
-    updateBreakdownCharts();
-}
-
-// ----------------------------------------------------------------------------
-void PieChartView::onQueryCompiled(int queryIdx)
-{
-}
-
-// ----------------------------------------------------------------------------
-void PieChartView::onQueryApplied()
-{
-    updateVisible();
-    updateIOCharts();
-    updateBreakdownCharts();
-}
-
-void PieChartView::onNewSessions() override;
-void PieChartView::onClearAll() override;
-void PieChartView::onDataAdded() override;
-void PieChartView::onPOVChanged() override;
-void PieChartView::onQueriesChanged() override;
-void PieChartView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) override;
-void PieChartView::onQueriesApplied() override;

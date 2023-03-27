@@ -40,8 +40,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>418</width>
-         <height>1059</height>
+         <width>412</width>
+         <height>1132</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -107,28 +107,6 @@
              <property name="icon">
               <iconset resource="../../ReFramed/application/res/reframed.qrc">
                <normaloff>:/icons/feather-light/apps/scalable/plus.svg</normaloff>:/icons/feather-light/apps/scalable/plus.svg</iconset>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_opponentQuery">
-          <property name="title">
-           <string>Opponent</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_9">
-           <item>
-            <widget class="QLineEdit" name="lineEdit"/>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ff0004;&quot;&gt;Query text empty.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
              </property>
             </widget>
            </item>

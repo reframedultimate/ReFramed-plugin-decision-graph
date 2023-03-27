@@ -35,14 +35,13 @@ TimingsView::~TimingsView()
 }
 
 // ----------------------------------------------------------------------------
-void TimingsView::onPOVChanged() {}
-void TimingsView::onNewSession() {}
+void TimingsView::onNewSessions() {}
+void TimingsView::onClearAll() {}
 void TimingsView::onDataAdded() {}
-void TimingsView::onDataCleared() {}
-void TimingsView::onQueryCompiled(int queryIdx) {}
-
-// ----------------------------------------------------------------------------
-void TimingsView::onQueryApplied() 
+void TimingsView::onPOVChanged() {}
+void TimingsView::onQueriesChanged() {}
+void TimingsView::onQueryCompiled(int queryIdx, bool success, const char* error, bool oppSuccess, const char* oppError) {}
+void TimingsView::onQueriesApplied()
 {
     struct SeqRef
     {
@@ -75,7 +74,7 @@ void TimingsView::onQueryApplied()
         const Sequence& seq;
     };
 
-    const States& states = model_->fighterStates(model_->currentFighter());
+    const States& states = model_->fighterStates(model_->playerPOV());
 
     rfcommon::HashMap<SeqRef, int, SeqRef::Hasher, SeqRef::Compare> sequenceFrequencies;
     for (int queryIdx = 0; queryIdx != model_->queryCount(); ++queryIdx)

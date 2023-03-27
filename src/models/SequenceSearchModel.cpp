@@ -133,6 +133,9 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // Make sure to never go out of bounds when switching between e.g. 1v1 and 2v2
     if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighterStates_.count())
         currentFighterIdx_ = 0;
+
+    // TODO
+    opponentFighterIdx_ = 1 - currentFighterIdx_;
 }
 
 // ----------------------------------------------------------------------------
@@ -329,8 +332,8 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
     {
         dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled,
             queryIdx,
-            false, fighterCount() == 0 ? "No replay data loaded" : "Query string empty",
-            false, fighterCount() == 0 ? "No replay data loaded" : "Query string empty");
+            false, fighterCount() == 0 ? "No frame data loaded" : "Query string empty",
+            false, fighterCount() == 0 ? "No frame data loaded" : "Query string empty");
         return false;
     }
 
@@ -343,12 +346,12 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
 
     if (ast == nullptr || (oppStr.length() && oppAst == nullptr))
     {
-        bool astFailed = ast == nullptr;
-        bool oppFailed = (oppStr.length() && oppAst == nullptr);
+        bool sucess = ast != nullptr;
+        bool oppSuccess = !(oppStr.length() && oppAst == nullptr);
         dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled,
             queryIdx,
-            astFailed, astFailed ? "Syntax Error" : "",
-            oppFailed, oppFailed ? "Syntax Error" : "");
+            sucess, sucess ? "" : "Syntax Error",
+            oppSuccess, oppSuccess ? "" : "Syntax Error");
         return false;
     }
     ast->exportDOT("query-ast.dot");
@@ -364,12 +367,12 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
 
     if (query == nullptr || (oppStr.length() && oppQuery == nullptr))
     {
-        bool compileFailed = query == nullptr;
-        bool oppFailed = (oppStr.length() && oppQuery == nullptr);
+        bool sucess = query != nullptr;
+        bool oppSuccess = !(oppStr.length() && oppQuery == nullptr);
         dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled,
             queryIdx,
-            compileFailed, compileFailed ? "Compile Error" : "",
-            oppFailed, oppFailed ? "Compile Error" : "");
+            sucess, sucess ? "" : "Compile Error",
+            oppSuccess, oppSuccess ? "" : "Compile Error");
         return false;
     }
     query->exportDOT("query.dot", labels_, fighterID);
@@ -502,11 +505,11 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
 
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
+        results.sessionMatches[sessionIdx].clear();
         const auto& sessionRange = sessions_[sessionIdx].fighterStatesRange[currentFighterIdx_];
-        results.sessionMatches[sessionIdx] = results.matches; // copy, then filter
-        results.sessionMatches[sessionIdx].retain([&sessionRange](const Range& range) -> bool {
-            return range.startIdx >= sessionRange.startIdx && range.endIdx <= sessionRange.endIdx;
-        });
+        for (const Range& range : results.matches)
+            if (range.startIdx >= sessionRange.startIdx && range.endIdx <= sessionRange.endIdx)
+                results.sessionMatches[sessionIdx].push(range);
         results.sessionMergedMatches[sessionIdx] = query->mergeMotions(playerStates, results.sessionMatches[sessionIdx]);
         results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(playerStates, results.sessionMergedMatches[sessionIdx]);
     }
