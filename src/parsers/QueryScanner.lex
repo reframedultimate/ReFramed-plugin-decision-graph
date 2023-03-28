@@ -45,7 +45,7 @@
 "idj"                      { return TOK_IDJ; }
 "0x"[0-9a-fA-F]+           { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 [0-9]+                     { yylval->integer_value = atoi(yytext); return TOK_NUM; }
-[a-zA-Z_][a-zA-Z0-9_\- ]+? { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
+[a-zA-Z_][a-zA-Z0-9_]*     { yylval->string_value = StrDup(yytext); return TOK_LABEL; }
 [ \t\r\n]
 .                          { return yytext[0]; }
 %%

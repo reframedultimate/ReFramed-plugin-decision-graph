@@ -182,6 +182,7 @@ static bool compileASTRecurse(
         const QueryASTNode* node,
         const rfcommon::MotionLabels* labels,
         rfcommon::FighterID fighterID,
+        rfcommon::String* error,
         rfcommon::Vector<Matcher>* matchers,
         rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>>* mergeMotions,
         rfcommon::SmallVector<Fragment, 16>* fstack,
@@ -205,9 +206,13 @@ static bool compileASTRecurse(
     switch (node->type)
     {
     case QueryASTNode::STATEMENT: {
-        if (!compileASTRecurse(node->statement.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->statement.next, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
-        if (fstack->count() < 2) return false;
+        if (!compileASTRecurse(node->statement.child, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->statement.next, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
+        if (fstack->count() < 2)
+        {
+            *error = "Incomplete statement";
+            return false;
+        }
 
         Fragment& right = fstack->back(1);
         Fragment& left = fstack->back(2);
@@ -231,12 +236,19 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::REPITITION: {
-        if (!compileASTRecurse(node->repitition.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
-        if (fstack->count() < 1) return false;
+        if (!compileASTRecurse(node->repitition.child, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
+        if (fstack->count() < 1)
+        {
+            *error = "Incomplete repitition";
+            return false;
+        }
 
         // Invalid values
         if (node->repitition.minreps < 0)
+        {
+            *error = "Cannot repeat from \"" + rfcommon::String::decimal(node->repitition.minreps) + "\" times";
             return false;
+        }
 
         Fragment& f = fstack->back();
 
@@ -277,7 +289,14 @@ static bool compileASTRecurse(
         {
             // Invalid values
             if (node->repitition.maxreps < 0 || node->repitition.minreps > node->repitition.maxreps)
+            {
+                *error = "Cannot repeat from \"" +
+                        rfcommon::String::decimal(node->repitition.minreps) +
+                        "\" to \"" +
+                        rfcommon::String::decimal(node->repitition.maxreps) +
+                        "\" times";
                 return false;
+            }
 
             // Special case if maxreps is 0, remove all connections
             if (node->repitition.maxreps == 0)
@@ -322,9 +341,13 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::UNION: {
-        if (!compileASTRecurse(node->union_.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
-        if (!compileASTRecurse(node->union_.next, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
-        if (fstack->count() < 2) return false;
+        if (!compileASTRecurse(node->union_.child, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->union_.next, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
+        if (fstack->count() < 2)
+        {
+            *error = "Incomplete union";
+            return false;
+        }
 
         Fragment& f1 = fstack->back(1);
         Fragment& f2 = fstack->back(2);
@@ -337,7 +360,7 @@ static bool compileASTRecurse(
     } break;
 
     case QueryASTNode::INVERSION:
-        if (!compileASTRecurse(node->inversion.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->inversion.child, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
         break;
 
     case QueryASTNode::WILDCARD: {
@@ -395,12 +418,13 @@ static bool compileASTRecurse(
             break;
         }
 
+        *error = rfcommon::String("Motion \"") + node->labels.label + "\" not found";
         return false;
     } break;
 
     case QueryASTNode::CONTEXT_QUALIFIER: {
         qstack->push(node->contextQualifier.flags);
-        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, matchers, mergeMotions, fstack, qstack)) return false;
+        if (!compileASTRecurse(node->contextQualifier.child, labels, fighterID, error, matchers, mergeMotions, fstack, qstack)) return false;
         qstack->pop();
     } break;
     }
@@ -409,7 +433,7 @@ static bool compileASTRecurse(
 }
 
 // ----------------------------------------------------------------------------
-Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID)
+Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID, rfcommon::String* error)
 {
     std::unique_ptr<Query> query(new Query);
     query->matchers_.push(Matcher::start());
@@ -417,7 +441,7 @@ Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* 
     rfcommon::SmallVector<Fragment, 16> fstack;  // "fragment stack"
     rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
 
-    if (!compileASTRecurse(ast, labels, fighterID, &query->matchers_, &query->mergeMotions_, &fstack, &qstack))
+    if (!compileASTRecurse(ast, labels, fighterID, error, &query->matchers_, &query->mergeMotions_, &fstack, &qstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;

@@ -84,7 +84,7 @@ class Query
 {
 public:
     static QueryASTNode* parse(const rfcommon::String& text);
-    static Query* compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);
+    static Query* compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID, rfcommon::String* error);
     rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
     rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
     rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;

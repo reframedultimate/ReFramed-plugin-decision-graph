@@ -22,39 +22,9 @@ SequenceSearchModel::SequenceSearchModel(const rfcommon::MotionLabels* labels)
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, const rfcommon::Metadata* mdata)
 {
-    // It's possible that the players switch fighters between games,
-    // especially when multiple sessions from different days are
-    // accumulated. For this we set up a mapping table that maps the
-    // session's fighter index to our own internal fighter index.
-    //
-    // We use the player's name AND fighter ID to make this mapping,
-    // because it doesn't make sense to clump together frame data from
-    // two different players when they play the same character, and it
-    // doesn't make sense to clump together frame data from the same player
-    // when he plays different characters.
-    auto indexUsed = rfcommon::SmallVector<int, 8>::makeReserved(fighterStates_.count());
-    auto unmapped = rfcommon::SmallVector<int, 8>::makeReserved(mdata->fighterCount());
-    fighterIdxMapFromSession_.resize(mdata->fighterCount());
-    for (int s = 0; s != mdata->fighterCount(); ++s)
-    {
-        for (int i = 0; i != fighterStates_.count(); ++i)
-        {
-            if (indexUsed.findFirst(i) != indexUsed.end())
-                continue;
-
-            if (fighterStates_[i].fighterID == mdata->playerFighterID(s) && fighterStates_[i].playerName == mdata->playerTag(s))
-            {
-                fighterIdxMapFromSession_[s] = i;
-                goto matched;
-            }
-        }
-        unmapped.push(s);
-        matched: continue;
-    }
-
     // Returns the player's name if possible, otherwise fall back to
     // player tag
-    auto getPlayerName = [mdata](int fighterIdx) -> const rfcommon::String& {
+    auto getPlayerName = [](const rfcommon::Metadata* mdata, int fighterIdx) -> const rfcommon::String& {
         switch (mdata->type())
         {
             case rfcommon::Metadata::GAME:
@@ -68,19 +38,41 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
         return mdata->playerTag(fighterIdx);
     };
 
-    // Create new entries for unmapped fighters
-    for (int s : unmapped)
+    // It's possible that the players switch fighters between games,
+    // especially when multiple sessions from different days are
+    // accumulated. For this we set up a mapping table that maps the
+    // session's fighter index to our own internal fighter index.
+    //
+    // We use the player's name AND fighter ID to make this mapping,
+    // because it doesn't make sense to clump together frame data from
+    // two different players when they play the same character, and it
+    // doesn't make sense to clump together frame data from the same player
+    // when he plays different characters.
+    fighterIdxMapFromSession_.resize(mdata->fighterCount());
+    for (int i = 0; i != mdata->fighterCount(); ++i)
     {
-        fighterIdxMapFromSession_[s] = fighterStates_.count();
+        for (int j = 0; j != fighterStates_.count(); ++j)
+            if (fighterStates_[j].fighterID == mdata->playerFighterID(i) &&
+                fighterStates_[j].playerName == getPlayerName(mdata, i))
+            {
+                fighterIdxMapFromSession_[i] = j;
+                goto skip_add;
+            }
+
+        // Create new fighter entry with ID and name
+        fighterIdxMapFromSession_[i] = fighterStates_.count();
         fighterStates_.emplace(
-            mdata->playerFighterID(s),
-            getPlayerName(s),
-            map->fighter.toName(mdata->playerFighterID(s))
+            mdata->playerFighterID(i),
+            getPlayerName(mdata, i),
+            map->fighter.toName(mdata->playerFighterID(i))
         );
 
-        // Insert empty session ranges for the new fighters
+        // We need to make sure that for the existing sessions, we insert
+        // empty ranges so the vectors always have the same size as each other.
         for (int i = 0; i != sessions_.count(); ++i)
             sessions_[i].fighterStatesRange.emplace(0, 0);
+
+    skip_add:;
     }
 
     // Create session
@@ -109,33 +101,33 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     // If there is a fighter and player name in the current session that
     // matches the previous fighter, we will want to set that as the current
     // fighter. This is a small QoL that helps with scanning through replays.
-    if (currentFighterIdx_ >= 0 && currentFighterIdx_ < fighterStates_.count())
+    if (playerPOV_ >= 0 && playerPOV_ < fighterStates_.count())
     {
-        for (int s = 0; s != mdata->fighterCount(); ++s)
-            if (fighterStates_[currentFighterIdx_].fighterID == mdata->playerFighterID(s) &&
-                fighterStates_[currentFighterIdx_].playerName == mdata->playerTag(s))
+        for (int i = 0; i != mdata->fighterCount(); ++i)
+            if (fighterStates_[playerPOV_].fighterID == mdata->playerFighterID(i) &&
+                fighterStates_[playerPOV_].playerName == getPlayerName(mdata, i))
             {
-                currentFighterIdx_ = fighterIdxMapFromSession_[s];
+                playerPOV_ = fighterIdxMapFromSession_[i];
                 break;
             }
     }
-    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighterStates_.count())
+    if (playerPOV_ < 0 || playerPOV_ >= fighterStates_.count())
     {
-        for (int s = 0; s != mdata->fighterCount(); ++s)
-            if (previousFighterID_ == mdata->playerFighterID(s) &&
-                previousPlayerName_ == mdata->playerTag(s))
+        for (int i = 0; i != mdata->fighterCount(); ++i)
+            if (previousFighterID_ == mdata->playerFighterID(i) &&
+                previousPlayerName_ == getPlayerName(mdata, i))
             {
-                currentFighterIdx_ = fighterIdxMapFromSession_[s];
+                playerPOV_ = fighterIdxMapFromSession_[i];
                 break;
             }
     }
 
     // Make sure to never go out of bounds when switching between e.g. 1v1 and 2v2
-    if (currentFighterIdx_ < 0 || currentFighterIdx_ >= fighterStates_.count())
-        currentFighterIdx_ = 0;
+    if (playerPOV_ < 0 || playerPOV_ >= fighterStates_.count())
+        playerPOV_ = 0;
 
     // TODO
-    opponentFighterIdx_ = 1 - currentFighterIdx_;
+    opponentPOV_ = 1 - playerPOV_;
 }
 
 // ----------------------------------------------------------------------------
@@ -162,8 +154,8 @@ void SequenceSearchModel::clearAllAndNotify()
     sessions_.clearCompact();
     fighterStates_.clearCompact();
     fighterIdxMapFromSession_.clearCompact();
-    currentFighterIdx_ = -1;
-    opponentFighterIdx_ = -1;
+    playerPOV_ = -1;
+    opponentPOV_ = -1;
 
     for (int i = 0; i != queryCount(); ++i)
     {
@@ -274,7 +266,7 @@ void SequenceSearchModel::notifyFramesAdded()
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::setPlayerPOV(int fighterIdx)
 {
-    currentFighterIdx_ = fighterIdx;
+    playerPOV_ = fighterIdx;
     previousFighterID_ = fighterStates_[fighterIdx].fighterID;
     previousPlayerName_ = fighterStates_[fighterIdx].playerName;
     dispatcher.dispatch(&SequenceSearchListener::onPOVChanged);
@@ -283,7 +275,7 @@ void SequenceSearchModel::setPlayerPOV(int fighterIdx)
 // ----------------------------------------------------------------------------
 void SequenceSearchModel::setOpponentPOV(int fighterIdx)
 {
-    opponentFighterIdx_ = fighterIdx;
+    opponentPOV_ = fighterIdx;
     previousFighterID_ = fighterStates_[fighterIdx].fighterID;
     previousPlayerName_ = fighterStates_[fighterIdx].playerName;
     dispatcher.dispatch(&SequenceSearchListener::onPOVChanged);
@@ -326,14 +318,14 @@ void SequenceSearchModel::notifyQueriesChanged()
 }
 
 // ----------------------------------------------------------------------------
-bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighterID, rfcommon::FighterID oppFighterID)
+bool SequenceSearchModel::compileQuery(int queryIdx)
 {
-    if (fighterCount() == 0 || queryStrings_[queryIdx].player.length() == 0)
+    if (playerPOV_ < 0 || opponentPOV_ < 0 || queryStrings_[queryIdx].player.length() == 0)
     {
         dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled,
             queryIdx,
-            false, fighterCount() == 0 ? "No frame data loaded" : "Query string empty",
-            false, fighterCount() == 0 ? "No frame data loaded" : "Query string empty");
+            false, playerPOV_ < 0 || opponentPOV_ < 0 ? "No frame data loaded" : "Query string empty",
+            false, playerPOV_ < 0 || opponentPOV_ < 0 ? "No frame data loaded" : "Query string empty");
         return false;
     }
 
@@ -359,8 +351,9 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
         oppAst->exportDOT("query-opp-ast.dot");
 
     // Compile ASTs into NFAs
-    std::unique_ptr<Query> query(Query::compileAST(ast, labels_, fighterID));
-    std::unique_ptr<Query> oppQuery(oppAst ? Query::compileAST(oppAst, labels_, oppFighterID) : nullptr);
+    rfcommon::String queryError, oppQueryError;
+    std::unique_ptr<Query> query(Query::compileAST(ast, labels_, fighterID(playerPOV_), &queryError));
+    std::unique_ptr<Query> oppQuery(oppAst ? Query::compileAST(oppAst, labels_, fighterID(opponentPOV_), &oppQueryError) : nullptr);
     QueryASTNode::destroyRecurse(ast);
     if (oppAst)
         QueryASTNode::destroyRecurse(oppAst);
@@ -371,13 +364,13 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
         bool oppSuccess = !(oppStr.length() && oppQuery == nullptr);
         dispatcher.dispatch(&SequenceSearchListener::onQueryCompiled,
             queryIdx,
-            sucess, sucess ? "" : "Compile Error",
-            oppSuccess, oppSuccess ? "" : "Compile Error");
+            sucess, sucess ? "" : queryError.cStr(),
+            oppSuccess, oppSuccess ? "" : oppQueryError.cStr());
         return false;
     }
-    query->exportDOT("query.dot", labels_, fighterID);
+    query->exportDOT("query.dot", labels_, fighterID(playerPOV_));
     if (oppQuery)
-        oppQuery->exportDOT("query-opp.dot", labels_, oppFighterID);
+        oppQuery->exportDOT("query-opp.dot", labels_, fighterID(opponentPOV_));
 
     compiledQueries_[queryIdx].player = std::move(query);
     compiledQueries_[queryIdx].opponent = std::move(oppQuery);
@@ -387,7 +380,16 @@ bool SequenceSearchModel::compileQuery(int queryIdx, rfcommon::FighterID fighter
 }
 
 // ----------------------------------------------------------------------------
-bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, const States& opponentStates)
+bool SequenceSearchModel::compileAllQueries()
+{
+    bool success = queryCount() > 0;
+    for (int i = 0; i != queryCount(); ++i)
+        success &= compileQuery(i);
+    return success;
+}
+
+// ----------------------------------------------------------------------------
+bool SequenceSearchModel::applyQuery(int queryIdx)
 {
     auto& results = queryResults_[queryIdx];
     auto& query = compiledQueries_[queryIdx].player;
@@ -397,64 +399,86 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
     if (compiledQueries_[queryIdx].player == nullptr)
         return false;
 
-    results.matches = query->apply(playerStates, Range(0, playerStates.count()));
+    // Check if we have POVs set
+    if (playerPOV_ < 0 || opponentPOV_ < 0)
+        return false;
+
+    results.matches = query->apply(
+        fighterStates_[playerPOV_],
+        Range(0, fighterStates_[playerPOV_].count())
+    );
 
     // If there is a query for the opponent, we want to apply the query to the
     // range of opponent states that occurred at the same time as our search
-    // result
+    // result. This is not as simple, because the location of the relevent
+    // states in the opponent's "fighterStates_[x]" array will be different
+    // than the location of the player's states.
+    //
+    // We first have to find the range of opponent states that come from the
+    // same session as the states we found for the player, and then refine
+    // the search until we find the start and end indices of states that have
+    // the same frame index as the player states.
     if (oppQuery.get() != nullptr)
     {
-        results.matches.retain([playerStates, opponentStates, &oppQuery](const Range& range) -> bool {
+        results.matches.retain([this, &oppQuery](const Range& range) -> bool {
+            // Find the session range of the opponent states to use as the initial
+            // guess
+            int sessionIdx;
+            for (sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
+                if (range.startIdx >= sessions_[sessionIdx].fighterStatesRange[playerPOV_].startIdx &&
+                    range.endIdx <= sessions_[sessionIdx].fighterStatesRange[playerPOV_].endIdx)
+                {
+                    break;
+                }
+            assert(sessionIdx != sessionCount());
+
+            // We know which session the player's range came from -> use the
+            // session range as the initial guess
+            Range oppRange = sessions_[sessionIdx].fighterStatesRange[opponentPOV_];
+
             // Get the start and end frame index from the player states. Note that the range
             // end index could point outside of the playerStates array, and the playerStates
             // array could be empty.
-            rfcommon::FrameIndex startFrame = playerStates.count() > 0 ?
-                    playerStates[range.startIdx].sideData.frameIndex :
+            const States& player = fighterStates_[playerPOV_];
+            rfcommon::FrameIndex startFrame = player.count() > 0 ?
+                    player[range.startIdx].sideData.frameIndex :
                     rfcommon::FrameIndex::fromValue(0);
-            rfcommon::FrameIndex endFrame = range.endIdx < playerStates.count() ?
-                    playerStates[range.endIdx].sideData.frameIndex :
-                    playerStates.count() > 0 ?
-                        playerStates.back().sideData.frameIndex :
+            rfcommon::FrameIndex endFrame = range.endIdx < player.count() ?
+                    player[range.endIdx].sideData.frameIndex :
+                    player.count() > 0 ?
+                        player.back().sideData.frameIndex :
                         rfcommon::FrameIndex::fromValue(0);
 
-            // Initial guess opponent index == player index
-            Range oppRange(
-                range.startIdx <= opponentStates.count() ?
-                    range.startIdx :
-                    opponentStates.count(),
-                range.endIdx <= opponentStates.count() ?
-                    range.endIdx :
-                    opponentStates.count());
-
             // Refine guess
-            while (oppRange.startIdx < opponentStates.count() - 1 &&
-                opponentStates[oppRange.startIdx].sideData.frameIndex < startFrame)
-            {
-                oppRange.startIdx++;
-            }
-            while (oppRange.startIdx > 0 &&
-                opponentStates[oppRange.startIdx].sideData.frameIndex > startFrame)
-            {
-                oppRange.startIdx--;
-            }
-            while (oppRange.endIdx < opponentStates.count() - 1 &&
-                opponentStates[oppRange.endIdx].sideData.frameIndex < endFrame)
-            {
-                oppRange.endIdx++;
-            }
-            while (oppRange.endIdx > 0 &&
-                opponentStates[oppRange.endIdx].sideData.frameIndex > endFrame)
-            {
-                oppRange.endIdx--;
-            }
+            oppRange.startIdx = std::lower_bound(
+                fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
+                fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
+                fighterStates_[playerPOV_][range.startIdx],
+                [](const State& a, const State& b) {
+                    return a.sideData.frameIndex < b.sideData.frameIndex;
+                }
+            ) - fighterStates_[opponentPOV_].begin();
 
-            return oppQuery->apply(opponentStates, oppRange).count() > 0;
+            // We actually want one state before
+            if (oppRange.startIdx > sessions_[sessionIdx].fighterStatesRange[opponentPOV_].startIdx)
+                oppRange.startIdx--;
+
+            oppRange.endIdx = std::upper_bound(
+                fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
+                fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
+                fighterStates_[playerPOV_][range.endIdx],
+                [](const State& a, const State& b) {
+                    return a.sideData.frameIndex < b.sideData.frameIndex;
+                }
+            ) - fighterStates_[opponentPOV_].begin();
+
+            return oppQuery->apply(fighterStates_[opponentPOV_], oppRange).count() > 0;
         });
     }
 
-    results.mergedMatches = query->mergeMotions(playerStates, results.matches);
-    results.mergedAndNormalizedMatches = query->normalizeMotions(playerStates, results.mergedMatches);
-    Graph::fromSequences(playerStates, results.mergedMatches).exportDOT("decision_graph_search.dot", playerStates, labels_);
+    results.mergedMatches = query->mergeMotions(fighterStates_[playerPOV_], results.matches);
+    results.mergedAndNormalizedMatches = query->normalizeMotions(fighterStates_[playerPOV_], results.mergedMatches);
+    Graph::fromSequences(fighterStates_[playerPOV_], results.mergedMatches).exportDOT("decision_graph_search.dot", fighterStates_[playerPOV_], labels_);
 
 #ifndef NDEBUG
     auto toHash40OrHex = [this](rfcommon::FighterMotion motion) -> rfcommon::String {
@@ -471,7 +495,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
         {
             if (i != range.startIdx)
                 printf(" -> ");
-            printf("0x%lx (%s)", playerStates[i].motion.value(), toHash40OrHex(playerStates[i].motion).cStr());
+            printf("0x%lx (%s)", fighterStates_[playerPOV_][i].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][i].motion).cStr());
         }
         printf("\n");
     }
@@ -484,7 +508,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", playerStates[idx].motion.value(), toHash40OrHex(playerStates[idx].motion).cStr());
+            printf("0x%lx (%s)", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr());
         }
         printf("\n");
     }
@@ -497,7 +521,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", playerStates[idx].motion.value(), toHash40OrHex(playerStates[idx].motion).cStr());
+            printf("0x%lx (%s)", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr());
         }
         printf("\n");
     }
@@ -506,23 +530,23 @@ bool SequenceSearchModel::applyQuery(int queryIdx, const States& playerStates, c
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
         results.sessionMatches[sessionIdx].clear();
-        const auto& sessionRange = sessions_[sessionIdx].fighterStatesRange[currentFighterIdx_];
+        const auto& sessionRange = sessions_[sessionIdx].fighterStatesRange[playerPOV_];
         for (const Range& range : results.matches)
             if (range.startIdx >= sessionRange.startIdx && range.endIdx <= sessionRange.endIdx)
                 results.sessionMatches[sessionIdx].push(range);
-        results.sessionMergedMatches[sessionIdx] = query->mergeMotions(playerStates, results.sessionMatches[sessionIdx]);
-        results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(playerStates, results.sessionMergedMatches[sessionIdx]);
+        results.sessionMergedMatches[sessionIdx] = query->mergeMotions(fighterStates_[playerPOV_], results.sessionMatches[sessionIdx]);
+        results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(fighterStates_[playerPOV_], results.sessionMergedMatches[sessionIdx]);
     }
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-bool SequenceSearchModel::applyAllQueries(const States& playerStates, const States& opponentStates)
+bool SequenceSearchModel::applyAllQueries()
 {
-    bool success = queryCount() > 0;
+    bool success = false;
     for (int i = 0; i != queryCount(); ++i)
-        success &= applyQuery(i, playerStates, opponentStates);
+        success |= applyQuery(i);
 
     return success;
 }

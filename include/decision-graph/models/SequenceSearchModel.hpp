@@ -58,8 +58,8 @@ public:
      */
     void setPlayerPOV(int fighterIdx);
     void setOpponentPOV(int fighterIdx);
-    int playerPOV() const { return currentFighterIdx_; }
-    int opponentPOV() const { return opponentFighterIdx_; }
+    int playerPOV() const { return playerPOV_; }
+    int opponentPOV() const { return opponentPOV_; }
     int fighterCount() const { return fighterStates_.count(); }
     const rfcommon::String& playerName(int fighterIdx) const { return fighterStates_[fighterIdx].playerName; }
     const rfcommon::String& fighterName(int fighterIdx) const { return fighterStates_[fighterIdx].fighterName; }
@@ -93,7 +93,8 @@ public:
      * passed to this callback. Additionally, if compilation succeeds, true is
      * returned.
      */
-    bool compileQuery(int queryIdx, rfcommon::FighterID fighterID, rfcommon::FighterID oppFighterID);
+    bool compileQuery(int queryIdx);
+    bool compileAllQueries();
 
     /*
      * Applies queries to the current data. Whenever frames are added, or new
@@ -101,10 +102,12 @@ public:
      *
      * Trying to apply a query that failed to compiled will fail and do nothing.
      *
-     * Make sure to call notifyQueriesApplied() to update the UI.
+     * You should call notifyQueriesApplied() to update the UI if true is
+     * returned. applyQuery() will return true if successful, and applyAllQueries()
+     * will return true if any of the queries was applied successfully.
      */
-    bool applyQuery(int queryIdx, const States& playerStates, const States& opponentStates);
-    bool applyAllQueries(const States& playerStates, const States& opponentStates);
+    bool applyQuery(int queryIdx);
+    bool applyAllQueries();
     void notifyQueriesApplied();
 
     const rfcommon::Vector<Range>& matches(int queryIdx) const
@@ -144,8 +147,8 @@ private:
     rfcommon::SmallVector<int, 8> fighterIdxMapFromSession_;
 
     // Current player + opponent indices, set by setPlayerPOV() and setOpponentPOV()
-    int currentFighterIdx_ = -1;
-    int opponentFighterIdx_ = -1;
+    int playerPOV_ = -1;
+    int opponentPOV_ = -1;
 
     struct QueryStrings
     {

@@ -56,15 +56,6 @@ void DecisionGraphPlugin::onProtocolConnectedToServer(const char* ipAddress, uin
 void DecisionGraphPlugin::onProtocolDisconnectedFromServer() {}
 
 // ----------------------------------------------------------------------------
-static void applyAllQueriesAndNotify(SequenceSearchModel* m)
-{
-    if (m->playerPOV() < 0 || m->opponentPOV() < 0)
-        return;
-    m->applyAllQueries(m->fighterStates(m->playerPOV()), m->fighterStates(m->opponentPOV()));
-    m->notifyQueriesApplied();
-}
-
-// ----------------------------------------------------------------------------
 void DecisionGraphPlugin::onProtocolTrainingStarted(rfcommon::Session* training)
 {
     seqSearchModel_->clearAllAndNotify();
@@ -86,7 +77,8 @@ void DecisionGraphPlugin::onProtocolTrainingResumed(rfcommon::Session* training)
     seqSearchModel_->addAllFrames(training->tryGetFrameData());
     seqSearchModel_->notifyFramesAdded();
 
-    applyAllQueriesAndNotify(seqSearchModel_.get());
+    if (seqSearchModel_->applyAllQueries())
+        seqSearchModel_->notifyQueriesApplied();
 
     assert(activeSession_.isNull());
     activeSession_ = training;
@@ -131,7 +123,8 @@ void DecisionGraphPlugin::onProtocolGameResumed(rfcommon::Session* game)
     seqSearchModel_->addAllFrames(game->tryGetFrameData());
     seqSearchModel_->notifyFramesAdded();
 
-    applyAllQueriesAndNotify(seqSearchModel_.get());
+    if (seqSearchModel_->applyAllQueries())
+        seqSearchModel_->notifyQueriesApplied();
 
     assert(activeSession_.isNull());
     activeSession_ = game;
@@ -159,7 +152,10 @@ void DecisionGraphPlugin::onGameSessionLoaded(rfcommon::Session* game)
                 seqSearchModel_->addAllFrames(fdata);
                 seqSearchModel_->notifyFramesAdded();
 
-                applyAllQueriesAndNotify(seqSearchModel_.get());
+                seqSearchModel_->compileAllQueries();
+
+                if (seqSearchModel_->applyAllQueries())
+                    seqSearchModel_->notifyQueriesApplied();
             }
 }
 void DecisionGraphPlugin::onGameSessionUnloaded(rfcommon::Session* game)
@@ -180,7 +176,8 @@ void DecisionGraphPlugin::onTrainingSessionLoaded(rfcommon::Session* training)
                 seqSearchModel_->addAllFrames(fdata);
                 seqSearchModel_->notifyFramesAdded();
 
-                applyAllQueriesAndNotify(seqSearchModel_.get());
+                if (seqSearchModel_->applyAllQueries())
+                    seqSearchModel_->notifyQueriesApplied();
             }
 }
 void DecisionGraphPlugin::onTrainingSessionUnloaded(rfcommon::Session* training)
@@ -202,7 +199,8 @@ void DecisionGraphPlugin::onGameSessionSetLoaded(rfcommon::Session** games, int 
     seqSearchModel_->notifyNewSessions();
     seqSearchModel_->notifyFramesAdded();
 
-    applyAllQueriesAndNotify(seqSearchModel_.get());
+    if (seqSearchModel_->applyAllQueries())
+        seqSearchModel_->notifyQueriesApplied();
 }
 void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, int numGames)
 {
@@ -210,20 +208,26 @@ void DecisionGraphPlugin::onGameSessionSetUnloaded(rfcommon::Session** games, in
 }
 
 // ----------------------------------------------------------------------------
-void DecisionGraphPlugin::onMotionLabelsLoaded() { applyAllQueriesAndNotify(seqSearchModel_.get()); }
-void DecisionGraphPlugin::onMotionLabelsHash40sUpdated() { applyAllQueriesAndNotify(seqSearchModel_.get()); }
+static void recompileAndApplyQueries(SequenceSearchModel* m)
+{
+    if (m->compileAllQueries())
+        if (m->applyAllQueries())
+            m->notifyQueriesApplied();
+}
+void DecisionGraphPlugin::onMotionLabelsLoaded() { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsHash40sUpdated() { recompileAndApplyQueries(seqSearchModel_.get()); }
 
-void DecisionGraphPlugin::onMotionLabelsPreferredLayerChanged(int usage) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsPreferredLayerChanged(int usage) { recompileAndApplyQueries(seqSearchModel_.get()); }
 
-void DecisionGraphPlugin::onMotionLabelsLayerInserted(int layerIdx) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
-void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerInserted(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
 void DecisionGraphPlugin::onMotionLabelsLayerNameChanged(int layerIdx) {}
 void DecisionGraphPlugin::onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage) {}
-void DecisionGraphPlugin::onMotionLabelsLayerMoved(int fromIdx, int toIdx) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
-void DecisionGraphPlugin::onMotionLabelsLayerMerged(int layerIdx) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerMoved(int fromIdx, int toIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerMerged(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
 
-void DecisionGraphPlugin::onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
-void DecisionGraphPlugin::onMotionLabelsLabelChanged(rfcommon::FighterID fighterID, int row, int layerIdx) { applyAllQueriesAndNotify(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLabelChanged(rfcommon::FighterID fighterID, int row, int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
 void DecisionGraphPlugin::onMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int row, int oldCategory) {}
 
 // ----------------------------------------------------------------------------
@@ -238,7 +242,8 @@ void DecisionGraphPlugin::onFrameDataNewUniqueFrame(int frameIdx, const rfcommon
     {
         rfcommon::HighresTimer timer;
         timer.start();
-            applyAllQueriesAndNotify(seqSearchModel_.get());
+            if (seqSearchModel_->applyAllQueries())
+                seqSearchModel_->notifyQueriesApplied();
         timer.stop();
 
         noNotifyFrames_ = timer.timePassedNS() * 60 / 1e9;

@@ -17,6 +17,7 @@ namespace Ui {
 class QLabel;
 class QLineEdit;
 class QToolButton;
+class QDir;
 
 class GraphModel;
 class SequenceSearchModel;
@@ -39,10 +40,14 @@ private slots:
     void onTabIndexChanged(int index);
     void onLineEditQueryTextChanged(int index, const QString& text);
     void addQueryBox();
-    void removeQueryBox(int index);
+    void onPushButtonSaveNewReleased();
 
 private:
     void onComboBoxPlayersChanged();
+    static QDir getTemplateDir();
+    static QString findUnusedTemplateName(const QDir& dir);
+    bool saveToTemplate(const QString& filePath);
+    bool loadTemplate(const QString& filePath);
 
 private:
     void onNewSessions() override;
