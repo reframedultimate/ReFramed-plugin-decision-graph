@@ -32,6 +32,18 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
 		"src/views/ShieldHealthView.cpp"
 		"src/views/StateListView.cpp"
 		"src/views/TimingsView.cpp"
+        "src/widgets/PropertyWidget.cpp"
+        "src/widgets/PropertyWidget_Damage.cpp"
+        "src/widgets/PropertyWidget_DamageConstraints.cpp"
+        "src/widgets/PropertyWidget_HeatMap.cpp"
+        "src/widgets/PropertyWidget_PositionConstraints.cpp"
+        "src/widgets/PropertyWidget_POV.cpp"
+        "src/widgets/PropertyWidget_Query.cpp"
+        "src/widgets/PropertyWidget_RelativeConstraints.cpp"
+        "src/widgets/PropertyWidget_Shield.cpp"
+        "src/widgets/PropertyWidget_ShieldConstraints.cpp"
+        "src/widgets/PropertyWidget_Templates.cpp"
+        "src/widgets/PropertyWidget_Timings.cpp"
         "src/util/Str.cpp"
         "src/DecisionGraphPlugin.cpp"
         "src/Plugin.cpp"
@@ -54,15 +66,27 @@ reframed_add_plugin (plugin-${PLUGIN_NAME}
         "include/${PLUGIN_NAME}/views/ShieldHealthView.hpp"
         "include/${PLUGIN_NAME}/views/StateListView.hpp"
         "include/${PLUGIN_NAME}/views/TimingsView.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_Damage.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_DamageConstraints.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_HeatMap.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_PositionConstraints.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_RelativeConstraints.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_Shield.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_ShieldConstraints.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_Timings.hpp"
         "include/${PLUGIN_NAME}/parsers/QueryASTNode.hpp"
         "include/${PLUGIN_NAME}/util/Str.hpp"
         "include/${PLUGIN_NAME}/DecisionGraphPlugin.hpp"
-    INCLUDE_DIRECTORIES
-        "include"
     MOC_HEADERS
         "include/${PLUGIN_NAME}/views/GraphView.hpp"
         "include/${PLUGIN_NAME}/views/PieChartView.hpp"
-        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp")
+        "include/${PLUGIN_NAME}/views/SequenceSearchView.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_POV.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_Query.hpp"
+        "include/${PLUGIN_NAME}/widgets/PropertyWidget_Templates.hpp"
+    INCLUDE_DIRECTORIES
+        "include")
 
 if (${REFRAMED_plugin-${PLUGIN_NAME}})
     option (${PLUGIN_NAME}_COUNTER_EXAMPLES "Have bison generate counter examples" OFF)

@@ -439,17 +439,19 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             // Get the start and end frame index from the player states. Note that the range
             // end index could point outside of the playerStates array, and the playerStates
             // array could be empty.
-            const States& player = fighterStates_[playerPOV_];
-            rfcommon::FrameIndex startFrame = player.count() > 0 ?
-                    player[range.startIdx].sideData.frameIndex :
+            const States& playerStates = fighterStates_[playerPOV_];
+            rfcommon::FrameIndex startFrame = playerStates.count() > 0 ?
+                    playerStates[range.startIdx].sideData.frameIndex :
                     rfcommon::FrameIndex::fromValue(0);
-            rfcommon::FrameIndex endFrame = range.endIdx < player.count() ?
-                    player[range.endIdx].sideData.frameIndex :
-                    player.count() > 0 ?
-                        player.back().sideData.frameIndex :
+            rfcommon::FrameIndex endFrame = range.endIdx < playerStates.count() ?
+                    playerStates[range.endIdx].sideData.frameIndex :
+                    playerStates.count() > 0 ?
+                        playerStates.back().sideData.frameIndex :
                         rfcommon::FrameIndex::fromValue(0);
 
-            // Refine guess
+            // Refine guess -- Note that range.startIdx will always be < playerStates.count()
+            assert(range.startIdx != range.endIdx);
+            assert(range.startIdx < playerStates.count());
             oppRange.startIdx = std::lower_bound(
                 fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
                 fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
@@ -463,14 +465,17 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             if (oppRange.startIdx > sessions_[sessionIdx].fighterStatesRange[opponentPOV_].startIdx)
                 oppRange.startIdx--;
 
-            oppRange.endIdx = std::upper_bound(
-                fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
-                fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
-                fighterStates_[playerPOV_][range.endIdx],
-                [](const State& a, const State& b) {
-                    return a.sideData.frameIndex < b.sideData.frameIndex;
-                }
-            ) - fighterStates_[opponentPOV_].begin();
+            if (range.endIdx < playerStates.count())
+            {
+                oppRange.endIdx = std::upper_bound(
+                    fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
+                    fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
+                    fighterStates_[playerPOV_][range.endIdx],
+                    [](const State& a, const State& b) {
+                        return a.sideData.frameIndex < b.sideData.frameIndex;
+                    }
+                ) - fighterStates_[opponentPOV_].begin();
+            }
 
             return oppQuery->apply(fighterStates_[opponentPOV_], oppRange).count() > 0;
         });
