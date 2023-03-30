@@ -403,86 +403,117 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
     if (playerPOV_ < 0 || opponentPOV_ < 0)
         return false;
 
-    results.matches = query->apply(
-        fighterStates_[playerPOV_],
-        Range(0, fighterStates_[playerPOV_].count())
-    );
-
-    // If there is a query for the opponent, we want to apply the query to the
-    // range of opponent states that occurred at the same time as our search
-    // result. This is not as simple, because the location of the relevent
-    // states in the opponent's "fighterStates_[x]" array will be different
-    // than the location of the player's states.
-    //
-    // We first have to find the range of opponent states that come from the
-    // same session as the states we found for the player, and then refine
-    // the search until we find the start and end indices of states that have
-    // the same frame index as the player states.
-    if (oppQuery.get() != nullptr)
+    // Do search on a per-session basis, as we don't want to match ranges that
+    // span over the boundaries of sessions
+    results.matches.clear();
+    results.mergedMatches.clear();
+    results.mergedAndNormalizedMatches.clear();
+    for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
-        results.matches.retain([this, &oppQuery](const Range& range) -> bool {
-            // Find the session range of the opponent states to use as the initial
-            // guess
-            int sessionIdx;
-            for (sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
-                if (range.startIdx >= sessions_[sessionIdx].fighterStatesRange[playerPOV_].startIdx &&
-                    range.endIdx <= sessions_[sessionIdx].fighterStatesRange[playerPOV_].endIdx)
-                {
-                    break;
-                }
-            assert(sessionIdx != sessionCount());
+        results.sessionMatches[sessionIdx] = query->apply(
+            fighterStates_[playerPOV_],
+            sessions_[sessionIdx].fighterStatesRange[playerPOV_]
+        );
 
-            // We know which session the player's range came from -> use the
-            // session range as the initial guess
-            Range oppRange = sessions_[sessionIdx].fighterStatesRange[opponentPOV_];
+        // If there is a query for the opponent, we want to apply the query to the
+        // range of opponent states that occurred at the same time as our search
+        // result. This is not as simple, because the location of the relevent
+        // states in the opponent's "fighterStates_[x]" array will be different
+        // than the location of the player's states.
+        //
+        // We first have to find the range of opponent states that come from the
+        // same session as the states we found for the player, and then refine
+        // the search until we find the start and end indices of states that have
+        // the same frame index as the player states.
+        if (oppQuery.get() != nullptr)
+        {
+            results.sessionMatches[sessionIdx].retainModify([this, &oppQuery, sessionIdx](Range& range) -> bool {
+                // We know which session the player's range came from -> use the
+                // session range as the initial guess
+                Range oppRange = sessions_[sessionIdx].fighterStatesRange[opponentPOV_];
 
-            // Get the start and end frame index from the player states. Note that the range
-            // end index could point outside of the playerStates array, and the playerStates
-            // array could be empty.
-            const States& playerStates = fighterStates_[playerPOV_];
-            rfcommon::FrameIndex startFrame = playerStates.count() > 0 ?
-                    playerStates[range.startIdx].sideData.frameIndex :
-                    rfcommon::FrameIndex::fromValue(0);
-            rfcommon::FrameIndex endFrame = range.endIdx < playerStates.count() ?
-                    playerStates[range.endIdx].sideData.frameIndex :
-                    playerStates.count() > 0 ?
-                        playerStates.back().sideData.frameIndex :
-                        rfcommon::FrameIndex::fromValue(0);
+                const States& playerStates = fighterStates_[playerPOV_];
+                const States& oppStates = fighterStates_[opponentPOV_];
 
-            // Refine guess -- Note that range.startIdx will always be < playerStates.count()
-            assert(range.startIdx != range.endIdx);
-            assert(range.startIdx < playerStates.count());
-            oppRange.startIdx = std::lower_bound(
-                fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
-                fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
-                fighterStates_[playerPOV_][range.startIdx],
-                [](const State& a, const State& b) {
-                    return a.sideData.frameIndex < b.sideData.frameIndex;
-                }
-            ) - fighterStates_[opponentPOV_].begin();
+                Range playerSessionRange = sessions_[sessionIdx].fighterStatesRange[playerPOV_];
+                Range oppSessionRange = sessions_[sessionIdx].fighterStatesRange[opponentPOV_];
 
-            // We actually want one state before
-            if (oppRange.startIdx > sessions_[sessionIdx].fighterStatesRange[opponentPOV_].startIdx)
-                oppRange.startIdx--;
-
-            if (range.endIdx < playerStates.count())
-            {
-                oppRange.endIdx = std::upper_bound(
-                    fighterStates_[opponentPOV_].begin() + oppRange.startIdx,
-                    fighterStates_[opponentPOV_].begin() + oppRange.endIdx,
-                    fighterStates_[playerPOV_][range.endIdx],
+                // Refine guess -- Note that range.startIdx will always be < playerStates.count()
+                assert(range.startIdx != range.endIdx);
+                assert(range.startIdx < playerStates.count());
+                oppRange.startIdx = std::lower_bound(
+                    oppStates.begin() + oppRange.startIdx,
+                    oppStates.begin() + oppRange.endIdx,
+                    playerStates[range.startIdx],
                     [](const State& a, const State& b) {
                         return a.sideData.frameIndex < b.sideData.frameIndex;
                     }
-                ) - fighterStates_[opponentPOV_].begin();
-            }
+                ) - oppStates.begin();
 
-            return oppQuery->apply(fighterStates_[opponentPOV_], oppRange).count() > 0;
-        });
+                // We actually want one state before
+                if (oppRange.startIdx > oppSessionRange.startIdx)
+                    oppRange.startIdx--;
+
+                if (range.endIdx < playerStates.count())
+                {
+                    oppRange.endIdx = std::upper_bound(
+                        oppStates.begin() + oppRange.startIdx,
+                        oppStates.begin() + oppRange.endIdx,
+                        playerStates[range.endIdx],
+                        [](const State& a, const State& b) {
+                            return a.sideData.frameIndex < b.sideData.frameIndex;
+                        }
+                    ) - oppStates.begin();
+                }
+
+                const rfcommon::Vector<Range>& matches = oppQuery->apply(oppStates, oppRange);
+                if (matches.count() == 0)
+                    return false;
+
+                // Adjust ranges to be the union of both player and opponent matches
+                if (playerStates[range.startIdx].sideData.frameIndex < oppStates[matches.front().startIdx].sideData.frameIndex)
+                    range.startIdx = std::lower_bound(
+                        playerStates.begin() + playerSessionRange.startIdx,
+                        playerStates.begin() + playerSessionRange.endIdx,
+                        oppStates[matches.front().startIdx],
+                        [](const State& a, const State& b) {
+                            return a.sideData.frameIndex < b.sideData.frameIndex;
+                        }
+                    ) - playerStates.begin();
+
+                // We actually want one state before
+                if (range.startIdx > playerSessionRange.startIdx)
+                    range.startIdx--;
+
+                if (matches.back().endIdx < oppStates.count())
+                    if (range.endIdx == playerStates.count() ||
+                        playerStates[range.endIdx].sideData.frameIndex > oppStates[matches.back().endIdx].sideData.frameIndex)
+                    {
+                        range.endIdx = std::upper_bound(
+                            playerStates.begin() + playerSessionRange.startIdx,
+                            playerStates.begin() + playerSessionRange.endIdx,
+                            oppStates[matches.back().endIdx],
+                            [](const State& a, const State& b) {
+                                return a.sideData.frameIndex < b.sideData.frameIndex;
+                            }
+                        ) - playerStates.begin();
+                    }
+
+                assert(range.startIdx != range.endIdx);
+
+                return true;
+            });
+        }
+
+        results.sessionMergedMatches[sessionIdx] = query->mergeMotions(fighterStates_[playerPOV_], results.sessionMatches[sessionIdx]);
+        results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(fighterStates_[playerPOV_], results.sessionMergedMatches[sessionIdx]);
+
+        // Accumulate results into global results
+        results.matches.push(results.sessionMatches[sessionIdx]);
+        results.mergedMatches.push(results.sessionMergedMatches[sessionIdx]);
+        results.mergedAndNormalizedMatches.push(results.sessionMergedAndNormalizedMatches[sessionIdx]);
     }
 
-    results.mergedMatches = query->mergeMotions(fighterStates_[playerPOV_], results.matches);
-    results.mergedAndNormalizedMatches = query->normalizeMotions(fighterStates_[playerPOV_], results.mergedMatches);
     Graph::fromSequences(fighterStates_[playerPOV_], results.mergedMatches).exportDOT("decision_graph_search.dot", fighterStates_[playerPOV_], labels_);
 
 #ifndef NDEBUG
@@ -531,17 +562,6 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
         printf("\n");
     }
 #endif
-
-    for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
-    {
-        results.sessionMatches[sessionIdx].clear();
-        const auto& sessionRange = sessions_[sessionIdx].fighterStatesRange[playerPOV_];
-        for (const Range& range : results.matches)
-            if (range.startIdx >= sessionRange.startIdx && range.endIdx <= sessionRange.endIdx)
-                results.sessionMatches[sessionIdx].push(range);
-        results.sessionMergedMatches[sessionIdx] = query->mergeMotions(fighterStates_[playerPOV_], results.sessionMatches[sessionIdx]);
-        results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(fighterStates_[playerPOV_], results.sessionMergedMatches[sessionIdx]);
-    }
 
     return true;
 }

@@ -486,7 +486,7 @@ rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) c
     // current search pattern. If no pattern was found then this returns
     // the starting index
     auto doSequenceMatch = [this, &states, &l1, &l2, &info](const int startIdx) -> int {
-        const int maxMatchLength = 50;
+        const int maxMatchLength = 500000;
         int stateIdx = startIdx;
 
         // Prepare current and next state lists
