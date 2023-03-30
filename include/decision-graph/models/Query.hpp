@@ -3,6 +3,7 @@
 #include "decision-graph/models/Sequence.hpp"
 #include "rfcommon/Vector.hpp"
 #include "rfcommon/FighterID.hpp"
+#include <cstdint>
 
 class LabelMapper;
 class Query;
@@ -64,7 +65,7 @@ public:
 
     bool matches(const State& node) const;
 
-    rfcommon::Vector<int> next;
+    rfcommon::Vector<int, int16_t> next;
 
 private:
     friend class Query;
@@ -85,7 +86,9 @@ class Query
 public:
     static QueryASTNode* parse(const rfcommon::String& text);
     static Query* compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID, rfcommon::String* error);
-    rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
+    Range find(const States& states, const Range& range) const;
+    rfcommon::Vector<Range> findAll(const States& states, const Range& range) const;
+    //rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
     rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
     rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;
     void exportDOT(const char* filename, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);

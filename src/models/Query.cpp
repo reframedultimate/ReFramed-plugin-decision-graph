@@ -471,6 +471,162 @@ Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* 
 }
 
 // ----------------------------------------------------------------------------
+// Given a list of player states, begin executing the NFA on the state at "startIdx"
+// either until it completes successfully, or "endIdx" is reached.
+//
+// Returns "startIdx" if a match was not found, otherwise returns the index after
+// the last successfully matched state.
+//
+// This function expects "clist", "nlist" and "lastLists" to be arrays of size
+// "matchers_.count()". They don't have to be initialized.
+static int runNFA(
+    const States& states,
+    const rfcommon::Vector<Matcher>& matchers,
+    const int startIdx,
+    const int endIdx,
+    int* clist,
+    int* nlist,
+    int* lastLists)
+{
+    //const int maxMatchLength = 500000;
+    int stateIdx = startIdx;
+
+    // Prepare current and next state lists. Current list contains all
+    // start states of the NFA, which can be more than 1. We (mis-)use the
+    // first matcher as a container for all of the starting states.
+    int listid = 0;
+    int clistLen = 0;
+    int nlistLen = 0;
+    for (int i : matchers[0].next)
+        clist[clistLen++] = i;
+
+    // List IDs start at 0
+    memset(lastLists, 0, sizeof(*lastLists) * matchers.count());
+
+    while (true)
+    {
+        // We use a running "list ID" to keep track of which matchers were
+        // already visited. This avoids adding the same matcher to nlist
+        // more than once
+        listid++;
+        nlistLen = 0;
+
+        // Process each matcher in the current list to see if any node in the
+        // NFA matches the current player state
+        for (int clistIdx = 0; clistIdx != clistLen; ++clistIdx)
+        {
+            const Matcher& node = matchers[clist[clistIdx]];
+
+            // Does not match -> don't add to nlist
+            if (node.matches(states[stateIdx]) == false)
+                continue;
+
+            // The current NFA node matched, which means we need to explore
+            // all of its children. Only add child to nlist if we haven't
+            // already, by checking the list ID.
+            for (int nextMatcherIdx : node.next)
+                if (lastLists[nextMatcherIdx] != listid)
+                {
+                    lastLists[nextMatcherIdx] = listid;
+                    nlist[nlistLen++] = nextMatcherIdx;
+                }
+
+            // We have run out of states to match
+            if (stateIdx + 1 >= endIdx /*|| stateIdx >= startIdx + maxMatchLength*/)
+            {
+                if (node.isAcceptCondition())
+                    return stateIdx + 1;  // Success, return the end of the matched range = last matched index + 1
+
+                // the state machine is not complete, which means
+                // we only have a partial match -> failure
+                return startIdx;
+            }
+
+            if (node.isAcceptCondition())
+            {
+                // If there are still children that can match, continue
+                for (int nextMatcherIdx : node.next)
+                    if (matchers[nextMatcherIdx].matches(states[stateIdx + 1]))
+                        goto skip_return;
+
+                // Success, return the end of the matched range = last matched index + 1
+                return stateIdx + 1;
+            skip_return:;
+            }
+        }
+
+        if (nlistLen == 0
+            /*|| stateIdx >= startIdx + maxMatchLength*/
+            || stateIdx + 1 >= endIdx)
+        {
+            return startIdx;  // Failed to match anything
+        }
+
+        // Advance
+        stateIdx++;
+        std::swap(clist, nlist);
+    }
+}
+
+// ----------------------------------------------------------------------------
+#define STACKMEMSIZE 64
+Range Query::find(const States& states, const Range& range) const
+{
+    int liststackmem[STACKMEMSIZE * 3];
+
+    // Nothing to do
+    if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
+        return Range(0, 0);
+
+    // Go through each state and try to run the NFA on it
+    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
+    for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
+    {
+        const int endIdx = runNFA(states, matchers_, startIdx, range.endIdx, listmem, listmem + matchers_.count(), listmem + matchers_.count() * 2);
+        if (endIdx > startIdx)
+        {
+            if (matchers_.count() > STACKMEMSIZE)
+                free(listmem);
+            return Range(startIdx, endIdx);
+        }
+    }
+    if (matchers_.count() > STACKMEMSIZE)
+        free(listmem);
+
+    return Range(0, 0);
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Range> Query::findAll(const States& states, const Range& range) const
+{
+    int liststackmem[STACKMEMSIZE * 3];
+    rfcommon::Vector<Range> result;
+
+    // Nothing to do
+    if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
+        return result;
+
+    // We search the sequence of states rather than the graph, because we are
+    // interested in matching sequences of decisions
+    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
+    for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
+    {
+        const int endIdx = runNFA(states, matchers_, startIdx, range.endIdx, listmem, listmem + matchers_.count(), listmem + matchers_.count() * 2);
+        if (endIdx > startIdx)
+        {
+            result.emplace(startIdx, endIdx);
+            startIdx = endIdx - 1;
+        }
+    }
+
+    if (matchers_.count() > STACKMEMSIZE)
+        free(listmem);
+
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+/*
 rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) const
 {
     struct MatchInfo
@@ -568,7 +724,7 @@ rfcommon::Vector<Range> Query::apply(const States& states, const Range& range) c
     }
 
     return result;
-}
+}*/
 
 // ----------------------------------------------------------------------------
 rfcommon::Vector<Sequence> Query::mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const

@@ -410,7 +410,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
     results.mergedAndNormalizedMatches.clear();
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
-        results.sessionMatches[sessionIdx] = query->apply(
+        results.sessionMatches[sessionIdx] = query->findAll(
             fighterStates_[playerPOV_],
             sessions_[sessionIdx].fighterStatesRange[playerPOV_]
         );
@@ -466,7 +466,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
                     ) - oppStates.begin();
                 }
 
-                const rfcommon::Vector<Range>& matches = oppQuery->apply(oppStates, oppRange);
+                const rfcommon::Vector<Range>& matches = oppQuery->findAll(oppStates, oppRange);
                 if (matches.count() == 0)
                     return false;
 
