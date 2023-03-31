@@ -565,21 +565,23 @@ static int runNFA(
         // Advance
         stateIdx++;
         std::swap(clist, nlist);
+        std::swap(clistLen, nlistLen);
     }
 }
 
 // ----------------------------------------------------------------------------
 #define STACKMEMSIZE 64
-Range Query::find(const States& states, const Range& range) const
+Range Query::findFirst(const States& states, const Range& range) const
 {
     int liststackmem[STACKMEMSIZE * 3];
+    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
 
     // Nothing to do
+    /*
     if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
-        return Range(0, 0);
+        return Range(0, 0);*/
 
     // Go through each state and try to run the NFA on it
-    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
     for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
     {
         const int endIdx = runNFA(states, matchers_, startIdx, range.endIdx, listmem, listmem + matchers_.count(), listmem + matchers_.count() * 2);
@@ -590,6 +592,7 @@ Range Query::find(const States& states, const Range& range) const
             return Range(startIdx, endIdx);
         }
     }
+
     if (matchers_.count() > STACKMEMSIZE)
         free(listmem);
 
@@ -599,16 +602,17 @@ Range Query::find(const States& states, const Range& range) const
 // ----------------------------------------------------------------------------
 rfcommon::Vector<Range> Query::findAll(const States& states, const Range& range) const
 {
-    int liststackmem[STACKMEMSIZE * 3];
     rfcommon::Vector<Range> result;
+    int liststackmem[STACKMEMSIZE * 3];
+    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
 
     // Nothing to do
+    /*
     if (matchers_.count() == 0 || matchers_[0].next.count() == 0)
-        return result;
+        return result;*/
 
     // We search the sequence of states rather than the graph, because we are
     // interested in matching sequences of decisions
-    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
     for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
     {
         const int endIdx = runNFA(states, matchers_, startIdx, range.endIdx, listmem, listmem + matchers_.count(), listmem + matchers_.count() * 2);
@@ -621,6 +625,16 @@ rfcommon::Vector<Range> Query::findAll(const States& states, const Range& range)
 
     if (matchers_.count() > STACKMEMSIZE)
         free(listmem);
+
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+rfcommon::Vector<Range> Query::findAllIntersect(
+        const States& states, const Range& range,
+        const States& intStates, const rfcommon::Vector<Range>& intRanges) const
+{
+    rfcommon::Vector<Range> result;
 
     return result;
 }

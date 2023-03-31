@@ -84,11 +84,51 @@ private:
 class Query
 {
 public:
+    /*!
+     * \brief Parse a string into an AST
+     * \param[in] text A string to parse.
+     * \return Returns the root node of the AST if successful. The node must
+     * be freed using QueryASTNode::destroyRecurse(). If parsing fails then
+     * nullptr is returned.
+     */
     static QueryASTNode* parse(const rfcommon::String& text);
+
+    /*!
+     * \brief Compiles an AST into a NFA, which can then be executed to find
+     * matches in a sequence of fighter states.
+     * \param[in] ast Root node of the AST as returned by parse().
+     * \param[in] labels Motion labels table.
+     * \param[in] fighterID Which fighter this AST should be compiled for. This
+     * is necessary because each fighter may have different terminology and
+     * meaning, so labels will compile differently depending on which fighter
+     * it is intended for.
+     * \param[out] error If an error occurs then more information is written
+     * to this string.
+     * \return Returns the compiled query if successful. Use "delete" to delete
+     * the query later. The AST can be freed after compilation.
+     */
     static Query* compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID, rfcommon::String* error);
-    Range find(const States& states, const Range& range) const;
+
+    /*!
+     * \brief Finds the first match within the specified range.
+     * \param[in] states The fighter states array to search.
+     * \param[in] range The range within the fighter states array to search.
+     * \return Returns [start,end) of the matched range. If no match was found
+     * then range.startIdx == range.endIdx.
+     */
+    Range findFirst(const States& states, const Range& range) const;
+
+    rfcommon::Vector<Range> findAllIntersect(const States& states, const Range& range,
+                                             const States& intStates, const rfcommon::Vector<Range>& intRanges) const;
+
+    /*!
+     * \brief findAll
+     * \param states
+     * \param range
+     * \return
+     */
     rfcommon::Vector<Range> findAll(const States& states, const Range& range) const;
-    //rfcommon::Vector<Range> apply(const States& states, const Range& range) const;
+
     rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
     rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;
     void exportDOT(const char* filename, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);
