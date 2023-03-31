@@ -415,7 +415,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             // If there is a query for the opponent, we want to apply the query to the
             // range of opponent states that occurred at the same time as our search
             // result
-            results.sessionMatches[sessionIdx] = query->findAllIntersect(
+            results.sessionMatches[sessionIdx] = query->findAllOverlapping(
                 oppQuery.get(),
                 fighterStates_[playerPOV_],
                 sessions_[sessionIdx].fighterStatesRange[playerPOV_],

@@ -118,18 +118,27 @@ public:
      */
     Range findFirst(const States& states, const Range& range) const;
 
-    rfcommon::Vector<Range> findAllIntersect(
+    /*!
+     * \brief Same as findFirst(), but it finds all matches within the specified range.
+     */
+    rfcommon::Vector<Range> findAll(const States& states, const Range& range) const;
+
+    /*!
+     * \brief Applies queries to two different state arrays at the same time,
+     * and collects all ranges that overlap each other in time. This us used
+     * when searching for player and opponent interactions.
+     * \param otherQuery The query of the opponent. This gets applied to "otherStates"
+     * and "otherRange".
+     * \param states The state list of the player.
+     * \param range The range within the state list of the player to search.
+     * \param otherStates The state list of the opponent.
+     * \param otherRange The range within the state list of the opponent to search.
+     * \return When two ranges overlap, their intersection is
+     */
+    rfcommon::Vector<Range> findAllOverlapping(
             const Query* otherQuery,
             const States& states, const Range& range,
             const States& otherStates, const Range& otherRange) const;
-
-    /*!
-     * \brief findAll
-     * \param states
-     * \param range
-     * \return
-     */
-    rfcommon::Vector<Range> findAll(const States& states, const Range& range) const;
 
     rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
     rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;

@@ -630,7 +630,7 @@ rfcommon::Vector<Range> Query::findAll(const States& states, const Range& range)
 }
 
 // ----------------------------------------------------------------------------
-rfcommon::Vector<Range> Query::findAllIntersect(
+rfcommon::Vector<Range> Query::findAllOverlapping(
         const Query* otherQuery,
         const States& states, const Range& range,
         const States& otherStates, const Range& otherRange) const
@@ -683,7 +683,7 @@ rfcommon::Vector<Range> Query::findAllIntersect(
             const FrameIndex frameEnd = end1 < end2 ? end1 : end2;
 
             // They do not intersect
-            if (frameStart >= frameEnd)
+            if (frameStart > frameEnd)
                 continue;
 
             // Map range 2 indices to range 1 if necessary
@@ -732,7 +732,7 @@ rfcommon::Vector<Range> Query::findAllIntersect(
 
     if (matchers_.count() > STACKMEMSIZE)
         free(listmem);
-    
+
     return result;
 }
 
