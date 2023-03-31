@@ -631,11 +631,108 @@ rfcommon::Vector<Range> Query::findAll(const States& states, const Range& range)
 
 // ----------------------------------------------------------------------------
 rfcommon::Vector<Range> Query::findAllIntersect(
+        const Query* otherQuery,
         const States& states, const Range& range,
-        const States& intStates, const rfcommon::Vector<Range>& intRanges) const
+        const States& otherStates, const Range& otherRange) const
 {
-    rfcommon::Vector<Range> result;
+    using rfcommon::FrameIndex;
 
+    rfcommon::Vector<Range> result;
+    int liststackmem[STACKMEMSIZE * 3];
+    int* listmem = matchers_.count() > STACKMEMSIZE ? (int*)malloc(sizeof(int) * matchers_.count()) : liststackmem;
+
+    int otherStartIdx = otherRange.startIdx;
+
+    for (int startIdx = range.startIdx; startIdx < range.endIdx; ++startIdx)
+    {
+        // Run first search
+        int endIdx = runNFA(
+            states, matchers_,
+            startIdx, range.endIdx,
+            listmem, listmem + matchers_.count(), listmem + matchers_.count() * 2
+        );
+        if (endIdx == startIdx)
+            continue;
+
+        for (; otherStartIdx != otherRange.endIdx; ++otherStartIdx)
+        {
+            // The beginning of this second search is beyond the range
+            // of the first search, so finding a union would be impossible
+            if (endIdx < states.count() &&
+                otherStates[otherStartIdx].sideData.frameIndex > states[endIdx].sideData.frameIndex)
+                break;
+
+            // Run second search
+            const int otherEndIdx = runNFA(
+                otherStates, otherQuery->matchers_,
+                otherStartIdx, otherRange.endIdx,
+                listmem, listmem + otherQuery->matchers_.count(), listmem + otherQuery->matchers_.count() * 2
+            );
+            if (otherEndIdx == otherStartIdx)
+                continue;
+
+            // Calculate intersection of ranges
+            const FrameIndex start1 = states[startIdx].sideData.frameIndex;
+            const FrameIndex start2 = otherStates[otherStartIdx].sideData.frameIndex;
+            const FrameIndex end1 = endIdx < states.count() ?
+                states[endIdx].sideData.frameIndex : FrameIndex::fromValue(std::numeric_limits<FrameIndex::Type>::max());
+            const FrameIndex end2 = otherEndIdx < otherStates.count() ?
+                otherStates[otherEndIdx].sideData.frameIndex : FrameIndex::fromValue(std::numeric_limits<FrameIndex::Type>::max());
+
+            const FrameIndex frameStart = start1 > start2 ? start1 : start2;
+            const FrameIndex frameEnd = end1 < end2 ? end1 : end2;
+
+            // They do not intersect
+            if (frameStart >= frameEnd)
+                continue;
+
+            // Map range 2 indices to range 1 if necessary
+            if (start2 > start1)
+            {
+                startIdx = std::lower_bound(
+                    states.begin() + startIdx,
+                    states.begin() + endIdx,
+                    otherStates[otherStartIdx],
+                    [](const State& a, const State& b) {
+                        return a.sideData.frameIndex < b.sideData.frameIndex;
+                    }
+                ) - states.begin();
+            }
+
+            if (end2 < end1)
+            {
+                endIdx = std::lower_bound(
+                    states.begin() + startIdx,
+                    states.begin() + endIdx,
+                    otherStates[otherEndIdx],
+                    [](const State& a, const State& b) {
+                        return a.sideData.frameIndex < b.sideData.frameIndex;
+                    }
+                ) - states.begin() + 1;
+            }
+
+            // Sometimes the difference in granularity of the two state arrays
+            // is too great and the startIdx will equal the endIdx, even though
+            // a valid intersection exist. A lot of code operates under the
+            // assumption that all entries in the returned ranges satisfy
+            // startIdx < endIdx. Try to relax the range a bit if this happens.
+            if (startIdx == endIdx)
+            {
+                if (startIdx > 0)
+                    startIdx--;
+                else
+                    endIdx++;
+            }
+
+            assert(endIdx <= states.count());
+            result.emplace(startIdx, endIdx);
+            startIdx = endIdx - 1;
+        }
+    }
+
+    if (matchers_.count() > STACKMEMSIZE)
+        free(listmem);
+    
     return result;
 }
 

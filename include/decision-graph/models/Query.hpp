@@ -118,8 +118,10 @@ public:
      */
     Range findFirst(const States& states, const Range& range) const;
 
-    rfcommon::Vector<Range> findAllIntersect(const States& states, const Range& range,
-                                             const States& intStates, const rfcommon::Vector<Range>& intRanges) const;
+    rfcommon::Vector<Range> findAllIntersect(
+            const Query* otherQuery,
+            const States& states, const Range& range,
+            const States& otherStates, const Range& otherRange) const;
 
     /*!
      * \brief findAll
