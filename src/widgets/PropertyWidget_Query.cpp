@@ -38,6 +38,8 @@ PropertyWidget_Query::PropertyWidget_Query(SequenceSearchModel* model, QWidget* 
     contentWidget()->setLayout(l);
     addQueryBox();
 
+    connect(toolButton_addQuery, &QToolButton::released, this, &PropertyWidget_Query::addQueryBox);
+
     seqSearchModel_->dispatcher.addListener(this);
 }
 
@@ -130,6 +132,8 @@ void PropertyWidget_Query::addQueryBox()
         // Don't have to recompile queries, but do have to apply all again
         if (seqSearchModel_->applyAllQueries())
             seqSearchModel_->notifyQueriesApplied();
+
+        updateSize();
     });
 
     seqSearchModel_->addQuery();
