@@ -15,7 +15,6 @@ public:
     Graph();
     ~Graph();
 
-
     struct UniqueSequence
     {
         UniqueSequence(Sequence&& seq, int weight)
@@ -29,7 +28,7 @@ public:
 
     void clear();
 
-    static Graph fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
+    Graph& addSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
 
     int findHighestThroughputNode() const;
     int findHighestThroughputEdge() const;

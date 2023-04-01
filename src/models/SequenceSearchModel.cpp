@@ -442,7 +442,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
         results.mergedAndNormalizedMatches.push(results.sessionMergedAndNormalizedMatches[sessionIdx]);
     }
 
-    Graph::fromSequences(fighterStates_[playerPOV_], results.mergedMatches).exportDOT("decision_graph_search.dot", fighterStates_[playerPOV_], labels_);
+    Graph().addSequences(fighterStates_[playerPOV_], results.mergedMatches).exportDOT("decision_graph_search.dot", fighterStates_[playerPOV_], labels_);
 
 #ifndef NDEBUG
     auto toHash40OrHex = [this](rfcommon::FighterMotion motion) -> rfcommon::String {

@@ -51,7 +51,7 @@ SequenceSearchView::SequenceSearchView(
 
     graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
-    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel_));
+    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel, model, labels));
 
     ui_->tab_timings->setLayout(new QVBoxLayout);
     ui_->tab_timings->layout()->addWidget(new TimingsView(model, labels));

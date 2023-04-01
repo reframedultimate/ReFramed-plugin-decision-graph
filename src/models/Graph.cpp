@@ -62,9 +62,8 @@ void Graph::clear()
 }
 
 // ----------------------------------------------------------------------------
-Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence>& sequences)
+Graph& Graph::addSequences(const States& states, const rfcommon::Vector<Sequence>& sequences)
 {
-    Graph graph;
     rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 
@@ -77,8 +76,8 @@ Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence
             auto nodeLookupResult = stateLookup.insertOrGet(state, -1);
             if (nodeLookupResult->value() == -1)
             {
-                graph.nodes.emplace(stateIdx);
-                nodeLookupResult->value() = graph.nodes.count() - 1;
+                nodes.emplace(stateIdx);
+                nodeLookupResult->value() = nodes.count() - 1;
             }
             const int currentNodeIdx = nodeLookupResult->value();
 
@@ -87,21 +86,21 @@ Graph Graph::fromSequences(const States& states, const rfcommon::Vector<Sequence
                 auto edgeLookupResult = edgeLookup.insertOrGet(EdgeConnection(prevNodeIdx, currentNodeIdx), -1);
                 if (edgeLookupResult->value() == -1)
                 {
-                    graph.edges.emplace(prevNodeIdx, currentNodeIdx);
-                    graph.nodes[prevNodeIdx].outgoingEdges.push(graph.edges.count() - 1);
-                    graph.nodes[currentNodeIdx].incomingEdges.push(graph.edges.count() - 1);
+                    edges.emplace(prevNodeIdx, currentNodeIdx);
+                    nodes[prevNodeIdx].outgoingEdges.push(edges.count() - 1);
+                    nodes[currentNodeIdx].incomingEdges.push(edges.count() - 1);
 
-                    edgeLookupResult->value() = graph.edges.count() - 1;
+                    edgeLookupResult->value() = edges.count() - 1;
                 }
                 else
-                    graph.edges[edgeLookupResult->value()].addWeight();
+                    edges[edgeLookupResult->value()].addWeight();
             }
 
             prevNodeIdx = currentNodeIdx;
         }
     }
 
-    return graph;
+    return *this;
 }
 
 // ----------------------------------------------------------------------------
