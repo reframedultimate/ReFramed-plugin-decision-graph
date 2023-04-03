@@ -11,6 +11,7 @@
 #include "decision-graph/views/TimingsView.hpp"
 #include "decision-graph/widgets/PropertyWidget_Damage.hpp"
 #include "decision-graph/widgets/PropertyWidget_DamageConstraints.hpp"
+#include "decision-graph/widgets/PropertyWidget_Graph.hpp"
 #include "decision-graph/widgets/PropertyWidget_HeatMap.hpp"
 #include "decision-graph/widgets/PropertyWidget_PositionConstraints.hpp"
 #include "decision-graph/widgets/PropertyWidget_POV.hpp"
@@ -37,7 +38,6 @@ SequenceSearchView::SequenceSearchView(
         QWidget* parent)
     : QWidget(parent)
     , seqSearchModel_(model)
-    , graphModel_(graphModel)
     , ui_(new Ui::SequenceSearchView)  // Instantiate UI created in QtDesigner
 {
     // Set up UI created in QtDesigner
@@ -49,9 +49,10 @@ SequenceSearchView::SequenceSearchView(
     ui_->tab_pieChart->setLayout(new QVBoxLayout);
     ui_->tab_pieChart->layout()->addWidget(new PieChartView(model, labels));
 
-    graphModel_->addEllipse(0, 0, 10, 15);
     ui_->tab_graph->setLayout(new QVBoxLayout);
-    ui_->tab_graph->layout()->addWidget(new GraphView(graphModel, model, labels));
+    GraphView* graphView = new GraphView;
+    graphView->setScene(graphModel);
+    ui_->tab_graph->layout()->addWidget(graphView);
 
     ui_->tab_timings->setLayout(new QVBoxLayout);
     ui_->tab_timings->layout()->addWidget(new TimingsView(model, labels));
@@ -67,6 +68,7 @@ SequenceSearchView::SequenceSearchView(
 
     PropertyWidget* pwPOV = new PropertyWidget_POV(seqSearchModel_);
     PropertyWidget* pwQuery = new PropertyWidget_Query(seqSearchModel_);
+    PropertyWidget* pwGraph = new PropertyWidget_Graph(graphModel, seqSearchModel_);
     PropertyWidget* pwTimings = new PropertyWidget_Timings(seqSearchModel_);
     PropertyWidget* pwDamage = new PropertyWidget_Damage(seqSearchModel_);
     PropertyWidget* pwShield = new PropertyWidget_Shield(seqSearchModel_);
@@ -76,6 +78,7 @@ SequenceSearchView::SequenceSearchView(
     QVBoxLayout* propertiesLayout = new QVBoxLayout;
     propertiesLayout->addWidget(pwPOV);
     propertiesLayout->addWidget(pwQuery);
+    propertiesLayout->addWidget(pwGraph);
     propertiesLayout->addWidget(pwTimings);
     propertiesLayout->addWidget(pwDamage);
     propertiesLayout->addWidget(pwShield);
@@ -89,18 +92,20 @@ SequenceSearchView::SequenceSearchView(
 
     pwPOV->setExpanded(true);
     pwQuery->setExpanded(true);
+    pwGraph->setExpanded(true);
     pwTimings->setExpanded(true);
     pwDamage->setExpanded(true);
     pwShield->setExpanded(true);
     pwHeatMap->setExpanded(true);
-    pwTemplates->setExpanded(true);
+    //pwTemplates->setExpanded(true);
 
+    connect(ui_->tabWidget, &QTabWidget::currentChanged, [pwGraph](int index)   { pwGraph->setVisible(index == 2); });
     connect(ui_->tabWidget, &QTabWidget::currentChanged, [pwTimings](int index) { pwTimings->setVisible(index == 3); });
     connect(ui_->tabWidget, &QTabWidget::currentChanged, [pwDamage] (int index) { pwDamage->setVisible (index == 4); });
     connect(ui_->tabWidget, &QTabWidget::currentChanged, [pwShield](int index)  { pwShield->setVisible (index == 5); });
     connect(ui_->tabWidget, &QTabWidget::currentChanged, [pwHeatMap](int index) { pwHeatMap->setVisible(index == 6); });
 
-    ui_->tabWidget->setCurrentIndex(0);
+    ui_->tabWidget->setCurrentIndex(2);
 }
 
 // ----------------------------------------------------------------------------

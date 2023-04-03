@@ -1,14 +1,11 @@
 #include "decision-graph/models/Graph.hpp"
 
-#include "rfcommon/Frame.hpp"
-#include "rfcommon/MappingInfo.hpp"
 #include "rfcommon/MotionLabels.hpp"
+#include "rfcommon/LinearMap.hpp"
 
 #include <cstdio>
 #include <cinttypes>
-
-#include "ogdf/energybased/FMMMLayout.h"
-#include "ogdf/fileformats/GraphIO.h"
+#include <cmath>
 
 namespace {
 
@@ -62,12 +59,72 @@ void Graph::clear()
 }
 
 // ----------------------------------------------------------------------------
-Graph& Graph::addSequences(const States& states, const rfcommon::Vector<Sequence>& sequences)
+Graph& Graph::addStates(const States& states, const rfcommon::Vector<Range>& ranges)
 {
+    // Maps state to a node index so we can look up existing nodes for a given state
     rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
+    // Maps edge connections to edge index so we can look up existing connections
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 
-    for (const auto& seq : sequences)
+    // Since this function can get called multiple times per graph, have to
+    // re-construct our temporary maps
+    for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
+        stateLookup.insertAlways(states[nodes[nodeIdx].stateIdx], nodeIdx);
+    for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
+        edgeLookup.insertAlways(EdgeConnection(edges[edgeIdx].from, edges[edgeIdx].to), edgeIdx);
+
+    for (const Range& range : ranges)
+    {
+        int prevNodeIdx = -1;
+        for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
+        {
+            const State& state = states[stateIdx];
+            auto nodeLookupResult = stateLookup.insertOrGet(state, -1);
+            if (nodeLookupResult->value() == -1)
+            {
+                nodes.emplace(stateIdx);
+                nodeLookupResult->value() = nodes.count() - 1;
+            }
+            const int currentNodeIdx = nodeLookupResult->value();
+
+            if (prevNodeIdx != -1)
+            {
+                auto edgeLookupResult = edgeLookup.insertOrGet(EdgeConnection(prevNodeIdx, currentNodeIdx), -1);
+                if (edgeLookupResult->value() == -1)
+                {
+                    edges.emplace(prevNodeIdx, currentNodeIdx);
+                    nodes[prevNodeIdx].outgoingEdges.push(edges.count() - 1);
+                    nodes[currentNodeIdx].incomingEdges.push(edges.count() - 1);
+
+                    edgeLookupResult->value() = edges.count() - 1;
+                }
+                else
+                    edges[edgeLookupResult->value()].weight++;
+            }
+
+            prevNodeIdx = currentNodeIdx;
+        }
+    }
+
+    return *this;
+}
+
+// ----------------------------------------------------------------------------
+Graph& Graph::addStates(const States& states, const rfcommon::Vector<Sequence>& sequences)
+{
+    // Maps state to a node index so we can look up existing nodes for a given state
+    rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
+    // Maps edge connections to edge index so we can look up existing connections
+    rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
+
+    // Since this function can get called multiple times per graph, have to
+    // re-construct our temporary maps
+    for (int nodeIdx = 0; nodeIdx != nodes.count(); ++nodeIdx)
+        stateLookup.insertAlways(states[nodes[nodeIdx].stateIdx], nodeIdx);
+    for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
+        edgeLookup.insertAlways(EdgeConnection(edges[edgeIdx].from, edges[edgeIdx].to), edgeIdx);
+
+    for (const Sequence& seq : sequences)
     {
         int prevNodeIdx = -1;
         for (int stateIdx : seq.idxs)
@@ -93,11 +150,37 @@ Graph& Graph::addSequences(const States& states, const rfcommon::Vector<Sequence
                     edgeLookupResult->value() = edges.count() - 1;
                 }
                 else
-                    edges[edgeLookupResult->value()].addWeight();
+                    edges[edgeLookupResult->value()].weight++;
             }
 
             prevNodeIdx = currentNodeIdx;
         }
+    }
+
+    return *this;
+}
+
+// ----------------------------------------------------------------------------
+Graph& Graph::addIsland(const Graph& other)
+{
+    int nodeOffset = nodes.count();
+    int edgeOffset = edges.count();
+
+    nodes.push(other.nodes);
+    edges.push(other.edges);
+
+    for (int nodeIdx = nodeOffset; nodeIdx != nodes.count(); ++nodeIdx)
+    {
+        for (int& e : nodes[nodeIdx].outgoingEdges)
+            e += edgeOffset;
+        for (int& e : nodes[nodeIdx].incomingEdges)
+            e += edgeOffset;
+    }
+
+    for (int edgeIdx = edgeOffset; edgeIdx != edges.count(); ++edgeIdx)
+    {
+        edges[edgeIdx].from += nodeOffset;
+        edges[edgeIdx].to += nodeOffset;
     }
 
     return *this;
@@ -113,9 +196,9 @@ int Graph::findHighestThroughputNode() const
         int outgoing = 0;
         int incoming = 0;
         for (int edge : nodes[node].outgoingEdges)
-            outgoing += edges[edge].weight();
+            outgoing += edges[edge].weight;
         for (int edge : nodes[node].incomingEdges)
-            incoming += edges[edge].weight();
+            incoming += edges[edge].weight;
 
         int throughput = outgoing < incoming ? outgoing : incoming;
         if (highestSeen < throughput)
@@ -135,9 +218,9 @@ int Graph::findHighestThroughputEdge() const
     int idx = -1;
     for (int edge = 0; edge != edges.count(); ++edge)
     {
-        if (highestSeen < edges[edge].weight())
+        if (highestSeen < edges[edge].weight)
         {
-            highestSeen = edges[edge].weight();
+            highestSeen = edges[edge].weight;
             idx = edge;
         }
     }
@@ -165,17 +248,17 @@ rfcommon::Vector<Graph> Graph::islands() const
         visited.visit(root);
 
         for (int edge : nodes[root].outgoingEdges)
-            if (visited.canVisit(edges[edge].to()))
+            if (visited.canVisit(edges[edge].to))
             {
                 parents.push(root);
-                children.push(edges[edge].to());
+                children.push(edges[edge].to);
                 pushedParents.push(0);
             }
         for (int edge : nodes[root].incomingEdges)
-            if (visited.canVisit(edges[edge].from()))
+            if (visited.canVisit(edges[edge].from))
             {
                 parents.push(root);
-                children.push(edges[edge].from());
+                children.push(edges[edge].from);
                 pushedParents.push(0);
             }
 
@@ -192,17 +275,17 @@ rfcommon::Vector<Graph> Graph::islands() const
 
             // Connect new node to parent. Can be incoming or outgoing connection
             for (int edge : nodes[child].outgoingEdges)
-                if (edges[edge].to() == parent)
+                if (edges[edge].to == parent)
                 {
-                    graph.edges.emplace(pushedChild, pushedParent, edges[edge].weight());
+                    graph.edges.emplace(pushedChild, pushedParent, edges[edge].weight);
                     graph.nodes[pushedChild].outgoingEdges.push(graph.edges.count() - 1);
                     graph.nodes[pushedParent].incomingEdges.push(graph.edges.count() - 1);
                     goto edge_pushed;
                 }
             for (int edge : nodes[child].incomingEdges)
-                if (edges[edge].from() == parent)
+                if (edges[edge].from == parent)
                 {
-                    graph.edges.emplace(pushedParent, pushedChild, edges[edge].weight());
+                    graph.edges.emplace(pushedParent, pushedChild, edges[edge].weight);
                     graph.nodes[pushedParent].outgoingEdges.push(graph.edges.count() - 1);
                     graph.nodes[pushedChild].incomingEdges.push(graph.edges.count() - 1);
                     goto edge_pushed;
@@ -212,45 +295,45 @@ rfcommon::Vector<Graph> Graph::islands() const
 
             // Go to next children
             for (int edge : nodes[child].outgoingEdges)
-                if (visited.canVisit(edges[edge].to()))
+                if (visited.canVisit(edges[edge].to))
                 {
                     parents.push(child);
-                    children.push(edges[edge].to());
+                    children.push(edges[edge].to);
                     pushedParents.push(pushedChild);
                 }
                 else  // May have to close loop, since this is a graph
                 {
-                    auto it = map.findKey(edges[edge].to());
+                    auto it = map.findKey(edges[edge].to);
                     if (it == map.end())
                         continue;
                     int pushedVisitedNode = it->value();
                     for (int pushedEdge : graph.nodes[pushedChild].outgoingEdges)
-                        if (graph.edges[pushedEdge].to() == pushedVisitedNode)
+                        if (graph.edges[pushedEdge].to == pushedVisitedNode)
                             goto outgoing_edge_already_copied;
 
-                    graph.edges.emplace(pushedChild, pushedVisitedNode, edges[edge].weight());
+                    graph.edges.emplace(pushedChild, pushedVisitedNode, edges[edge].weight);
                     graph.nodes[pushedChild].outgoingEdges.push(graph.edges.count() - 1);
                     graph.nodes[pushedVisitedNode].incomingEdges.push(graph.edges.count() - 1);
                     outgoing_edge_already_copied: continue;
                 }
             for (int edge : nodes[child].incomingEdges)
-                if (visited.canVisit(edges[edge].from()))
+                if (visited.canVisit(edges[edge].from))
                 {
                     parents.push(child);
-                    children.push(edges[edge].from());
+                    children.push(edges[edge].from);
                     pushedParents.push(pushedChild);
                 }
                 else  // May have to close loop, since this is a graph
                 {
-                    auto it = map.findKey(edges[edge].from());
+                    auto it = map.findKey(edges[edge].from);
                     if (it == map.end())
                         continue;
                     int pushedVisitedNode = it->value();
                     for (int pushedEdge : graph.nodes[pushedChild].incomingEdges)
-                        if (graph.edges[pushedEdge].from() == pushedVisitedNode)
+                        if (graph.edges[pushedEdge].from == pushedVisitedNode)
                             goto incoming_edge_already_copied;
 
-                    graph.edges.emplace(pushedVisitedNode, pushedChild, edges[edge].weight());
+                    graph.edges.emplace(pushedVisitedNode, pushedChild, edges[edge].weight);
                     graph.nodes[pushedVisitedNode].outgoingEdges.push(graph.edges.count() - 1);
                     graph.nodes[pushedChild].incomingEdges.push(graph.edges.count() - 1);
                     incoming_edge_already_copied: continue;
@@ -281,10 +364,10 @@ Graph Graph::outgoingTree(const States& states) const
     visited.visit(root);
 
     for (int edge : nodes[root].outgoingEdges)
-        if (visited.canVisit(edges[edge].to()))
+        if (visited.canVisit(edges[edge].to))
         {
             parents.push(root);
-            children.push(edges[edge].to());
+            children.push(edges[edge].to);
             pushedParents.push(0);
         }
 
@@ -297,9 +380,9 @@ Graph Graph::outgoingTree(const States& states) const
         int pushedChild = result.nodes.count();
         result.nodes.emplace(nodes[child].stateIdx);
         for (int edge : nodes[child].incomingEdges)
-            if (edges[edge].from() == parent)
+            if (edges[edge].from == parent)
             {
-                result.edges.emplace(pushedParent, pushedChild, edges[edge].weight());
+                result.edges.emplace(pushedParent, pushedChild, edges[edge].weight);
                 result.nodes[pushedParent].outgoingEdges.push(result.edges.count() - 1);
                 result.nodes[pushedChild].incomingEdges.push(result.edges.count() - 1);
                 goto edge_pushed;
@@ -308,10 +391,10 @@ Graph Graph::outgoingTree(const States& states) const
         edge_pushed:;
 
         for (int edge : nodes[child].outgoingEdges)
-            if (visited.canVisit(edges[edge].to()))
+            if (visited.canVisit(edges[edge].to))
             {
                 parents.push(child);
-                children.push(edges[edge].to());
+                children.push(edges[edge].to);
                 pushedParents.push(pushedChild);
             }
     }
@@ -337,10 +420,10 @@ Graph Graph::incomingTree(const States& states) const
     visited.visit(root);
 
     for (int edge : nodes[root].incomingEdges)
-        if (visited.canVisit(edges[edge].from()))
+        if (visited.canVisit(edges[edge].from))
         {
             parents.push(root);
-            children.push(edges[edge].from());
+            children.push(edges[edge].from);
             pushedParents.push(0);
         }
 
@@ -353,9 +436,9 @@ Graph Graph::incomingTree(const States& states) const
         int pushedChild = result.nodes.count();
         result.nodes.emplace(nodes[child].stateIdx);
         for (int edge : nodes[child].outgoingEdges)
-            if (edges[edge].to() == parent)
+            if (edges[edge].to == parent)
             {
-                result.edges.emplace(pushedChild, pushedParent, edges[edge].weight());
+                result.edges.emplace(pushedChild, pushedParent, edges[edge].weight);
                 result.nodes[pushedChild].outgoingEdges.push(result.edges.count() - 1);
                 result.nodes[pushedParent].incomingEdges.push(result.edges.count() - 1);
                 goto edge_pushed;
@@ -364,10 +447,10 @@ Graph Graph::incomingTree(const States& states) const
         edge_pushed:;
 
         for (int edge : nodes[child].incomingEdges)
-            if (visited.canVisit(edges[edge].from()))
+            if (visited.canVisit(edges[edge].from))
             {
                 parents.push(child);
-                children.push(edges[edge].from());
+                children.push(edges[edge].from);
                 pushedParents.push(pushedChild);
             }
     }
@@ -394,13 +477,13 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
             leafNodes.push(node);
 
         for (int edge : nodes[node].outgoingEdges)
-            stack.push(edges[edge].to());
+            stack.push(edges[edge].to);
     }
 
     while (leafNodes.count())
     {
         int node = leafNodes.popValue();
-        int weight = nodes[node].incomingEdges.count() ? edges[nodes[node].incomingEdges[0]].weight() : 1;
+        int weight = nodes[node].incomingEdges.count() ? edges[nodes[node].incomingEdges[0]].weight : 1;
 
         Sequence seq;
         while (1)
@@ -409,7 +492,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniuqeOutgoingSequences() c
             assert(nodes[node].incomingEdges.count() <= 1);
             if (nodes[node].incomingEdges.count() == 0)
                 break;
-            node = edges[nodes[node].incomingEdges[0]].from();
+            node = edges[nodes[node].incomingEdges[0]].from;
         }
 
         result.emplace(std::move(seq), weight);
@@ -437,13 +520,13 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
             leafNodes.push(node);
 
         for (int edge : nodes[node].incomingEdges)
-            stack.push(edges[edge].from());
+            stack.push(edges[edge].from);
     }
 
     while (leafNodes.count())
     {
         int node = leafNodes.popValue();
-        int weight = nodes[node].outgoingEdges.count() ? edges[nodes[node].outgoingEdges[0]].weight() : 1;
+        int weight = nodes[node].outgoingEdges.count() ? edges[nodes[node].outgoingEdges[0]].weight : 1;
 
         Sequence seq;
         while (1)
@@ -452,7 +535,7 @@ rfcommon::Vector<Graph::UniqueSequence> Graph::treeToUniqueIncomingSequences() c
             assert(nodes[node].outgoingEdges.count() <= 1);
             if (nodes[node].outgoingEdges.count() == 0)
                 break;
-            node = edges[nodes[node].outgoingEdges[0]].to();
+            node = edges[nodes[node].outgoingEdges[0]].to;
         }
 
         result.emplace(std::move(seq), weight);
@@ -471,15 +554,15 @@ void Graph::exportDOT(const char* fileName, const States& states, const rfcommon
     const float maxWeight = [this]() -> float {
         float weight = 1.0;
         for (const auto& edge : edges)
-            if (weight < edge.weight())
-                weight = edge.weight();
+            if (weight < edge.weight)
+                weight = edge.weight;
         return weight;
     }();
 
     auto accIncomingWeights = [this](int nodeIdx) -> float {
         float weight = 0.0;
         for (const auto& edgeIdx : nodes[nodeIdx].incomingEdges)
-            weight += edges[edgeIdx].weight();
+            weight += edges[edgeIdx].weight;
         return weight;
     };
 
@@ -518,52 +601,12 @@ void Graph::exportDOT(const char* fileName, const States& states, const rfcommon
     for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
     {
         fprintf(fp, "  n%d -> n%d [label=\"%d\", weight=%d];\n",
-                edges[edgeIdx].from(),
-                edges[edgeIdx].to(),
-                edges[edgeIdx].weight(),
-                edges[edgeIdx].weight());
+                edges[edgeIdx].from,
+                edges[edgeIdx].to,
+                edges[edgeIdx].weight,
+                edges[edgeIdx].weight);
     }
 
     fprintf(fp, "}\n");
     fclose(fp);
-}
-
-// ----------------------------------------------------------------------------
-void Graph::exportOGDFSVG(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const
-{
-    ogdf::Graph G;
-    ogdf::GraphAttributes GA(G,
-        ogdf::GraphAttributes::nodeGraphics
-      | ogdf::GraphAttributes::edgeGraphics
-      | ogdf::GraphAttributes::nodeLabel
-      | ogdf::GraphAttributes::edgeStyle
-      | ogdf::GraphAttributes::nodeStyle
-      | ogdf::GraphAttributes::nodeTemplate);
-
-    rfcommon::Vector<ogdf::node> ogdfNodes;
-
-    for (const auto& node : nodes)
-    {
-        const State& state = states[node.stateIdx];
-        ogdf::node N = G.newNode();
-        GA.label(N) = labels->toPreferredNotation(states.fighterID, state.motion);
-        GA.width(N) = 250;
-        GA.height(N) = 20;
-        ogdfNodes.push(N);
-    }
-
-    for (int edgeIdx = 0; edgeIdx != edges.count(); ++edgeIdx)
-    {
-        const int from = edges[edgeIdx].from();
-        const int to = edges[edgeIdx].to();
-        G.newEdge(ogdfNodes[from], ogdfNodes[to]);
-    }
-
-    ogdf::FMMMLayout fmmm;
-    fmmm.useHighLevelOptions(true);
-    fmmm.unitEdgeLength(15.0);
-    fmmm.newInitialPlacement(true);
-    fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
-    fmmm.call(GA);
-    ogdf::GraphIO::write(GA, fileName);
 }

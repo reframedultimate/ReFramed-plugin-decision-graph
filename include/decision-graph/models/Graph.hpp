@@ -5,7 +5,6 @@
 #include "decision-graph/models/Sequence.hpp"
 
 #include "rfcommon/Vector.hpp"
-#include "rfcommon/FighterID.hpp"
 
 class LabelMapper;
 
@@ -28,7 +27,10 @@ public:
 
     void clear();
 
-    Graph& addSequences(const States& states, const rfcommon::Vector<Sequence>& sequences);
+    Graph& addStates(const States& states, const rfcommon::Vector<Range>& ranges);
+    Graph& addStates(const States& states, const rfcommon::Vector<Sequence>& sequences);
+
+    Graph& addIsland(const Graph& other);
 
     int findHighestThroughputNode() const;
     int findHighestThroughputEdge() const;
@@ -40,7 +42,7 @@ public:
     rfcommon::Vector<Graph> islands() const;
 
     /*!
-     * \brief Tries to eliminate all edge connections that loop back into the 
+     * \brief Tries to eliminate all edge connections that loop back into the
      * graph. The result is a graph with no cycles and mostly sink leaf nodes.
      * The first node in the graph is the root node of the tree.
      * \note Assumes every node in the graph is connected
@@ -60,7 +62,6 @@ public:
     rfcommon::Vector<UniqueSequence> treeToUniqueIncomingSequences() const;
 
     void exportDOT(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const;
-    void exportOGDFSVG(const char* fileName, const States& states, const rfcommon::MotionLabels* labels) const;
 
     rfcommon::Vector<Node> nodes;
     rfcommon::Vector<Edge> edges;

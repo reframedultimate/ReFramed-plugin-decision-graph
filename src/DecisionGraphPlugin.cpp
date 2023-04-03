@@ -14,8 +14,8 @@
 // ----------------------------------------------------------------------------
 DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::PluginContext* pluginCtx, rfcommon::MotionLabels* labels)
     : Plugin(factory)
-    , graphModel_(new GraphModel)
     , seqSearchModel_(new SequenceSearchModel(labels))
+    , graphModel_(new GraphModel(seqSearchModel_.get(), labels))
     , visualizerModel_(new VisualizerModel(seqSearchModel_.get(), pluginCtx, factory))
     , labels_(labels)
 {

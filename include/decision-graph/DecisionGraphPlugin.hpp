@@ -95,8 +95,8 @@ private:
     void onFrameDataNewFrame(int frameIdx, const rfcommon::Frame<4>& frame) override final;
 
 private:
-    std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<SequenceSearchModel> seqSearchModel_;
+    std::unique_ptr<GraphModel> graphModel_;
     std::unique_ptr<VisualizerModel> visualizerModel_;
     rfcommon::Reference<rfcommon::Session> activeSession_;
     rfcommon::MotionLabels* labels_;

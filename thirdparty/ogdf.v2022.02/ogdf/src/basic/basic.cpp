@@ -67,16 +67,16 @@ static int initializerCount = 0;
 
 static void initializeOGDF()
 {
-	if (initializerCount++ == 0) {
-		ogdf::System::init();
-	}
+    if (initializerCount++ == 0) {
+        ogdf::System::init();
+    }
 }
 
 static void deinitializeOGDF()
 {
-	if (--initializerCount == 0) {
-		ogdf::PoolMemoryAllocator::cleanup();
-	}
+    if (--initializerCount == 0) {
+        ogdf::PoolMemoryAllocator::cleanup();
+    }
 }
 
 namespace ogdf {
@@ -89,40 +89,40 @@ bool debugMode = false;
 
 Initialization::Initialization()
 {
-	initializeOGDF();
+    initializeOGDF();
 }
 
 Initialization::~Initialization()
 {
-	deinitializeOGDF();
+    deinitializeOGDF();
 }
 
 inline bool charCompareIgnoreCase(char a, char b)
 {
-	return toupper(a) == toupper(b);
+    return toupper(a) == toupper(b);
 }
 
 void removeTrailingWhitespace(std::string &str)
 {
-	std::size_t found = str.find_last_not_of(" \t\v\f\n\r");
-	if (found != std::string::npos) {
-		str.erase(found+1);
-	} else { // string consists only of whitespacae
-		str.clear();
-	}
+    std::size_t found = str.find_last_not_of(" \t\v\f\n\r");
+    if (found != std::string::npos) {
+        str.erase(found+1);
+    } else { // string consists only of whitespacae
+        str.clear();
+    }
 }
 
 bool equalIgnoreCase(const string &str1, const string &str2)
 {
-	return str1.size() == str2.size()
-	    && std::equal(str1.begin(), str1.end(), str2.begin(), charCompareIgnoreCase);
+    return str1.size() == str2.size()
+        && std::equal(str1.begin(), str1.end(), str2.begin(), charCompareIgnoreCase);
 }
 
 bool prefixIgnoreCase(const string &prefix, const string &str)
 {
-	string::size_type len = prefix.length();
-	return str.size() >= len
-	    && std::equal(prefix.begin(), prefix.end(), str.begin(), charCompareIgnoreCase);
+    string::size_type len = prefix.length();
+    return str.size() >= len
+        && std::equal(prefix.begin(), prefix.end(), str.begin(), charCompareIgnoreCase);
 }
 
 static std::mt19937 s_random;
@@ -134,75 +134,75 @@ static std::mutex s_randomMutex;
 long unsigned int randomSeed()
 {
 #ifndef OGDF_MEMORY_POOL_NTS
-	std::lock_guard<std::mutex> guard(s_randomMutex);
+    std::lock_guard<std::mutex> guard(s_randomMutex);
 #endif
-	return 7*s_random()+3;  // do not directly return seed, add a bit of variation
+    return 7*s_random()+3;  // do not directly return seed, add a bit of variation
 }
 
 void setSeed(int val)
 {
-	s_random.seed(val);
+    s_random.seed(val);
 }
 
 int randomNumber(int low, int high)
 {
-	OGDF_ASSERT(low <= high);
+    OGDF_ASSERT(low <= high);
 
-	std::uniform_int_distribution<> dist(low,high);
+    std::uniform_int_distribution<> dist(low,high);
 
 #ifndef OGDF_MEMORY_POOL_NTS
-	std::lock_guard<std::mutex> guard(s_randomMutex);
+    std::lock_guard<std::mutex> guard(s_randomMutex);
 #endif
-	return dist(s_random);
+    return dist(s_random);
 }
 
 double randomDouble(double low, double high)
 {
-	OGDF_ASSERT(low <= high);
+    OGDF_ASSERT(low <= high);
 
-	std::uniform_real_distribution<> dist(low,high);
+    std::uniform_real_distribution<> dist(low,high);
 
 #ifndef OGDF_MEMORY_POOL_NTS
-	std::lock_guard<std::mutex> guard(s_randomMutex);
+    std::lock_guard<std::mutex> guard(s_randomMutex);
 #endif
-	return dist(s_random);
+    return dist(s_random);
 }
 
 double randomDoubleExponential(double beta)
 {
-	OGDF_ASSERT(beta > 0);
+    OGDF_ASSERT(beta > 0);
 
-	std::exponential_distribution<> dist(beta);
+    std::exponential_distribution<> dist(beta);
 
 #ifndef OGDF_MEMORY_POOL_NTS
-	std::lock_guard<std::mutex> guard(s_randomMutex);
+    std::lock_guard<std::mutex> guard(s_randomMutex);
 #endif
-	return dist(s_random);
+    return dist(s_random);
 }
 
 double usedTime(double& T)
 {
-	double t = T;
+    double t = T;
 
 #ifdef OGDF_SYSTEM_WINDOWS
-	FILETIME creationTime;
-	FILETIME exitTime;
-	FILETIME kernelTime;
-	FILETIME userTime;
+    FILETIME creationTime;
+    FILETIME exitTime;
+    FILETIME kernelTime;
+    FILETIME userTime;
 
-	GetProcessTimes(GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime);
-	ULARGE_INTEGER user;
-	user.LowPart = userTime.dwLowDateTime;
-	user.HighPart = userTime.dwHighDateTime;
-	T = double(user.QuadPart) * 0.0000001;
+    GetProcessTimes(GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime);
+    ULARGE_INTEGER user;
+    user.LowPart = userTime.dwLowDateTime;
+    user.HighPart = userTime.dwHighDateTime;
+    T = double(user.QuadPart) * 0.0000001;
 
 #else
-	struct tms now;
-	times (&now);
-	T = (double)now.tms_utime / (double)sysconf(_SC_CLK_TCK);
+    struct tms now;
+    times (&now);
+    T = (double)now.tms_utime / (double)sysconf(_SC_CLK_TCK);
 #endif
 
-	return T - t;
+    return T - t;
 }
 
 }

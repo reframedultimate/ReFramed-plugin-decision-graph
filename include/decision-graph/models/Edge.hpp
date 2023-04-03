@@ -6,21 +6,14 @@ class Edge
 {
 public:
     Edge(int from, int to)
-        : from_(from), to_(to), weight_(1)
+        : from(from), to(to), weight(1)
     {}
     Edge(int from, int to, int weight)
-        : from_(from), to_(to), weight_(weight)
+        : from(from), to(to), weight(weight)
     {}
 
-    int from() const { return from_; }
-    int to() const { return to_; }
-
-    void addWeight() { weight_++; }
-    int weight() const { return weight_; }
-
-private:
-    int from_, to_;
-    int weight_;
+    int from, to;
+    int weight;
 };
 
 // When looking for existing connections in the graph, we do

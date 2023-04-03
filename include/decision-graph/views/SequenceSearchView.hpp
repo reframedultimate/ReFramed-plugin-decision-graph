@@ -34,6 +34,5 @@ public:
 
 private:
     SequenceSearchModel* seqSearchModel_;
-    GraphModel* graphModel_;
     Ui::SequenceSearchView* ui_;
 };

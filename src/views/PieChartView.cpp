@@ -127,7 +127,7 @@ void PieChartView::updateIOCharts()
         const States& states = model_->fighterStates(model_->playerPOV());
 
         // Find largest island
-        const auto islands = Graph().addSequences(states, model_->mergedMatches(0)).islands();
+        const auto islands = Graph().addStates(states, model_->mergedMatches(0)).islands();
         if (islands.count() == 0)
             return;
 

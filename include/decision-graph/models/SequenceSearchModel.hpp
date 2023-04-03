@@ -114,6 +114,8 @@ public:
         { return queryResults_[queryIdx].matches; }
     const rfcommon::Vector<Sequence>& mergedMatches(int queryIdx) const
         { return queryResults_[queryIdx].mergedMatches; }
+    const rfcommon::Vector<Sequence>& mergedAndNormalizedMatches(int queryIdx) const
+        { return queryResults_[queryIdx].mergedAndNormalizedMatches; }
     const rfcommon::Vector<Range>& sessionMatches(int queryIdx, int sessionIdx) const
         { return queryResults_[queryIdx].sessionMatches[sessionIdx]; }
     const rfcommon::Vector<Sequence>& sessionMergedMatches(int queryIdx, int sessionIdx) const
