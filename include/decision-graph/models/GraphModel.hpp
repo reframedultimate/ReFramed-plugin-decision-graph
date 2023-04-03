@@ -35,20 +35,20 @@ public:
 
     void setGraphType(GraphType type);
     void setMergeBehavior(MergeBehavior behavior);
-    void setPreferredLayer(const rfcommon::String& layerName);
+    void setPreferredLayer(int layerIdx);
     void setUseLargestIsland(bool enable);
     void setShowHash40Values(bool enable);
     void setShowQualifiers(bool enable);
 
     GraphType graphType() const { return graphType_; }
     MergeBehavior mergeBehavior() const { return mergeBehavior_; }
-    const rfcommon::String& preferredLayer() const { return preferredLayerName_; }
+    int preferredLayer() const { return preferredLayer_; }
     bool useLargestIsland() const { return useLargestIsland_; }
     bool showHash40Values() const { return showHash40Values_; }
     bool showQualifiers() const { return showQualifiers_; }
 
     int availableLayersCount() const;
-    const char* availableLayerName(int idx) const;
+    rfcommon::String availableLayerName(int idx) const;
 
 private:
     void redrawGraph();
@@ -68,7 +68,7 @@ private:
 
     GraphType graphType_;
     MergeBehavior mergeBehavior_;
-    rfcommon::String preferredLayerName_;
+    int preferredLayer_ = -1;
     bool useLargestIsland_;
     bool showHash40Values_;
     bool showQualifiers_;

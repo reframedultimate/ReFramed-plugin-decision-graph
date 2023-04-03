@@ -22,7 +22,7 @@ GraphModel::GraphModel(SequenceSearchModel* searchModel, rfcommon::MotionLabels*
     , labels_(labels)
     , graphType_(FULL_GRAPH)
     , mergeBehavior_(QUERY_MERGE)
-    , preferredLayerName_(labels->preferredLayer(rfcommon::MotionLabels::NOTATION))
+    , preferredLayer_(labels->preferredLayer(rfcommon::MotionLabels::NOTATION))
     , useLargestIsland_(false)
     , showHash40Values_(true)
     , showQualifiers_(false)
@@ -51,9 +51,9 @@ void GraphModel::setMergeBehavior(MergeBehavior behavior)
 }
 
 // ----------------------------------------------------------------------------
-void GraphModel::setPreferredLayer(const rfcommon::String& layerName)
+void GraphModel::setPreferredLayer(int layerIdx)
 {
-    preferredLayerName_ = layerName;
+    preferredLayer_ = layerIdx;
     redrawGraph();
 }
 
@@ -85,9 +85,9 @@ int GraphModel::availableLayersCount() const
 }
 
 // ----------------------------------------------------------------------------
-const char* GraphModel::availableLayerName(int idx) const
+rfcommon::String GraphModel::availableLayerName(int idx) const
 {
-    return labels_->layerName(idx);
+    return rfcommon::String(labels_->layerGroup(idx)) + " - " + labels_->layerName(idx);
 }
 
 // ----------------------------------------------------------------------------
@@ -179,9 +179,9 @@ void GraphModel::redrawGraph()
     rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Labels;
 
     auto motionString = [this](rfcommon::FighterID fighterID, const State& state) -> rfcommon::String {
-        if (const char* notation = labels_->toPreferredNotation(fighterID, state.motion))
+        if (const char* notation = labels_->toGroupLabel(fighterID, state.motion, preferredLayer_))
             return notation;
-        else if (const char* h40 = labels_->lookupHash40(state.motion))
+        else if (const char* h40 = labels_->toHash40(state.motion))
             return h40;
         else
             return state.motion.toHex();

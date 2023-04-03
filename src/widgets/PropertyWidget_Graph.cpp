@@ -35,8 +35,8 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     comboBox_layer->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
     for (int i = 0; i != graphModel_->availableLayersCount(); ++i)
     {
-        comboBox_layer->addItem(QString::fromUtf8(graphModel_->availableLayerName(i)));
-        if (graphModel_->preferredLayer() == graphModel_->availableLayerName(i))
+        comboBox_layer->addItem(QString::fromUtf8(graphModel_->availableLayerName(i).cStr()));
+        if (graphModel_->preferredLayer() == i)
             comboBox_layer->setCurrentIndex(i);
     }
 
@@ -118,6 +118,10 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     connect(radioButton_mergeLabel, &QRadioButton::toggled, [this, graphModel](bool checked) {
         if (checked)
             graphModel->setMergeBehavior(GraphModel::LABEL_MERGE);
+    });
+
+    connect(comboBox_layer, qOverload<int>(&QComboBox::currentIndexChanged), [this, graphModel](int index) {
+        graphModel->setPreferredLayer(index);
     });
 
     connect(checkBox_showHash40, &QCheckBox::toggled, [this, graphModel](bool checked) {

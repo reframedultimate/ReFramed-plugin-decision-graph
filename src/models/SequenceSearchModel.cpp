@@ -446,7 +446,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
 
 #ifndef NDEBUG
     auto toHash40OrHex = [this](rfcommon::FighterMotion motion) -> rfcommon::String {
-        if (const char* h40 = labels_->lookupHash40(motion))
+        if (const char* h40 = labels_->toHash40(motion))
             return h40;
         return motion.toHex();
     };

@@ -24,7 +24,7 @@ rfcommon::String toNotationFallback(rfcommon::FighterID fighterID, rfcommon::Fig
 {
     if (const char* l = labels->toPreferredNotation(fighterID, motion))
         return l;
-    if (const char* h40 = labels->lookupHash40(motion))
+    if (const char* h40 = labels->toHash40(motion))
         return h40;
     return motion.toHex();
 }

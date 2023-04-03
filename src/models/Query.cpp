@@ -927,7 +927,7 @@ void Query::exportDOT(const char* filename, const rfcommon::MotionLabels* labels
     fprintf(fp, "digraph query {\n");
 
     auto toHash40OrHex = [labels](rfcommon::FighterMotion motion) -> rfcommon::String {
-        if (const char* h40 = labels->lookupHash40(motion))
+        if (const char* h40 = labels->toHash40(motion))
             return h40;
         return motion.toHex();
     };
