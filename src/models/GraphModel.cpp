@@ -176,7 +176,7 @@ void GraphModel::redrawGraph()
     rfcommon::Vector<ogdf::node> ogdfNodes;
     rfcommon::Vector<ogdf::edge> ogdfEdges;
     rfcommon::Vector<QGraphicsSimpleTextItem*> labels;
-    rfcommon::Vector<QGraphicsSimpleTextItem*> flags;
+    rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Labels;
 
     auto motionString = [this](rfcommon::FighterID fighterID, const State& state) -> rfcommon::String {
         if (const char* notation = labels_->toPreferredNotation(fighterID, state.motion))
@@ -200,19 +200,39 @@ void GraphModel::redrawGraph()
 
     for (const auto& node : graph.nodes)
     {
-        labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
-            motionString(fighterID, states[node.stateIdx]).cStr()
-        )));
-        flags.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
-            //flagsString(states[node.stateIdx]).cStr()
-            states[node.stateIdx].motion.toHex().cStr()
-        )));
+        if (showQualifiers_)
+        {
+            rfcommon::String label = motionString(fighterID, states[node.stateIdx]);
+            rfcommon::String qual = flagsString(states[node.stateIdx]);
+            if (qual.notEmpty())
+                label += " | " + qual;
+            labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
+                 label.cStr()
+            )));
+        }
+        else
+        {
+            labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
+                 motionString(fighterID, states[node.stateIdx]).cStr()
+            )));
+        }
+
+        if (showHash40Values_)
+        {
+            hash40Labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
+                states[node.stateIdx].motion.toHex().cStr()
+            )));
+        }
 
         double w = labels.back()->boundingRect().width();
-        if (w < flags.back()->boundingRect().width())
-            w = flags.back()->boundingRect().width();
         double h = labels.back()->boundingRect().height();
-        h += flags.back()->boundingRect().height();
+
+        if (showHash40Values_)
+        {
+            if (w < hash40Labels.back()->boundingRect().width())
+                w = hash40Labels.back()->boundingRect().width();
+            h += hash40Labels.back()->boundingRect().height();
+        }
 
         ogdf::node N = G.newNode();
         GA.width(N) = w + 4;
@@ -228,20 +248,6 @@ void GraphModel::redrawGraph()
         ogdfEdges.push(E);
     }
 
-#if 0
-    ogdf::FMMMLayout fmmm;
-    fmmm.useHighLevelOptions(true);
-    fmmm.unitEdgeLength(15.0);
-    fmmm.newInitialPlacement(true);
-    fmmm.qualityVersusSpeed(ogdf::FMMMOptions::QualityVsSpeed::GorgeousAndEfficient);
-    fmmm.call(GA);
-#elif 0
-    ogdf::PlanarizationLayout layout;
-    layout.call(GA);
-#elif 0
-    ogdf::FastHierarchyLayout layout;
-    layout.call(GA);
-#elif 1
     ogdf::SugiyamaLayout layout;
     layout.setRanking(new ogdf::OptimalRanking);
     layout.setCrossMin(new ogdf::MedianHeuristic);
@@ -252,7 +258,6 @@ void GraphModel::redrawGraph()
     ohl->weightBalancing(0.8);
     layout.setLayout(ohl);
     layout.call(GA);
-#endif
 
     for (int nodeIdx = 0; nodeIdx != ogdfNodes.count(); ++nodeIdx)
     {
@@ -269,14 +274,21 @@ void GraphModel::redrawGraph()
         double cx = (w - rect.width()) / 2;
         double cy = (h - rect.height()) / 2;
         label->setParentItem(nodeShape);
-        label->setPos(x - w/2 + cx, y - h/4*3 + cy);
 
-        label = flags[nodeIdx];
-        rect = label->boundingRect();
-        cx = (w - rect.width()) / 2;
-        cy = (h - rect.height()) / 2;
-        label->setParentItem(nodeShape);
-        label->setPos(x - w/2 + cx, y - h/4 + cy);
+        if (showHash40Values_)
+            label->setPos(x - w/2 + cx, y - h/4*3 + cy);
+        else
+            label->setPos(x - w/2 + cx, y - h/2 + cy);
+
+        if (showHash40Values_)
+        {
+            label = hash40Labels[nodeIdx];
+            rect = label->boundingRect();
+            cx = (w - rect.width()) / 2;
+            cy = (h - rect.height()) / 2;
+            label->setParentItem(nodeShape);
+            label->setPos(x - w/2 + cx, y - h/4 + cy);
+        }
     }
 
     // When drawing edges, we need the lines to start and end on the boundary
