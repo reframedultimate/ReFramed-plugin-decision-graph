@@ -11,49 +11,27 @@ class State
 public:
     struct SideData;
 
+    enum InteractionQualifier
+    {
+        NO_INTERACTION,
+        TRADE,
+        ADVANTAGE,
+        DISADVANTAGE,
+        ON_SHIELD,
+        SHIELD_LAG,
+    };
+
     State(
             const SideData& sideData,
             rfcommon::FighterMotion motion,
             rfcommon::FighterStatus status,
-            rfcommon::FighterMotion oppMotion,
-            rfcommon::FighterStatus oppStatus,
             bool inHitlag, bool inHitstun, bool inShieldlag,
             bool oppInHitlag, bool oppInHitstun, bool oppInShieldlag)
         : motion(motion)
-        , oppMotion(oppMotion)
         , sideData(sideData)
         , status(status)
-        , oppStatus(oppStatus)
         , flags(makeFlags(inHitlag, inHitstun, inShieldlag, oppInHitlag, oppInHitstun, oppInShieldlag))
     {}
-
-    // We only hash motion, status and flags, and NOT timings/position/shield/damage,
-    // because for the purpose of searching for unique states and building graphs,
-    // those values are irrelevant
-    struct HasherNoSideData
-    {
-        typedef uint32_t HashType;
-        HashType operator()(const State& node) const {
-            const uint32_t motion_l = node.motion.lower();
-            const uint16_t status = node.status.value();
-            const uint8_t motion_h = node.motion.upper();
-            const uint8_t flags = node.flags;
-
-            const uint32_t a = motion_l;
-            const uint32_t b = (status << 16) | (motion_h << 8) | (flags << 0);
-            return rfcommon::hash32_combine(a, b);
-        }
-    };
-
-    struct CompareNoSideData
-    {
-        bool operator()(const State& a, const State& b) const {
-            return
-                a.motion == b.motion &&
-                a.status == b.status &&
-                a.flags == b.flags;
-        }
-    };
 
     static uint8_t makeFlags(
             bool inHitlag, bool inHitstun, bool inShieldlag,
@@ -65,6 +43,21 @@ public:
               | (static_cast<uint8_t>(opponentInHitlag) << 3)
               | (static_cast<uint8_t>(opponentInHitstun) << 4)
               | (static_cast<uint8_t>(opponentInShieldlag) << 5);
+    }
+
+    InteractionQualifier interaction() const
+    {
+        if ((inHitlag() || inHitstun()) && (opponentInHitlag() || opponentInHitstun()))
+            return TRADE;
+        if (inHitlag() || inHitstun())
+            return DISADVANTAGE;
+        if (opponentInHitlag() || opponentInHitstun())
+            return ADVANTAGE;
+        if (opponentInShieldlag())
+            return ON_SHIELD;
+        if (inShieldlag())
+            return SHIELD_LAG;
+        return NO_INTERACTION;
     }
 
     bool inHitlag() const { return !!(flags & 0x01); }
@@ -95,10 +88,8 @@ public:
     };
 
     const rfcommon::FighterMotion motion;        // u64
-    const rfcommon::FighterMotion oppMotion;     // u64
     const SideData sideData;                     // f32, f32, f32, f32, u32
     const rfcommon::FighterStatus status;        // u16
-    const rfcommon::FighterStatus oppStatus;     // u16
     uint8_t flags;                               // u8
 
 private:

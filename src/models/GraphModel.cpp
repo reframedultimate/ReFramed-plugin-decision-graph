@@ -24,8 +24,8 @@ GraphModel::GraphModel(SequenceSearchModel* searchModel, rfcommon::MotionLabels*
     , mergeBehavior_(QUERY_MERGE)
     , preferredLayer_(labels->preferredLayer(rfcommon::MotionLabels::NOTATION))
     , useLargestIsland_(false)
-    , showHash40Values_(true)
-    , showQualifiers_(false)
+    , showHash40Values_(false)
+    , showQualifiers_(true)
 {
     searchModel_->dispatcher.addListener(this);
 }
@@ -176,7 +176,8 @@ void GraphModel::redrawGraph()
     rfcommon::Vector<ogdf::node> ogdfNodes;
     rfcommon::Vector<ogdf::edge> ogdfEdges;
     rfcommon::Vector<QGraphicsSimpleTextItem*> labels;
-    rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Labels;
+    rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Strings;
+    rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Values;
 
     auto motionString = [this](rfcommon::FighterID fighterID, const State& state) -> rfcommon::String {
         if (const char* notation = labels_->toGroupLabel(fighterID, state.motion, preferredLayer_))
@@ -187,14 +188,24 @@ void GraphModel::redrawGraph()
             return state.motion.toHex();
     };
 
-    auto flagsString = [this](const State& state) -> rfcommon::String {
+    auto hash40String = [this](const State& state) -> rfcommon::String {
+        if (const char* h40 = labels_->toHash40(state.motion))
+            return h40;
+        return state.motion.toHex();
+    };
+
+    auto qualifiersString = [this](const State& state) -> rfcommon::String {
         rfcommon::String flags;
-        if (state.inHitlag())
-            flags += rfcommon::String("hitlag");
-        if (state.inHitstun())
-            flags += rfcommon::String(flags.length() ? ", hitstun" : "hitstun");
-        if (state.inShieldlag())
-            flags += rfcommon::String(flags.length() ? ", shieldlag" : "shieldlag");
+        switch (state.interaction())
+        {
+            case State::NO_INTERACTION: break;
+            case State::TRADE: flags += "trade"; break;
+            case State::ADVANTAGE: flags += "adv"; break;
+            case State::DISADVANTAGE: flags += "disadv"; break;
+            case State::ON_SHIELD: flags += "os"; break;
+            case State::SHIELD_LAG: flags += "shieldlag"; break;
+        }
+
         return flags;
     };
 
@@ -203,9 +214,9 @@ void GraphModel::redrawGraph()
         if (showQualifiers_)
         {
             rfcommon::String label = motionString(fighterID, states[node.stateIdx]);
-            rfcommon::String qual = flagsString(states[node.stateIdx]);
+            rfcommon::String qual = qualifiersString(states[node.stateIdx]);
             if (qual.notEmpty())
-                label += " | " + qual;
+                label += " " + qual;
             labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
                  label.cStr()
             )));
@@ -219,7 +230,10 @@ void GraphModel::redrawGraph()
 
         if (showHash40Values_)
         {
-            hash40Labels.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
+            hash40Strings.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
+                hash40String(states[node.stateIdx]).cStr()
+            )));
+            hash40Values.push(new QGraphicsSimpleTextItem(QString::fromUtf8(
                 states[node.stateIdx].motion.toHex().cStr()
             )));
         }
@@ -229,14 +243,17 @@ void GraphModel::redrawGraph()
 
         if (showHash40Values_)
         {
-            if (w < hash40Labels.back()->boundingRect().width())
-                w = hash40Labels.back()->boundingRect().width();
-            h += hash40Labels.back()->boundingRect().height();
+            if (w < hash40Strings.back()->boundingRect().width())
+                w = hash40Strings.back()->boundingRect().width();
+            if (w < hash40Values.back()->boundingRect().width())
+                w = hash40Values.back()->boundingRect().width();
+            h += hash40Strings.back()->boundingRect().height() + 2;
+            h += hash40Values.back()->boundingRect().height() + 2;
         }
 
         ogdf::node N = G.newNode();
         GA.width(N) = w + 4;
-        GA.height(N) = h + 8;
+        GA.height(N) = h + 4;
         ogdfNodes.push(N);
     }
 
@@ -282,12 +299,19 @@ void GraphModel::redrawGraph()
 
         if (showHash40Values_)
         {
-            label = hash40Labels[nodeIdx];
+            label = hash40Strings[nodeIdx];
             rect = label->boundingRect();
             cx = (w - rect.width()) / 2;
             cy = (h - rect.height()) / 2;
             label->setParentItem(nodeShape);
-            label->setPos(x - w/2 + cx, y - h/4 + cy);
+            label->setPos(x - w/2 + cx, y - h/4*2 + cy);
+
+            label = hash40Values[nodeIdx];
+            rect = label->boundingRect();
+            cx = (w - rect.width()) / 2;
+            cy = (h - rect.height()) / 2;
+            label->setParentItem(nodeShape);
+            label->setPos(x - w/2 + cx, y - h/4*1 + cy);
         }
     }
 

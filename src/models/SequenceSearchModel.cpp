@@ -196,7 +196,7 @@ void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::FrameData* fdat
         const bool opponentInHitlag =
                 fighterState.flags().attackConnected() &&
                 opponentState.hitstun() == prevOpponentState.hitstun();
-        const bool opponentInHitstun = opponentState.hitstun() > 0;
+        const bool opponentInHitstun = !opponentInHitlag && opponentState.hitstun() > 0;
         const bool opponentInShieldlag = opponentState.status().value() == 30;  // FIGHTER_STATUS_KIND_GUARD_DAMAGE
 
         // TODO: Bury state for ZSS:
@@ -238,8 +238,6 @@ void SequenceSearchModel::addFrame(int frameIdx, const rfcommon::FrameData* fdat
                 fighterState.shield()),
             fighterState.motion(),
             fighterState.status(),
-            opponentState.motion(),
-            opponentState.status(),
             inHitlag, inHitstun, inShieldlag,
             opponentInHitlag, opponentInHitstun, opponentInShieldlag
         ));
@@ -459,7 +457,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
         {
             if (i != range.startIdx)
                 printf(" -> ");
-            printf("0x%lx (%s)", fighterStates_[playerPOV_][i].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][i].motion).cStr());
+            printf("0x%lx (%s) | %x", fighterStates_[playerPOV_][i].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][i].motion).cStr(), fighterStates_[playerPOV_][i].flags);
         }
         printf("\n");
     }
@@ -472,7 +470,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr());
+            printf("0x%lx (%s) | %x", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr(), fighterStates_[playerPOV_][idx].flags);
         }
         printf("\n");
     }
@@ -485,7 +483,7 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             int idx = seq.idxs[i];
             if (i != 0)
                 printf(" -> ");
-            printf("0x%lx (%s)", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr());
+            printf("0x%lx (%s) | %x", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr(), fighterStates_[playerPOV_][idx].flags);
         }
         printf("\n");
     }

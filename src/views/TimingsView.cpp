@@ -52,21 +52,33 @@ void TimingsView::onQueriesApplied()
         struct Hasher {
             typedef uint32_t HashType;
             HashType operator()(const SeqRef& ref) const {
-                State::HasherNoSideData h;
-                const State& first = ref.states[ref.seq.idxs.front()];
-                const State& last = ref.states[ref.seq.idxs.back()];
-                return rfcommon::hash32_combine(h(first), h(last));
+                HashType hash = 0;
+                for (int idx : ref.seq.idxs)
+                {
+                    const State& state = ref.states[idx];
+                    const uint32_t motion_l = state.motion.lower();
+                    const uint16_t status = state.status.value();
+                    const uint8_t motion_h = state.motion.upper();
+                    const uint32_t a = motion_l;
+                    const uint32_t b = (status << 8) | motion_l;
+                    hash = rfcommon::hash32_combine(hash, rfcommon::hash32_combine(a, b));
+                }
+                return hash;
             }
         };
 
         struct Compare {
             bool operator()(const SeqRef& a, const SeqRef& b) const {
-                State::CompareNoSideData c;
-                const State& aFirst = a.states[a.seq.idxs.front()];
-                const State& aLast = a.states[a.seq.idxs.back()];
-                const State& bFirst = b.states[b.seq.idxs.front()];
-                const State& bLast = b.states[b.seq.idxs.back()];
-                return c(aFirst, bFirst) && c(aLast, bLast);
+                if (a.seq.idxs.count() != b.seq.idxs.count())
+                    return false;
+                for (int i = 0; i != a.seq.idxs.count(); ++i)
+                {
+                    const State& sa = a.states[a.seq.idxs[i]];
+                    const State& sb = b.states[b.seq.idxs[i]];
+                    if (sa.motion != sb.motion) return false;
+                    if (sa.status != sb.status) return false;
+                }
+                return true;
             }
         };
 
