@@ -7,6 +7,7 @@
 #include <QCheckBox>
 #include <QGroupBox>
 #include <QRadioButton>
+#include <QSpinBox>
 
 // ----------------------------------------------------------------------------
 PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearchModel* searchModel, QWidget* parent)
@@ -16,20 +17,31 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
 {
     setTitle("Graph settings");
 
-    QRadioButton* radioButton_fullGraph = new QRadioButton("Full graph");
-    QRadioButton* radioButton_outgoingTree = new QRadioButton("Outgoing tree");
-    QRadioButton* radioButton_incomingTree = new QRadioButton("Incoming tree");
-    radioButton_fullGraph->setChecked(graphModel_->graphType() == GraphModel::FULL_GRAPH);
-    radioButton_outgoingTree->setChecked(graphModel_->graphType() == GraphModel::OUTGOING_TREE);
-    radioButton_incomingTree->setChecked(graphModel_->graphType() == GraphModel::INCOMING_TREE);
+    QCheckBox* checkBox_outgoingTree = new QCheckBox("Outgoing tree:");
+    QCheckBox* checkBox_incomingTree = new QCheckBox("Incoming tree:");
+    checkBox_outgoingTree->setChecked(graphModel_->outgoingTreeSize() > 0);
+    checkBox_incomingTree->setChecked(graphModel_->incomingTreeSize() > 0);
+    checkBox_outgoingTree->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+    checkBox_incomingTree->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+
+    QSpinBox* spinBox_outgoingTree = new QSpinBox;
+    spinBox_outgoingTree->setRange(1, 100);
+    spinBox_outgoingTree->setValue(graphModel_->outgoingTreeSize());
+    spinBox_outgoingTree->setEnabled(graphModel_->outgoingTreeSize() > 0);
+
+    QSpinBox* spinBox_incomingTree = new QSpinBox;
+    spinBox_incomingTree->setRange(1, 100);
+    spinBox_incomingTree->setValue(graphModel_->incomingTreeSize());
+    spinBox_incomingTree->setEnabled(graphModel_->incomingTreeSize() > 0);
 
     QGroupBox* groupBox_graphType = new QGroupBox;
     groupBox_graphType->setTitle("Graph type");
 
-    QVBoxLayout* layout_graphType = new QVBoxLayout;
-    layout_graphType->addWidget(radioButton_fullGraph);
-    layout_graphType->addWidget(radioButton_outgoingTree);
-    layout_graphType->addWidget(radioButton_incomingTree);
+    QGridLayout* layout_graphType = new QGridLayout;
+    layout_graphType->addWidget(checkBox_outgoingTree, 0, 0);
+    layout_graphType->addWidget(checkBox_incomingTree, 1, 0);
+    layout_graphType->addWidget(spinBox_outgoingTree, 0, 1);
+    layout_graphType->addWidget(spinBox_incomingTree, 1, 1);
     groupBox_graphType->setLayout(layout_graphType);
 
     comboBox_layer->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
@@ -41,8 +53,25 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     }
 
     QCheckBox* checkBox_largestIsland = new QCheckBox;
-    checkBox_largestIsland->setText("Only use largest island");
+    checkBox_largestIsland->setText("Largest island");
+    checkBox_largestIsland->setToolTip(
+        "If a search produces a graph with isolated subgraphs, you can check\n"
+        "this to only show the largest subgraph instead of all subgraphs.");
     checkBox_largestIsland->setChecked(graphModel_->useLargestIsland());
+
+    QCheckBox* checkBox_fixEdges = new QCheckBox;
+    checkBox_fixEdges->setText("Fix edge weights");
+    checkBox_fixEdges->setToolTip(
+        "Sometimes the edge weights don't seem to add up correctly (you'd\n"
+        "expect the sum of incoming connections to equal the sum of outgoing\n"
+        "connections). Checking this will extend the ranges of search results\n"
+        "to include additional nodes that would normally NOT be matched by the\n"
+        "query, but the edge weights should make more sense.");
+    checkBox_fixEdges->setChecked(graphModel_->useLargestIsland());
+
+    QCheckBox* checkBox_mergeQualifiers = new QCheckBox;
+    checkBox_mergeQualifiers->setText("Merge qualifiers");
+    checkBox_mergeQualifiers->setChecked(graphModel_->useLargestIsland());
 
     QRadioButton* radioButton_dontMerge = new QRadioButton("Don't merge nodes");
     QRadioButton* radioButton_mergeQuery = new QRadioButton("Merge nodes according to query string");
@@ -51,35 +80,37 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     radioButton_mergeQuery->setChecked(graphModel_->mergeBehavior() == GraphModel::QUERY_MERGE);
     radioButton_mergeLabel->setChecked(graphModel_->mergeBehavior() == GraphModel::LABEL_MERGE);
 
-    QLabel* label_layer = new QLabel("Preferred layer for labels:");
-    label_layer->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-
     QGroupBox* groupBox_mergeSettings = new QGroupBox;
     groupBox_mergeSettings->setTitle("Graph construction");
 
-    QGridLayout* layout_mergeSettings = new QGridLayout;
-    layout_mergeSettings->addWidget(checkBox_largestIsland, 0, 0, 1, 2);
-    layout_mergeSettings->addWidget(radioButton_dontMerge, 1, 0, 1, 2);
-    layout_mergeSettings->addWidget(radioButton_mergeQuery, 2, 0, 1, 2);
-    layout_mergeSettings->addWidget(radioButton_mergeLabel, 3, 0, 1, 2);
-    layout_mergeSettings->addWidget(label_layer, 4, 0);
-    layout_mergeSettings->addWidget(comboBox_layer, 4, 1);
+    QVBoxLayout* layout_mergeSettings = new QVBoxLayout;
+    layout_mergeSettings->addWidget(checkBox_largestIsland);
+    layout_mergeSettings->addWidget(checkBox_fixEdges);
+    layout_mergeSettings->addWidget(checkBox_mergeQualifiers);
+    layout_mergeSettings->addWidget(radioButton_dontMerge);
+    layout_mergeSettings->addWidget(radioButton_mergeQuery);
+    layout_mergeSettings->addWidget(radioButton_mergeLabel);
     groupBox_mergeSettings->setLayout(layout_mergeSettings);
-
-    QCheckBox* checkBox_showHash40 = new QCheckBox;
-    checkBox_showHash40->setText("Show hash40 values");
-    checkBox_showHash40->setChecked(graphModel_->showHash40Values());
 
     QCheckBox* checkBox_showQualifiers = new QCheckBox;
     checkBox_showQualifiers->setText("Show qualifiers");
     checkBox_showQualifiers->setChecked(graphModel_->showQualifiers());
 
+    QCheckBox* checkBox_showHash40 = new QCheckBox;
+    checkBox_showHash40->setText("Show hash40 values");
+    checkBox_showHash40->setChecked(graphModel_->showHash40Values());
+
+    QLabel* label_layer = new QLabel("Preferred layer for labels:");
+    label_layer->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+
     QGroupBox* groupBox_visualSettings = new QGroupBox;
     groupBox_visualSettings->setTitle("Visual settings");
 
-    QVBoxLayout* layout_visualSettings = new QVBoxLayout;
-    layout_visualSettings->addWidget(checkBox_showHash40);
-    layout_visualSettings->addWidget(checkBox_showQualifiers);
+    QGridLayout* layout_visualSettings = new QGridLayout;
+    layout_visualSettings->addWidget(checkBox_showQualifiers, 0, 0, 1, 2);
+    layout_visualSettings->addWidget(checkBox_showHash40, 1, 0, 1, 2);
+    layout_visualSettings->addWidget(label_layer, 2, 0);
+    layout_visualSettings->addWidget(comboBox_layer, 2, 1);
     groupBox_visualSettings->setLayout(layout_visualSettings);
 
     QVBoxLayout* l = new QVBoxLayout;
@@ -90,17 +121,19 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     contentWidget()->setLayout(l);
     updateSize();
 
-    connect(radioButton_fullGraph, &QRadioButton::toggled, [this, graphModel](bool checked) {
-        if (checked)
-            graphModel->setGraphType(GraphModel::FULL_GRAPH);
+    connect(checkBox_outgoingTree, &QCheckBox::toggled, [this, graphModel, spinBox_outgoingTree](bool checked) {
+        spinBox_outgoingTree->setEnabled(checked);
+        graphModel->setOutgoingTreeSize(checked ? spinBox_outgoingTree->value() : 0);
     });
-    connect(radioButton_outgoingTree, &QRadioButton::toggled, [this, graphModel](bool checked) {
-        if (checked)
-            graphModel->setGraphType(GraphModel::OUTGOING_TREE);
+    connect(checkBox_incomingTree, &QCheckBox::toggled, [this, graphModel, spinBox_incomingTree](bool checked) {
+        spinBox_incomingTree->setEnabled(checked);
+        graphModel->setIncomingTreeSize(checked ? spinBox_incomingTree->value() : 0);
     });
-    connect(radioButton_incomingTree, &QRadioButton::toggled, [this, graphModel](bool checked) {
-        if (checked)
-            graphModel->setGraphType(GraphModel::INCOMING_TREE);
+    connect(spinBox_outgoingTree, qOverload<int>(&QSpinBox::valueChanged), [this, graphModel](int value) {
+        graphModel->setOutgoingTreeSize(value);
+    });
+    connect(spinBox_incomingTree, qOverload<int>(&QSpinBox::valueChanged), [this, graphModel](int value) {
+        graphModel->setIncomingTreeSize(value);
     });
 
     connect(checkBox_largestIsland, &QCheckBox::toggled, [this, graphModel](bool checked) {
@@ -136,3 +169,4 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
 PropertyWidget_Graph::~PropertyWidget_Graph()
 {
 }
+

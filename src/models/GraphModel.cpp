@@ -20,12 +20,7 @@
 GraphModel::GraphModel(SequenceSearchModel* searchModel, rfcommon::MotionLabels* labels)
     : searchModel_(searchModel)
     , labels_(labels)
-    , graphType_(FULL_GRAPH)
-    , mergeBehavior_(QUERY_MERGE)
     , preferredLayer_(labels->preferredLayer(rfcommon::MotionLabels::NOTATION))
-    , useLargestIsland_(false)
-    , showHash40Values_(false)
-    , showQualifiers_(true)
 {
     searchModel_->dispatcher.addListener(this);
 }
@@ -37,9 +32,16 @@ GraphModel::~GraphModel()
 }
 
 // ----------------------------------------------------------------------------
-void GraphModel::setGraphType(GraphType type)
+void GraphModel::setOutgoingTreeSize(int size)
 {
-    graphType_ = type;
+    outgoingTree_ = size;
+    redrawGraph();
+}
+
+// ----------------------------------------------------------------------------
+void GraphModel::setIncomingTreeSize(int size)
+{
+    incomingTree_ = size;
     redrawGraph();
 }
 
@@ -142,22 +144,6 @@ void GraphModel::redrawGraph()
             }
 
         islands = rfcommon::Vector<Graph>({ islands[largest] });
-    }
-
-    switch (graphType_)
-    {
-        case FULL_GRAPH:
-            break;
-
-        case OUTGOING_TREE:
-            for (Graph& graph : islands)
-                graph = graph.outgoingTree(states);
-            break;
-
-        case INCOMING_TREE:
-            for (Graph& graph : islands)
-                graph = graph.incomingTree(states);
-            break;
     }
 
     graph = Graph();
