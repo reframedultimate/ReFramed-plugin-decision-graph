@@ -413,4 +413,3 @@ void GraphModel::onQueriesApplied()
 {
     redrawGraph();
 }
-

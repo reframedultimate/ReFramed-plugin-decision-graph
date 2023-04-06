@@ -214,16 +214,34 @@ static void recompileAndApplyQueries(SequenceSearchModel* m)
         if (m->applyAllQueries())
             m->notifyQueriesApplied();
 }
-void DecisionGraphPlugin::onMotionLabelsLoaded() { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLoaded()
+{
+    graphModel_->setPreferredLayer(labels_->preferredLayer(rfcommon::MotionLabels::NOTATION));
+    recompileAndApplyQueries(seqSearchModel_.get());
+}
 void DecisionGraphPlugin::onMotionLabelsHash40sUpdated() { recompileAndApplyQueries(seqSearchModel_.get()); }
 
 void DecisionGraphPlugin::onMotionLabelsPreferredLayerChanged(int usage) { recompileAndApplyQueries(seqSearchModel_.get()); }
 
 void DecisionGraphPlugin::onMotionLabelsLayerInserted(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
-void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerRemoved(int layerIdx)
+{
+    if (graphModel_->preferredLayer() == layerIdx)
+        graphModel_->setPreferredLayer(labels_->preferredLayer(rfcommon::MotionLabels::NOTATION));
+    recompileAndApplyQueries(seqSearchModel_.get());
+}
 void DecisionGraphPlugin::onMotionLabelsLayerNameChanged(int layerIdx) {}
-void DecisionGraphPlugin::onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage) {}
-void DecisionGraphPlugin::onMotionLabelsLayerMoved(int fromIdx, int toIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
+void DecisionGraphPlugin::onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage)
+{
+    if (graphModel_->preferredLayer() == layerIdx)
+        graphModel_->setPreferredLayer(labels_->preferredLayer(rfcommon::MotionLabels::NOTATION));
+}
+void DecisionGraphPlugin::onMotionLabelsLayerMoved(int fromIdx, int toIdx)
+{
+    if (graphModel_->preferredLayer() == fromIdx)
+        graphModel_->setPreferredLayer(toIdx);
+    recompileAndApplyQueries(seqSearchModel_.get());
+}
 void DecisionGraphPlugin::onMotionLabelsLayerMerged(int layerIdx) { recompileAndApplyQueries(seqSearchModel_.get()); }
 
 void DecisionGraphPlugin::onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) { recompileAndApplyQueries(seqSearchModel_.get()); }

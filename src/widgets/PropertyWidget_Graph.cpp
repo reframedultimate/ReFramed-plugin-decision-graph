@@ -1,6 +1,8 @@
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/widgets/PropertyWidget_Graph.hpp"
 
+#include "rfcommon/MotionLabels.hpp"
+
 #include <QGridLayout>
 #include <QLabel>
 #include <QComboBox>
@@ -9,9 +11,10 @@
 #include <QRadioButton>
 
 // ----------------------------------------------------------------------------
-PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearchModel* searchModel, QWidget* parent)
+PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearchModel* searchModel, rfcommon::MotionLabels* labels, QWidget* parent)
     : PropertyWidget(searchModel, parent)
     , graphModel_(graphModel)
+    , labels_(labels)
     , comboBox_layer(new QComboBox)
 {
     setTitle("Graph settings");
@@ -32,13 +35,8 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     layout_graphType->addWidget(radioButton_incomingTree);
     groupBox_graphType->setLayout(layout_graphType);
 
+    updateAvailableLayersDropdown();
     comboBox_layer->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
-    for (int i = 0; i != graphModel_->availableLayersCount(); ++i)
-    {
-        comboBox_layer->addItem(QString::fromUtf8(graphModel_->availableLayerName(i).cStr()));
-        if (graphModel_->preferredLayer() == i)
-            comboBox_layer->setCurrentIndex(i);
-    }
 
     QCheckBox* checkBox_largestIsland = new QCheckBox;
     checkBox_largestIsland->setText("Only use largest island");
@@ -130,9 +128,40 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     connect(checkBox_showQualifiers, &QCheckBox::toggled, [this, graphModel](bool checked) {
         graphModel->setShowQualifiers(checked);
     });
+
+    labels_->dispatcher.addListener(this);
 }
 
 // ----------------------------------------------------------------------------
 PropertyWidget_Graph::~PropertyWidget_Graph()
 {
+    labels_->dispatcher.removeListener(this);
 }
+
+// ----------------------------------------------------------------------------
+void PropertyWidget_Graph::updateAvailableLayersDropdown()
+{
+    QSignalBlocker block(comboBox_layer);
+
+    comboBox_layer->clear();
+    for (int i = 0; i != graphModel_->availableLayersCount(); ++i)
+        comboBox_layer->addItem(QString::fromUtf8(graphModel_->availableLayerName(i).cStr()));
+    comboBox_layer->setCurrentIndex(graphModel_->preferredLayer());
+}
+
+// ----------------------------------------------------------------------------
+void PropertyWidget_Graph::onMotionLabelsLoaded() { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsHash40sUpdated() {}
+
+void PropertyWidget_Graph::onMotionLabelsPreferredLayerChanged(int usage) { updateAvailableLayersDropdown(); }
+
+void PropertyWidget_Graph::onMotionLabelsLayerInserted(int layerIdx) { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsLayerRemoved(int layerIdx) { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsLayerNameChanged(int layerIdx) { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsLayerUsageChanged(int layerIdx, int oldUsage) { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsLayerMoved(int fromIdx, int toIdx) { updateAvailableLayersDropdown(); }
+void PropertyWidget_Graph::onMotionLabelsLayerMerged(int layerIdx) { updateAvailableLayersDropdown(); }
+
+void PropertyWidget_Graph::onMotionLabelsRowInserted(rfcommon::FighterID fighterID, int row) {}
+void PropertyWidget_Graph::onMotionLabelsLabelChanged(rfcommon::FighterID fighterID, int row, int layerIdx) {}
+void PropertyWidget_Graph::onMotionLabelsCategoryChanged(rfcommon::FighterID fighterID, int row, int oldCategory) {}

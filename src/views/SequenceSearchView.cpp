@@ -68,7 +68,7 @@ SequenceSearchView::SequenceSearchView(
 
     PropertyWidget* pwPOV = new PropertyWidget_POV(seqSearchModel_);
     PropertyWidget* pwQuery = new PropertyWidget_Query(seqSearchModel_);
-    PropertyWidget* pwGraph = new PropertyWidget_Graph(graphModel, seqSearchModel_);
+    PropertyWidget* pwGraph = new PropertyWidget_Graph(graphModel, seqSearchModel_, labels);
     PropertyWidget* pwTimings = new PropertyWidget_Timings(seqSearchModel_);
     PropertyWidget* pwDamage = new PropertyWidget_Damage(seqSearchModel_);
     PropertyWidget* pwShield = new PropertyWidget_Shield(seqSearchModel_);
