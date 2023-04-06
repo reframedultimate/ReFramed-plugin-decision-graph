@@ -67,6 +67,20 @@ void GraphModel::setUseLargestIsland(bool enable)
 }
 
 // ----------------------------------------------------------------------------
+void GraphModel::setFixEdges(bool enable)
+{
+    fixEdges_ = enable;
+    redrawGraph();
+}
+
+// ----------------------------------------------------------------------------
+void GraphModel::setMergeQualifiers(bool enable)
+{
+    mergeQualifiers_ = enable;
+    redrawGraph();
+}
+
+// ----------------------------------------------------------------------------
 void GraphModel::setShowHash40Values(bool enable)
 {
     showHash40Values_ = enable;
@@ -103,6 +117,36 @@ void GraphModel::redrawGraph()
     const States& states = searchModel_->fighterStates(searchModel_->playerPOV());
     rfcommon::FighterID fighterID = searchModel_->fighterID(searchModel_->playerPOV());
 
+    auto motionString = [this](rfcommon::FighterID fighterID, const State& state) -> rfcommon::String {
+        if (const char* notation = labels_->toGroupLabel(fighterID, state.motion, preferredLayer_))
+            return notation;
+        else if (const char* h40 = labels_->toHash40(state.motion))
+            return h40;
+        else
+            return state.motion.toHex();
+    };
+
+    auto hash40String = [this](const State& state) -> rfcommon::String {
+        if (const char* h40 = labels_->toHash40(state.motion))
+            return h40;
+        return state.motion.toHex();
+    };
+
+    auto qualifiersString = [this](const State& state) -> rfcommon::String {
+        rfcommon::String flags;
+        switch (state.interaction())
+        {
+            case State::NO_INTERACTION: break;
+            case State::TRADE: flags += "trade"; break;
+            case State::ADVANTAGE: flags += "adv"; break;
+            case State::DISADVANTAGE: flags += "disadv"; break;
+            case State::ON_SHIELD: flags += "os"; break;
+            case State::SHIELD_LAG: flags += "shieldlag"; break;
+        }
+
+        return flags;
+    };
+
     // Convert sequences to graph with the appropriate merge behavior
     Graph graph;
     switch (mergeBehavior_)
@@ -119,7 +163,20 @@ void GraphModel::redrawGraph()
 
         case LABEL_MERGE:
             for (int queryIdx = 0; queryIdx != searchModel_->queryCount(); ++queryIdx)
-                graph.addStates(states, searchModel_->mergedAndNormalizedMatches(queryIdx));
+            {
+                rfcommon::Vector<Sequence> mergedSequences;
+                rfcommon::HashMap<rfcommon::String, int> lookup;
+                for (const Range& range : searchModel_->matches(queryIdx))
+                {
+                    Sequence& seq = mergedSequences.emplace();
+                    for (int stateIdx = range.startIdx; stateIdx != range.endIdx; ++stateIdx)
+                    {
+                        int mergeIdx = lookup.insertOrGet(motionString(fighterID, states[stateIdx]), stateIdx)->value();
+                        seq.idxs.push(mergeIdx);
+                    }
+                }
+                graph.addStates(states, mergedSequences);
+            }
             break;
     }
 
@@ -164,36 +221,6 @@ void GraphModel::redrawGraph()
     rfcommon::Vector<QGraphicsSimpleTextItem*> labels;
     rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Strings;
     rfcommon::Vector<QGraphicsSimpleTextItem*> hash40Values;
-
-    auto motionString = [this](rfcommon::FighterID fighterID, const State& state) -> rfcommon::String {
-        if (const char* notation = labels_->toGroupLabel(fighterID, state.motion, preferredLayer_))
-            return notation;
-        else if (const char* h40 = labels_->toHash40(state.motion))
-            return h40;
-        else
-            return state.motion.toHex();
-    };
-
-    auto hash40String = [this](const State& state) -> rfcommon::String {
-        if (const char* h40 = labels_->toHash40(state.motion))
-            return h40;
-        return state.motion.toHex();
-    };
-
-    auto qualifiersString = [this](const State& state) -> rfcommon::String {
-        rfcommon::String flags;
-        switch (state.interaction())
-        {
-            case State::NO_INTERACTION: break;
-            case State::TRADE: flags += "trade"; break;
-            case State::ADVANTAGE: flags += "adv"; break;
-            case State::DISADVANTAGE: flags += "disadv"; break;
-            case State::ON_SHIELD: flags += "os"; break;
-            case State::SHIELD_LAG: flags += "shieldlag"; break;
-        }
-
-        return flags;
-    };
 
     for (const auto& node : graph.nodes)
     {

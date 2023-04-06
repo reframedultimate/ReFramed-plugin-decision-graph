@@ -137,6 +137,12 @@ PropertyWidget_Graph::PropertyWidget_Graph(GraphModel* graphModel, SequenceSearc
     connect(checkBox_largestIsland, &QCheckBox::toggled, [this, graphModel](bool checked) {
         graphModel->setUseLargestIsland(checked);
     });
+    connect(checkBox_fixEdges, &QCheckBox::toggled, [this, graphModel](bool checked) {
+        graphModel->setFixEdges(checked);
+    });
+    connect(checkBox_mergeQualifiers, &QCheckBox::toggled, [this, graphModel](bool checked) {
+        graphModel->setMergeQualifiers(checked);
+        });
 
     connect(radioButton_dontMerge, &QRadioButton::toggled, [this, graphModel](bool checked) {
         if (checked)
@@ -174,11 +180,15 @@ PropertyWidget_Graph::~PropertyWidget_Graph()
 // ----------------------------------------------------------------------------
 void PropertyWidget_Graph::updateAvailableLayersDropdown()
 {
-    QSignalBlocker block(comboBox_layer);
-
     comboBox_layer->clear();
     for (int i = 0; i != graphModel_->availableLayersCount(); ++i)
         comboBox_layer->addItem(QString::fromUtf8(graphModel_->availableLayerName(i).cStr()));
+}
+
+// ----------------------------------------------------------------------------
+void PropertyWidget_Graph::onGraphModelPreferredLayerChanged()
+{
+    QSignalBlocker block(comboBox_layer);
     comboBox_layer->setCurrentIndex(graphModel_->preferredLayer());
 }
 

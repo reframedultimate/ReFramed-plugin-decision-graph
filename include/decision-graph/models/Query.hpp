@@ -140,12 +140,20 @@ public:
             const States& states, const Range& range,
             const States& otherStates, const Range& otherRange) const;
 
-    rfcommon::Vector<Sequence> mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const;
-    rfcommon::Vector<Sequence> normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const;
+    /*!
+     * \brief Returns groups of motion values that would match the same label.
+     * 
+     * For example, if "nair" is in the query, then this will match both "anair"
+     * and "lnair" (aerial nair and landing nair). This information is used
+     * during graph construction to merge motion values.
+     */
+    const rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>>& mergeableMotions() const
+        { return mergeableLabels_; }
+
     void exportDOT(const char* filename, const rfcommon::MotionLabels* labels, rfcommon::FighterID fighterID);
 
 private:
     friend class QueryBuilder;
     rfcommon::Vector<Matcher> matchers_;
-    rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>> mergeMotions_;
+    rfcommon::Vector<rfcommon::SmallVector<rfcommon::FighterMotion, 4>> mergeableLabels_;
 };

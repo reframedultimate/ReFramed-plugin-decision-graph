@@ -441,7 +441,7 @@ Query* Query::compileAST(const QueryASTNode* ast, const rfcommon::MotionLabels* 
     rfcommon::SmallVector<Fragment, 16> fstack;  // "fragment stack"
     rfcommon::SmallVector<uint8_t, 16> qstack;   // "qualifier stack"
 
-    if (!compileASTRecurse(ast, labels, fighterID, error, &query->matchers_, &query->mergeMotions_, &fstack, &qstack))
+    if (!compileASTRecurse(ast, labels, fighterID, error, &query->matchers_, &query->mergeableLabels_, &fstack, &qstack))
         return nullptr;
     if (fstack.count() != 1)
         return nullptr;
@@ -732,89 +732,6 @@ rfcommon::Vector<Range> Query::findAllOverlapping(
 
     if (matchers_.count() > STACKMEMSIZE)
         free(listmem);
-
-    return result;
-}
-
-// ----------------------------------------------------------------------------
-rfcommon::Vector<Sequence> Query::mergeMotions(const States& states, const rfcommon::Vector<Range>& matches) const
-{
-    rfcommon::Vector<Sequence> result;
-
-    if (mergeMotions_.count() == 0)
-    {
-        for (const auto& range : matches)
-        {
-            Sequence& seq = result.emplace();
-            for (int idx = range.startIdx; idx != range.endIdx; ++idx)
-                seq.idxs.push(idx);
-        }
-        return result;
-    }
-
-    auto canMergeMotions = [this](rfcommon::FighterMotion m1, rfcommon::FighterMotion m2) -> bool {
-        for (int group = 0; group != mergeMotions_.count(); ++group)
-            if (mergeMotions_[group].findFirst(m1) != mergeMotions_[group].end()
-                && mergeMotions_[group].findFirst(m2) != mergeMotions_[group].end())
-            {
-                return true;
-            }
-        return false;
-    };
-
-    for (const auto& range : matches)
-    {
-        auto& seq = result.emplace();
-        seq.idxs.push(range.startIdx);
-        for (int idx = range.startIdx + 1; idx < range.endIdx; ++idx)
-        {
-            if (canMergeMotions(states[idx-1].motion, states[idx].motion))
-                continue;
-            seq.idxs.push(idx);
-        }
-    }
-
-    return result;
-}
-
-// ----------------------------------------------------------------------------
-rfcommon::Vector<Sequence> Query::normalizeMotions(const States& states, const rfcommon::Vector<Sequence>& matches) const
-{
-    if (mergeMotions_.count() == 0)
-        return matches;
-
-    rfcommon::Vector<Sequence> result;
-    rfcommon::HashMap<rfcommon::FighterMotion, int, rfcommon::FighterMotion::Hasher> groupIdxMap;
-    for (const auto& seq : matches)
-    {
-        auto& resultSeq = result.emplace();
-        resultSeq.idxs.reserve(matches.count());
-
-        for (int idx : seq.idxs)
-        {
-            for (int groupIdx = 0; groupIdx != mergeMotions_.count(); ++groupIdx)
-                if (mergeMotions_[groupIdx].findFirst(states[idx].motion) != mergeMotions_[groupIdx].end())
-                {
-                    // This motion can be merged with any of the other motions in this group.
-                    // Add all motions in the group to a map so they map to the same index.
-                    // This is used in a second pass to normalize all motion values in the
-                    // same group.
-                    for (int g = 0; g != mergeMotions_[groupIdx].count(); ++g)
-                        groupIdxMap.insertIfNew(mergeMotions_[groupIdx][g], idx);
-                    break;
-                }
-            resultSeq.idxs.push(idx);
-        }
-    }
-
-    for (auto& seq : result)
-        for (int& idx : seq.idxs)
-        {
-            auto groupIdxIt = groupIdxMap.find(states[idx].motion);
-            if (groupIdxIt == groupIdxMap.end())
-                continue;
-            idx = groupIdxIt->value();
-        }
 
     return result;
 }

@@ -31,6 +31,8 @@ public:
     void setOutgoingTreeSize(int size);
     void setIncomingTreeSize(int size);
     void setUseLargestIsland(bool enable);
+    void setFixEdges(bool enable);
+    void setMergeQualifiers(bool enable);
     void setShowHash40Values(bool enable);
     void setShowQualifiers(bool enable);
 
@@ -66,6 +68,8 @@ private:
     int outgoingTree_ = 0;
     int incomingTree_ = 0;
     bool useLargestIsland_ = false;
+    bool fixEdges_ = true;
+    bool mergeQualifiers_ = false;
     bool showHash40Values_ = false;
     bool showQualifiers_ = true;
 };

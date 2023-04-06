@@ -1,5 +1,6 @@
 #pragma once
 
+#include "decision-graph/listeners/GraphModelListener.hpp"
 #include "decision-graph/widgets/PropertyWidget.hpp"
 #include "rfcommon/MotionLabelsListener.hpp"
 
@@ -8,6 +9,7 @@ class QComboBox;
 
 class PropertyWidget_Graph
         : public PropertyWidget
+        , public GraphModelListener
         , public rfcommon::MotionLabelsListener
 {
 public:
@@ -18,6 +20,9 @@ public:
 
 private:
     void updateAvailableLayersDropdown();
+
+private:
+    void onGraphModelPreferredLayerChanged() override;
 
 private:
     void onMotionLabelsLoaded() override;

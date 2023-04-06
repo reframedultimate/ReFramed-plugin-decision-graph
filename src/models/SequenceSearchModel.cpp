@@ -95,7 +95,6 @@ void SequenceSearchModel::startNewSession(const rfcommon::MappingInfo* map, cons
     {
         queryResults_[i].sessionMatches.emplace();
         queryResults_[i].sessionMergedMatches.emplace();
-        queryResults_[i].sessionMergedAndNormalizedMatches.emplace();
     }
 
     // If there is a fighter and player name in the current session that
@@ -161,10 +160,8 @@ void SequenceSearchModel::clearAllAndNotify()
     {
         queryResults_[i].matches.clearCompact();
         queryResults_[i].mergedMatches.clearCompact();
-        queryResults_[i].mergedAndNormalizedMatches.clearCompact();
         queryResults_[i].sessionMatches.clearCompact();
         queryResults_[i].sessionMergedMatches.clearCompact();
-        queryResults_[i].sessionMergedAndNormalizedMatches.clearCompact();
     }
 
     dispatcher.dispatch(&SequenceSearchListener::onClearAll);
@@ -288,7 +285,6 @@ int SequenceSearchModel::addQuery()
 
     results.sessionMatches.resize(sessionCount());
     results.sessionMergedMatches.resize(sessionCount());
-    results.sessionMergedAndNormalizedMatches.resize(sessionCount());
 
     return compiledQueries_.count() - 1;
 }
@@ -405,7 +401,6 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
     // span over the boundaries of sessions
     results.matches.clear();
     results.mergedMatches.clear();
-    results.mergedAndNormalizedMatches.clear();
     for (int sessionIdx = 0; sessionIdx != sessionCount(); ++sessionIdx)
     {
         if (oppQuery.get() != nullptr)
@@ -431,13 +426,34 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
             );
         }
 
-        results.sessionMergedMatches[sessionIdx] = query->mergeMotions(fighterStates_[playerPOV_], results.sessionMatches[sessionIdx]);
-        results.sessionMergedAndNormalizedMatches[sessionIdx] = query->normalizeMotions(fighterStates_[playerPOV_], results.sessionMergedMatches[sessionIdx]);
+        // Often, motion values that belong to the same label need to be merged
+        // when e.g. being displayed back to the user or when constructing a graph.
+        auto canMergeMotions = [this, &query](rfcommon::FighterMotion m1, rfcommon::FighterMotion m2) -> bool {
+            for (const auto& mergeableMotions : query->mergeableMotions())
+                if (mergeableMotions.findFirst(m1) != mergeableMotions.end() &&
+                    mergeableMotions.findFirst(m2) != mergeableMotions.end())
+                {
+                    return true;
+                }
+            return false;
+        };
+
+        results.sessionMergedMatches[sessionIdx].clear();
+        for (const auto& range : results.sessionMatches[sessionIdx])
+        {
+            Sequence& seq = results.sessionMergedMatches[sessionIdx].emplace();
+            seq.idxs.push(range.startIdx);
+            for (int idx = range.startIdx + 1; idx < range.endIdx; ++idx)
+            {
+                if (canMergeMotions(fighterStates_[playerPOV_][idx - 1].motion, fighterStates_[playerPOV_][idx].motion))
+                    continue;
+                seq.idxs.push(idx);
+            }
+        }
 
         // Accumulate results into global results
         results.matches.push(results.sessionMatches[sessionIdx]);
         results.mergedMatches.push(results.sessionMergedMatches[sessionIdx]);
-        results.mergedAndNormalizedMatches.push(results.sessionMergedAndNormalizedMatches[sessionIdx]);
     }
 
     Graph().addStates(fighterStates_[playerPOV_], results.mergedMatches).exportDOT("decision_graph_search.dot", fighterStates_[playerPOV_], labels_);
@@ -463,19 +479,6 @@ bool SequenceSearchModel::applyQuery(int queryIdx)
     }
     printf("\nresults.mergedMatches:\n");
     for (const auto& seq : results.mergedMatches)
-    {
-        printf("  ");
-        for (int i = 0; i != seq.idxs.count(); ++i)
-        {
-            int idx = seq.idxs[i];
-            if (i != 0)
-                printf(" -> ");
-            printf("0x%lx (%s) | %x", fighterStates_[playerPOV_][idx].motion.value(), toHash40OrHex(fighterStates_[playerPOV_][idx].motion).cStr(), fighterStates_[playerPOV_][idx].flags);
-        }
-        printf("\n");
-    }
-    printf("\nresults.mergedAndNormalizedMatches:\n");
-    for (const auto& seq : results.mergedAndNormalizedMatches)
     {
         printf("  ");
         for (int i = 0; i != seq.idxs.count(); ++i)

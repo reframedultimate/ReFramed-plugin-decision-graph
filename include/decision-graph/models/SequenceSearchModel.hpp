@@ -114,8 +114,6 @@ public:
         { return queryResults_[queryIdx].matches; }
     const rfcommon::Vector<Sequence>& mergedMatches(int queryIdx) const
         { return queryResults_[queryIdx].mergedMatches; }
-    const rfcommon::Vector<Sequence>& mergedAndNormalizedMatches(int queryIdx) const
-        { return queryResults_[queryIdx].mergedAndNormalizedMatches; }
     const rfcommon::Vector<Range>& sessionMatches(int queryIdx, int sessionIdx) const
         { return queryResults_[queryIdx].sessionMatches[sessionIdx]; }
     const rfcommon::Vector<Sequence>& sessionMergedMatches(int queryIdx, int sessionIdx) const
@@ -168,10 +166,8 @@ private:
     {
         rfcommon::Vector<Range> matches;
         rfcommon::Vector<Sequence> mergedMatches;
-        rfcommon::Vector<Sequence> mergedAndNormalizedMatches;
         rfcommon::Vector<rfcommon::Vector<Range>> sessionMatches;
         rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedMatches;
-        rfcommon::Vector<rfcommon::Vector<Sequence>> sessionMergedAndNormalizedMatches;
     };
 
     rfcommon::Vector<QueryStrings> queryStrings_;
