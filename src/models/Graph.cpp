@@ -41,6 +41,34 @@ private:
     rfcommon::SmallVector<unsigned char, N/8+1> vec_;
 };
 
+// We only hash motion, status and flags, and NOT timings/position/shield/damage,
+// because for the purpose of searching for unique states and building graphs,
+// those values are irrelevant
+struct HasherNoSideData
+{
+    typedef uint32_t HashType;
+    HashType operator()(const State& node) const {
+        const uint32_t motion_l = node.motion.lower();
+        const uint16_t status = node.status.value();
+        const uint8_t motion_h = node.motion.upper();
+        const uint8_t interaction = node.interaction();
+
+        const uint32_t a = motion_l;
+        const uint32_t b = (status << 16) | (motion_h << 8) | (interaction << 0);
+        return rfcommon::hash32_combine(a, b);
+    }
+};
+
+struct CompareNoSideData
+{
+    bool operator()(const State& a, const State& b) const {
+        return
+            a.motion == b.motion &&
+            a.status == b.status &&
+            a.interaction() == b.interaction();
+    }
+};
+
 }
 
 // ----------------------------------------------------------------------------
@@ -62,7 +90,7 @@ void Graph::clear()
 Graph& Graph::addStates(const States& states, const rfcommon::Vector<Range>& ranges)
 {
     // Maps state to a node index so we can look up existing nodes for a given state
-    rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
+    rfcommon::HashMap<State, int, HasherNoSideData, CompareNoSideData> stateLookup;
     // Maps edge connections to edge index so we can look up existing connections
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 
@@ -113,7 +141,7 @@ Graph& Graph::addStates(const States& states, const rfcommon::Vector<Range>& ran
 Graph& Graph::addStates(const States& states, const rfcommon::Vector<Sequence>& sequences)
 {
     // Maps state to a node index so we can look up existing nodes for a given state
-    rfcommon::HashMap<State, int, State::HasherNoSideData, State::CompareNoSideData> stateLookup;
+    rfcommon::HashMap<State, int, HasherNoSideData, CompareNoSideData> stateLookup;
     // Maps edge connections to edge index so we can look up existing connections
     rfcommon::HashMap<EdgeConnection, int, EdgeConnection::Hasher> edgeLookup;
 

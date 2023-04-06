@@ -16,13 +16,6 @@ class GraphModel
         , public SequenceSearchListener
 {
 public:
-    enum GraphType
-    {
-        FULL_GRAPH,
-        OUTGOING_TREE,
-        INCOMING_TREE
-    };
-
     enum MergeBehavior
     {
         DONT_MERGE,
@@ -33,16 +26,18 @@ public:
     GraphModel(SequenceSearchModel* searchModel, rfcommon::MotionLabels* labels);
     ~GraphModel();
 
-    void setGraphType(GraphType type);
     void setMergeBehavior(MergeBehavior behavior);
     void setPreferredLayer(int layerIdx);
+    void setOutgoingTreeSize(int size);
+    void setIncomingTreeSize(int size);
     void setUseLargestIsland(bool enable);
     void setShowHash40Values(bool enable);
     void setShowQualifiers(bool enable);
 
-    GraphType graphType() const { return graphType_; }
     MergeBehavior mergeBehavior() const { return mergeBehavior_; }
     int preferredLayer() const { return preferredLayer_; }
+    int outgoingTreeSize() const { return outgoingTree_; }
+    int incomingTreeSize() const { return incomingTree_; }
     bool useLargestIsland() const { return useLargestIsland_; }
     bool showHash40Values() const { return showHash40Values_; }
     bool showQualifiers() const { return showQualifiers_; }
@@ -66,10 +61,11 @@ private:
     SequenceSearchModel* searchModel_;
     rfcommon::MotionLabels* labels_;
 
-    GraphType graphType_;
-    MergeBehavior mergeBehavior_;
+    MergeBehavior mergeBehavior_ = QUERY_MERGE;
     int preferredLayer_ = -1;
-    bool useLargestIsland_;
-    bool showHash40Values_;
-    bool showQualifiers_;
+    int outgoingTree_ = 0;
+    int incomingTree_ = 0;
+    bool useLargestIsland_ = false;
+    bool showHash40Values_ = false;
+    bool showQualifiers_ = true;
 };
