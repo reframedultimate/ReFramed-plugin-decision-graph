@@ -22,6 +22,10 @@
 #include "decision-graph/widgets/PropertyWidget_Templates.hpp"
 #include "decision-graph/widgets/PropertyWidget_Timings.hpp"
 
+#include "decision-graph/models/RegionItem.hpp"
+#include "decision-graph/models/RegionScene.hpp"
+#include "decision-graph/views/RegionEditorView.hpp"
+
 #include <QLineEdit>
 #include <QLabel>
 #include <QToolButton>
@@ -34,6 +38,7 @@
 SequenceSearchView::SequenceSearchView(
         SequenceSearchModel* model,
         GraphModel* graphModel,
+        RegionScene* regionModel,
         rfcommon::MotionLabels* labels,
         QWidget* parent)
     : QWidget(parent)
@@ -49,9 +54,9 @@ SequenceSearchView::SequenceSearchView(
     ui_->tab_pieChart->setLayout(new QVBoxLayout);
     ui_->tab_pieChart->layout()->addWidget(new PieChartView(model, labels));
 
-    ui_->tab_graph->setLayout(new QVBoxLayout);
     GraphView* graphView = new GraphView;
     graphView->setScene(graphModel);
+    ui_->tab_graph->setLayout(new QVBoxLayout);
     ui_->tab_graph->layout()->addWidget(graphView);
 
     ui_->tab_timings->setLayout(new QVBoxLayout);
@@ -65,6 +70,11 @@ SequenceSearchView::SequenceSearchView(
 
     ui_->tab_heatmap->setLayout(new QVBoxLayout);
     ui_->tab_heatmap->layout()->addWidget(new HeatMapView(model, labels));
+
+    RegionEditorView* regionEditor = new RegionEditorView;
+    regionEditor->setScene(regionModel);
+    ui_->tab_regionEditor->setLayout(new QVBoxLayout);
+    ui_->tab_regionEditor->layout()->addWidget(regionEditor);
 
     PropertyWidget* pwPOV = new PropertyWidget_POV(seqSearchModel_);
     PropertyWidget* pwQuery = new PropertyWidget_Query(seqSearchModel_);

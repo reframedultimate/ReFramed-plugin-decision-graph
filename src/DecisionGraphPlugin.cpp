@@ -2,8 +2,11 @@
 #include "decision-graph/views/SequenceSearchView.hpp"
 #include "decision-graph/models/GraphModel.hpp"
 #include "decision-graph/models/Query.hpp"
+#include "decision-graph/models/RegionScene.hpp"
 #include "decision-graph/models/SequenceSearchModel.hpp"
 #include "decision-graph/models/VisualizerInterface.hpp"
+
+#include "decision-graph/models/RegionItem.hpp"
 
 #include "rfcommon/FrameData.hpp"
 #include "rfcommon/HighresTimer.hpp"
@@ -16,9 +19,14 @@ DecisionGraphPlugin::DecisionGraphPlugin(RFPluginFactory* factory, rfcommon::Plu
     : Plugin(factory)
     , seqSearchModel_(new SequenceSearchModel(labels))
     , graphModel_(new GraphModel(seqSearchModel_.get(), labels))
+    , regionModel_(new RegionScene)
     , visualizerModel_(new VisualizerModel(seqSearchModel_.get(), pluginCtx, factory))
     , labels_(labels)
 {
+    RegionItem* item = new RegionItem;
+    item->setRect(0, 0, 300, 150);
+    regionModel_->addItem(item);
+
     labels_->dispatcher.addListener(this);
 }
 
@@ -39,7 +47,7 @@ rfcommon::Plugin::VideoPlayerInterface* DecisionGraphPlugin::videoPlayerInterfac
 QWidget* DecisionGraphPlugin::createView()
 {
     // Create new instance of view. The view registers as a listener to this model
-    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get(), labels_);
+    return new SequenceSearchView(seqSearchModel_.get(), graphModel_.get(), regionModel_.get(), labels_);
 }
 
 // ----------------------------------------------------------------------------

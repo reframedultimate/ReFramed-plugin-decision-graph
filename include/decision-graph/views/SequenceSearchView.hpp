@@ -18,6 +18,7 @@ class QToolButton;
 class QDir;
 
 class GraphModel;
+class RegionScene;
 class SequenceSearchModel;
 
 class SequenceSearchView : public QWidget
@@ -28,6 +29,7 @@ public:
     explicit SequenceSearchView(
             SequenceSearchModel* model,
             GraphModel* graphModel,
+            RegionScene* regionModel,
             rfcommon::MotionLabels* labels,
             QWidget* parent=nullptr);
     ~SequenceSearchView();

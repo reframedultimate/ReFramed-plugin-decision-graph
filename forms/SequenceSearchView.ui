@@ -40,8 +40,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1040</width>
-         <height>1063</height>
+         <width>69</width>
+         <height>1059</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -60,7 +60,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>8</number>
       </property>
       <widget class="QWidget" name="tab_stateList">
        <attribute name="title">
@@ -100,6 +100,11 @@
       <widget class="QWidget" name="tab_positioning">
        <attribute name="title">
         <string>Positioning</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_regionEditor">
+       <attribute name="title">
+        <string>Region Editor</string>
        </attribute>
       </widget>
      </widget>
