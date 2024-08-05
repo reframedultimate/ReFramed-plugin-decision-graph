@@ -4,3 +4,4 @@
 /.vs
 *.swp
 *.txt.user
+compile_commands.json

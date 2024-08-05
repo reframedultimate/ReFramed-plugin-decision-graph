@@ -36,8 +36,8 @@ void StateListView::updateText()
         for (int sessionIdx = 0; sessionIdx != model_->sessionCount(); ++sessionIdx)
         {
             cursor.insertText("  Replay: " + QString::fromUtf8(model_->sessionName(sessionIdx)) + "\n");
-            for (const Sequence& seq : model_->sessionMergedMatches(queryIdx, sessionIdx))
-                cursor.insertText("    " + QString::fromUtf8(toString(states, seq, labels_).cStr()) + "\n");
+            for (const Range& range : model_->sessionMatches(queryIdx, sessionIdx))
+                cursor.insertText("    " + QString::fromUtf8(toString(states, range, labels_).cStr()) + "\n");
         }
     }
 }

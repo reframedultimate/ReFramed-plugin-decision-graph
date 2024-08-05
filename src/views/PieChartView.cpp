@@ -19,9 +19,9 @@ PieChartView::PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* l
     : model_(model)
     , labels_(labels)
     , pieStack_(new QStackedWidget)
-    , pieIncomingSeries_(new QtCharts::QPieSeries)
-    , pieOutgoingSeries_(new QtCharts::QPieSeries)
-    , pieBreakdownSeries_(new QtCharts::QPieSeries)
+    , pieIncomingSeries_(new QPieSeries)
+    , pieOutgoingSeries_(new QPieSeries)
+    , pieBreakdownSeries_(new QPieSeries)
     , barBreakdownPlot_(new QwtPlot)
     , barBreakdownData_(new QwtPlotMultiBarChart)
 {
@@ -29,23 +29,23 @@ PieChartView::PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* l
         QWidget* ioPieCharts = new QWidget;
         ioPieCharts->setLayout(new QHBoxLayout);
         {
-            QtCharts::QChart* chart = new QtCharts::QChart();
+            QChart* chart = new QChart();
             chart->addSeries(pieIncomingSeries_);
             chart->setTitle("Incoming Options");
             chart->legend()->hide();
 
-            QtCharts::QChartView* view = new QtCharts::QChartView(chart);
+            QChartView* view = new QChartView(chart);
             view->setRenderHint(QPainter::Antialiasing);
 
             ioPieCharts->layout()->addWidget(view);
         }
         {
-            QtCharts::QChart* chart = new QtCharts::QChart();
+            QChart* chart = new QChart();
             chart->addSeries(pieOutgoingSeries_);
             chart->setTitle("Outgoing Options");
             chart->legend()->hide();
 
-            QtCharts::QChartView* view = new QtCharts::QChartView(chart);
+            QChartView* view = new QChartView(chart);
             view->setRenderHint(QPainter::Antialiasing);
 
             ioPieCharts->layout()->addWidget(view);
@@ -55,12 +55,12 @@ PieChartView::PieChartView(SequenceSearchModel* model, rfcommon::MotionLabels* l
     }
 
     {
-        QtCharts::QChart* chart = new QtCharts::QChart();
+        QChart* chart = new QChart();
         chart->addSeries(pieBreakdownSeries_);
         chart->setTitle("Option Breakdown");
         chart->legend()->hide();
 
-        QtCharts::QChartView* view = new QtCharts::QChartView(chart);
+        QChartView* view = new QChartView(chart);
         view->setRenderHint(QPainter::Antialiasing);
 
         pieStack_->addWidget(view);

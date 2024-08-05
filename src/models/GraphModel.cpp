@@ -278,6 +278,7 @@ void GraphModel::redrawGraph()
         ogdfEdges.push(E);
     }
 
+    ogdf::setSeed(42);
     ogdf::SugiyamaLayout layout;
     layout.setRanking(new ogdf::OptimalRanking);
     layout.setCrossMin(new ogdf::MedianHeuristic);

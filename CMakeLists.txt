@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.25)
 
 set (PLUGIN_NAME "decision-graph")
 
@@ -104,18 +104,18 @@ if (${REFRAMED_plugin-${PLUGIN_NAME}})
     # Qt Charts library
     ###########################################################################
 
-    find_package (Qt5 COMPONENTS Charts REQUIRED)
+    find_package (Qt6 COMPONENTS Charts REQUIRED)
     target_link_libraries (plugin-${PLUGIN_NAME}
-        PRIVATE Qt5::Charts)
+        PRIVATE Qt6::Charts)
 
     if (WIN32 OR CYGWIN)
         add_custom_command (TARGET plugin-${PLUGIN_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory ${REFRAMED_BUILD_PLUGINDEPSDIR}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll ${REFRAMED_BUILD_PLUGINDEPSDIR}
-            COMMENT "Copying Qt binaries from '${Qt5_DIR}/../../bin/' to '${REFRAMED_BUILD_PLUGINDIR}'"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${Qt6_DIR}/../../../bin/Qt6Charts$<$<CONFIG:Debug>:d>.dll ${REFRAMED_BUILD_PLUGINDEPSDIR}
+            COMMENT "Copying Qt binaries from '${Qt6_DIR}/../../bin/' to '${REFRAMED_BUILD_PLUGINDIR}'"
             VERBATIM)
         install (
-            FILES ${Qt5_DIR}/../../../bin/Qt5Charts$<$<CONFIG:Debug>:d>.dll
+            FILES ${Qt6_DIR}/../../../bin/Qt6Charts$<$<CONFIG:Debug>:d>.dll
             DESTINATION ${REFRAMED_INSTALL_PLUGINDEPSDIR})
     endif ()
 

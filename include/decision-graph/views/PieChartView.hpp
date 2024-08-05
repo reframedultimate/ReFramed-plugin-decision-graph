@@ -13,14 +13,12 @@ namespace rfcommon {
     class MotionLabels;
 }
 
-namespace QtCharts {
-    class QPieSeries;
-    class QBarSeries;
-    class QBarSet;
-    class QStackedBarSeries;
-    class QBarCategoryAxis;
-    class QValueAxis;
-}
+class QPieSeries;
+class QBarSeries;
+class QBarSet;
+class QStackedBarSeries;
+class QBarCategoryAxis;
+class QValueAxis;
 
 class PieChartView 
         : public QWidget
@@ -49,10 +47,10 @@ private:
     rfcommon::MotionLabels* labels_;
     QStackedWidget* pieStack_;
 
-    QtCharts::QPieSeries* pieIncomingSeries_;
-    QtCharts::QPieSeries* pieOutgoingSeries_;
+    QPieSeries* pieIncomingSeries_;
+    QPieSeries* pieOutgoingSeries_;
 
-    QtCharts::QPieSeries* pieBreakdownSeries_;
+    QPieSeries* pieBreakdownSeries_;
 
     QwtPlot* barBreakdownPlot_;
     QwtPlotMultiBarChart* barBreakdownData_;

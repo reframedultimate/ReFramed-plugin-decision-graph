@@ -67,7 +67,7 @@
 }
 
 %destructor { StrFree($$); } <string_value>
-%destructor { QueryASTNode::destroySingle($$); } <node_value>
+%destructor { QueryASTNode::destroyRecurse($$); } <node_value>
 
 %token '.' '*' '+' '?' '(' ')' '|' '!'
 %token INTO
